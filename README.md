@@ -1,2 +1,1 @@
-# home-dashboard
-Dashboard @Home
+# Dashboard @Home
