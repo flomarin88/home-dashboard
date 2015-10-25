@@ -1,9 +1,8 @@
 class Dashing.Ratp extends Dashing.Widget
 
-  ready: ->
+	ready: ->
     # This is fired when the widget is done being rendered
 
-  onData: (data) ->
-    # Handle incoming data
-    # You can access the html node of this widget with `@node`
-    # Example: $(@node).fadeOut().fadeIn() will make the node flash each time data comes in.
+	onData: (data) ->
+    	if data['status_icon']
+    		$('i.status-icon').attr 'class', "status-icon icon-background #{data['status_icon']}"

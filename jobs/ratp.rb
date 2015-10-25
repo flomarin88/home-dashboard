@@ -25,11 +25,20 @@ def getLinesInformations(traffic)
 	return lines
 end
 
+def getStatusIcon(traffic)
+	perturbations = traffic['perturbations']
+	if (perturbations != nil)
+		return "icon-warning-sign"
+	end
+	return nil
+end
+
 def trafficJob
 	traffic = getTrafficData()
 	situation = getTrafficSituation(traffic)
 	lines = getLinesInformations(traffic)
-	send_event('rer_traffic', { :situation => situation, :lines => lines })
+	status_icon = getStatusIcon(traffic)
+	send_event('rer_traffic', { :situation => situation, :lines => lines, :status_icon => status_icon })
 end
 
 SCHEDULER.every '5m', :first_in => 0 do |job|
