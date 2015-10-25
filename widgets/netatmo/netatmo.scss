@@ -1,0 +1,48 @@
+// ----------------------------------------------------------------------------
+// Sass declarations
+// ----------------------------------------------------------------------------
+$background-color:  #47bbb3;
+$value-color:       #fff;
+ 
+$title-color:       rgba(255, 255, 255, 0.7);;
+$moreinfo-color:    rgba(255, 255, 255, 0.7);;
+
+// ----------------------------------------------------------------------------
+// Widget-netatmo styles
+// ----------------------------------------------------------------------------
+.widget-netatmo { 
+ 
+  background-color: $background-color;
+  
+  .title { 
+    color: $title-color;
+  }
+ 
+  .temp {
+    color: $value-color;
+  }
+ 
+  .updated-at {
+    color: rgba(0, 0, 0, 0.3);
+  }
+}
+
+@font-face {
+  font-family: 'Climacons-Font';
+  src:url('climacons-webfont.eot');
+  src:url('climacons-webfont.eot?#iefix') format('embedded-opentype'),
+    url('climacons-webfont.svg#Climacons-Font') format('svg'),
+    url('climacons-webfont.woff') format('woff'),
+    url('climacons-webfont.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+.temp:after {
+  font-family: 'Climacons-Font';
+  speak: none;
+  font-style: normal;
+  font-weight: normal;
+  line-height: 1;
+  -webkit-font-smoothing: antialiased;
+  content: "\e03e";
+}
