@@ -1,7 +1,5 @@
 require 'json'
 
-nextTrainsJSON = '{destination: "St-Germain-en-Laye Poissy-Cergy",ligne: "a",station: "la varenne-chennevieres",horaires: [{id: "WRWN",terminus: "La Varenne-Chennevieres",horaire: "Sans voyageurs V.Z"},{id: "WRWN",terminus: "La Varenne-Chennevieres",horaire: "Sans voyageurs V.Z"},{id: "WRWN",terminus: "La Varenne-Chennevieres",horaire: "Sans voyageurs V.Z"}]}'
-
 def getTrafficData
 	trafficURI = URI('http://api-ratp.pierre-grimaud.fr/data/trafic/rer')
 	trafficDataResponse = Net::HTTP.get_response(trafficURI)
@@ -38,10 +36,21 @@ def trafficJob
 	situation = getTrafficSituation(traffic)
 	lines = getLinesInformations(traffic)
 	status_icon = getStatusIcon(traffic)
-	send_event('rer_traffic', { :situation => situation, :lines => lines, :status_icon => status_icon })
+	send_event('rer_traffic', { situation: situation, lines: lines, status_icon: status_icon })
 end
 
-SCHEDULER.every '5m', :first_in => 0 do |job|
+def nextTrainsJob
+	nextTrainsURI = URI('http://api-ratp.pierre-grimaud.fr/rer/a/la+varenne-chennevieres/st+germain+poissy+cergy')
+	nextTrainsDataResponse = Net::HTTP.get_response(nextTrainsURI)
+	nextTrains = JSON.parse(nextTrainsDataResponse.body)
+	horaires = nextTrains['horaires']
+	items = horaires.collect { |horaire|
+		{:label => horaire['terminus'], :value => horaire['horaire']}
+	}
+	send_event('rer_next_train', { items: items })
+end
+
+SCHEDULER.every '2m', :first_in => 0 do |job|
 	trafficJob()
-  	#send_event('rer_next_train', { :text => 'normal' })
+	nextTrainsJob()
 end
