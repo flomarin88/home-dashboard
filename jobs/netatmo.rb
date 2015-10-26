@@ -6,11 +6,11 @@ SCHEDULER.every '10s', :first_in => 0 do |job|
 	tokenURI = URI('https://api.netatmo.net/oauth2/token')
 	tokenResponse = Net::HTTP.post_form(
 		tokenURI, 
-		'grant_type' => '****', 
-		'client_id' => '****',
-		'client_secret' => '****',
-		'username' => '****',
-		'password' => '****',
+		'grant_type' => ENV['NETATMO_GRANT_TYPE'], 
+		'client_id' => ENV['NETATMO_CLIENT_ID'],
+		'client_secret' => ENV['NETATMO_CLIENT_SECRET'],
+		'username' => ENV['NETATMO_USERNAME'],
+		'password' => ENV['NETATMO_PASSWORD'],
 		'scope' => 'read_station'
 	)
 	tokenResult = JSON.parse(tokenResponse.body)
