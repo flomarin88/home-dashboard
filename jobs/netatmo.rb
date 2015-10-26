@@ -21,7 +21,10 @@ SCHEDULER.every '10s', :first_in => 0 do |job|
 	stationsDataURI.query = URI.encode_www_form(stationsDataParams)
 	stationsDataResponse = Net::HTTP.get_response(stationsDataURI)
 	stationsData = JSON.parse(stationsDataResponse.body)
+	
 	insideTemperature = stationsData['body']['devices'][0]['dashboard_data']['Temperature']
+	outsideTemperature = stationsData['body']['devices'][0]['modules'][0]['dashboard_data']['Temperature']
 
-	send_event('inside_temp', { :temp => "#{insideTemperature}" })
+	send_event('inside_temp', { temp: insideTemperature })
+	send_event('outside_temp', { temp: outsideTemperature })
 end
