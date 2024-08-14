@@ -1,3 +1,16 @@
+# Roadmap
+
+- Collect Netatmo metrics
+- Reminders
+- Automation (compare sensor values)
+
+# Technical stack
+
+- Vercel to host
+  - web app
+  - cron jobs
+  - database?
+
 This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
 
 ## Getting Started
