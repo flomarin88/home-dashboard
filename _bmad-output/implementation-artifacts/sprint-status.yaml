@@ -1,0 +1,88 @@
+# generated: 2026-07-13
+# last_updated: 2026-07-13
+# project: home-dashboard
+# project_key: NOKEY
+# tracking_system: file-system
+# story_location: {project-root}/_bmad-output/implementation-artifacts
+
+# STATUS DEFINITIONS:
+# ==================
+# Epic Status:
+#   - backlog: Epic not yet started
+#   - in-progress: Epic actively being worked on
+#   - done: All stories in epic completed
+#
+# Epic Status Transitions:
+#   - backlog → in-progress: Automatically when first story is created (via create-story)
+#   - in-progress → done: Manually when all stories reach 'done' status
+#
+# Story Status:
+#   - backlog: Story only exists in epic file
+#   - ready-for-dev: Story file created in stories folder
+#   - in-progress: Developer actively working on implementation
+#   - review: Ready for code review (via Dev's code-review workflow)
+#   - done: Story completed
+#
+# Retrospective Status:
+#   - optional: Can be completed but not required
+#   - done: Retrospective has been completed
+#
+# Action Item Status:
+#   - open: Committed during a retrospective, not yet addressed
+#   - in-progress: Actively being worked on
+#   - done: Completed
+#
+# WORKFLOW NOTES:
+# ===============
+# - Epic transitions to 'in-progress' automatically when first story is created
+# - Stories can be worked in parallel if team capacity allows
+# - Developer typically creates next story after previous one is 'done' to incorporate learnings
+# - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
+# - Retrospective appends its action items to action_items; sprint-status surfaces open ones
+
+generated: 2026-07-13
+last_updated: 2026-07-13
+project: home-dashboard
+project_key: NOKEY
+tracking_system: file-system
+story_location: "{project-root}/_bmad-output/implementation-artifacts"
+
+development_status:
+  # Epic 1 — Fondation & coup d'œil
+  epic-1: backlog
+  1-1-scaffold-connexion-home-assistant: backlog
+  1-2-design-system-glass-gradient: backlog
+  1-3-shell-kiosque-pwa: backlog
+  1-4-mapping-entity-id-centralise: backlog
+  1-5-ambiance-capteurs-netatmo-4-pieces: backlog
+  1-6-pattern-obsolescence-hors-ligne: backlog
+  epic-1-retrospective: optional
+
+  # Epic 2 — Pilotage des appareils
+  epic-2: backlog
+  2-1-infra-de-controle-optimiste-convergence: backlog
+  2-2-undo-des-actions-a-fort-impact: backlog
+  2-3-eclairage-allumer-eteindre-piece-groupe: backlog
+  2-4-eclairage-intensite-couleur: backlog
+  2-5-volets-ouvrir-fermer-position: backlog
+  2-6-climatisation-etage: backlog
+  2-7-robot-aspirateur-roborock: backlog
+  epic-2-retrospective: optional
+
+  # Epic 3 — Scènes
+  epic-3: backlog
+  3-1-rangee-de-scenes-declenchement: backlog
+  epic-3-retrospective: optional
+
+  # Epic 4 — Sécurité & caméras
+  epic-4: backlog
+  4-1-armer-desarmer: backlog
+  4-2-page-cameras-vue-live: backlog
+  4-3-page-cameras-historique: backlog
+  epic-4-retrospective: optional
+
+  # Epic 5 — Détail de pièce
+  epic-5: backlog
+  5-1-page-detail-de-piece-appareils: backlog
+  5-2-detail-de-piece-historique-capteurs: backlog
+  epic-5-retrospective: optional

@@ -1,0 +1,618 @@
+<style>
+/* ============================================================
+   HOME DASHBOARD — 3 DIRECTIONS VISUELLES
+   Hero screen: iPad KITCHEN wall dashboard, landscape ~16:10
+   Home Assistant front-end. Copy FR. Users: Florian + wife + Nathan(5) + Gaspard(3).
+   Feel: "salle de contrôle + ludique". Kids ACT -> large targets.
+
+   ------------------------------------------------------------
+   PAGE PALETTE (neutral dark shell)
+     --pg-bg        #0a0c10  page ground
+     --pg-panel     #12151c  section wrapper
+     --pg-text      #e6e9ef  primary text
+     --pg-muted     #8b93a3  secondary text
+     --pg-line      #262b36  hairline
+
+   ------------------------------------------------------------
+   DIRECTION A — "GLASS GRADIENT" (premium control-room)
+     Ground gradient : #1a1140 indigo -> #0d3a44 teal -> #3a1038 magenta hint
+     Card fill       : rgba(255,255,255,0.06) frosted + border rgba(255,255,255,0.12)
+     Text            : #f2f4fa / muted #aab3c8
+     Accents (1 per device type):
+       lights  amber  #ffb23e
+       shutters blue  #4aa3ff
+       climate  cyan  #35e0d8
+       security green #38d17a / red #ff5d5d
+     Stale/offline   : #5b6172 dashed
+     Radius ~20px, soft glows/shadows, medium density.
+
+   ------------------------------------------------------------
+   DIRECTION B — "DATA ROOM" (dense, utilitarian)
+     Surface   : near-black #060708 / cards #0e1116 / rail #0b0d11
+     Text      : #dfe4ec / muted #6b7280
+     Grid line : #1b2029
+     Semantic icon colors (bright):
+       lights  #ffc531  shutters #38bdf8  climate #22d3ee
+       security-ok #34d399  security-alert #f87171  co2 #a3e635
+     Sparkline #38bdf8 / gauge track #1b2029 fill #22d3ee
+     Stale     : #454b57 dashed. Radius ~10px, condensed, high density.
+
+   ------------------------------------------------------------
+   DIRECTION C — "BIG PLAY" (kid-forward, playful)
+     Ground    : #141826 deep
+     Saturated per-room COLOR BLOCKS:
+       Salon   #ff8a3d orange   Cuisine #2dd4bf teal
+       Nathan  #4f7cff blue     Gaspard #ffcf33 yellow
+       Parents #b06bff purple
+     Security green #22c55e / red #ff5470
+     Text on blocks #0f1220 (dark) / light #ffffff
+     Stale     : #6b7280 grey block, dashed. Radius ~28px, oversized, biggest hit areas.
+   ============================================================ */
+
+:root{
+  --pg-bg:#0a0c10; --pg-panel:#12151c; --pg-text:#e6e9ef;
+  --pg-muted:#8b93a3; --pg-line:#262b36;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;overflow-x:hidden;}
+body{
+  background:var(--pg-bg); color:var(--pg-text);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  -webkit-font-smoothing:antialiased; line-height:1.4;
+}
+.page{max-width:1320px;margin:0 auto;padding:32px 24px 80px;}
+.page-title{font-size:26px;font-weight:700;letter-spacing:-0.02em;margin:0 0 4px;}
+.page-sub{color:var(--pg-muted);font-size:14px;margin:0 0 36px;}
+
+.dir-block{margin-bottom:56px;}
+.dir-head{margin-bottom:16px;}
+.dir-name{font-size:19px;font-weight:700;letter-spacing:-0.01em;margin:0 0 6px;
+  display:flex;align-items:center;gap:10px;}
+.dir-tag{font-size:11px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;
+  padding:3px 9px;border-radius:999px;background:var(--pg-line);color:var(--pg-muted);}
+.dir-rationale{color:#aeb6c4;font-size:14px;max-width:900px;margin:0;}
+
+/* iPad frame (shared) */
+.ipad-scroll{overflow-x:auto;overflow-y:hidden;padding:4px 0 8px;}
+.ipad{
+  width:1180px; height:738px; border-radius:34px; position:relative;
+  background:#000; padding:14px; box-shadow:0 24px 60px rgba(0,0,0,0.6),0 0 0 2px #2a2e38,0 0 0 12px #0d0f14;
+  flex:0 0 auto;
+}
+.ipad::after{ /* front camera dot */
+  content:"";position:absolute;top:50%;right:7px;width:6px;height:6px;border-radius:50%;
+  background:#1c2028;transform:translateY(-50%);
+}
+.screen{width:100%;height:100%;border-radius:22px;overflow:hidden;position:relative;}
+
+/* ============================================================
+   DIRECTION A — GLASS GRADIENT
+   ============================================================ */
+.A .screen{
+  background:
+    radial-gradient(120% 90% at 12% 8%, rgba(120,80,255,0.34), transparent 55%),
+    radial-gradient(120% 120% at 90% 20%, rgba(58,16,56,0.55), transparent 60%),
+    radial-gradient(140% 120% at 78% 100%, rgba(13,58,68,0.75), transparent 65%),
+    linear-gradient(135deg,#1a1140 0%,#122a3a 48%,#251034 100%);
+  color:#f2f4fa;
+  padding:20px 22px;
+  display:flex;flex-direction:column;gap:14px;
+  font-size:14px;
+}
+.A-top{display:flex;align-items:center;gap:16px;}
+.A-clock{font-size:34px;font-weight:600;letter-spacing:-0.02em;font-variant-numeric:tabular-nums;}
+.A-clock small{display:block;font-size:11px;font-weight:500;color:#aab3c8;letter-spacing:0.04em;}
+.A-arm{
+  margin-left:8px;display:flex;align-items:center;gap:12px;
+  background:rgba(56,209,122,0.12);border:1px solid rgba(56,209,122,0.4);
+  border-radius:18px;padding:10px 18px;min-height:56px;box-shadow:0 0 24px rgba(56,209,122,0.18);
+}
+.A-arm .dot{width:12px;height:12px;border-radius:50%;background:#38d17a;box-shadow:0 0 12px #38d17a;}
+.A-arm b{font-size:16px;font-weight:700;}
+.A-arm span{font-size:12px;color:#aab3c8;}
+.A-arm .toggle{margin-left:6px;width:52px;height:28px;border-radius:999px;background:rgba(56,209,122,0.25);
+  border:1px solid rgba(56,209,122,0.5);position:relative;}
+.A-arm .toggle::after{content:"";position:absolute;left:3px;top:2px;width:22px;height:22px;border-radius:50%;background:#38d17a;box-shadow:0 0 10px #38d17a;}
+.A-cam{margin-left:auto;display:flex;align-items:center;gap:10px;
+  background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.14);
+  border-radius:16px;padding:10px 16px;min-height:52px;}
+.A-cam .thumb{width:56px;height:34px;border-radius:8px;background:linear-gradient(135deg,#2b3350,#0f1524);border:1px solid rgba(255,255,255,0.1);}
+.A-cam b{font-size:14px;font-weight:600;}
+.A-cam small{display:block;font-size:11px;color:#aab3c8;}
+.A-cam .chev{color:#aab3c8;font-size:18px;}
+
+.A-grid{display:grid;grid-template-columns:1.35fr 1fr;grid-template-rows:auto auto;gap:14px;flex:1;min-height:0;}
+.A-card{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:20px;
+  padding:14px 16px;backdrop-filter:blur(8px);box-shadow:0 8px 30px rgba(0,0,0,0.25);display:flex;flex-direction:column;min-height:0;}
+.A-card h3{margin:0 0 10px;font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#c7cede;}
+.A-card h3 .k{font-weight:500;color:#8791a8;text-transform:none;letter-spacing:0;font-size:11px;margin-left:6px;}
+
+/* ambiance */
+.A-amb{grid-column:1;grid-row:1;}
+.A-rooms{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;flex:1;}
+.A-room{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:14px;padding:10px 11px;display:flex;flex-direction:column;gap:2px;}
+.A-room .rn{font-size:13px;font-weight:600;}
+.A-room .temp{font-size:24px;font-weight:600;letter-spacing:-0.02em;margin:2px 0;}
+.A-room .met{font-size:11px;color:#aab3c8;}
+.A-room .co2ok{color:#7fe3a8;}
+.A-room.stale{border:1px dashed #5b6172;background:rgba(91,97,114,0.08);color:#7c8397;}
+.A-room.stale .temp{color:#5b6172;}
+.A-room.stale .rn{color:#8b93a8;}
+.A-badge-off{display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:700;color:#c2c8d6;background:rgba(91,97,114,0.35);border-radius:999px;padding:3px 8px;margin-top:4px;align-self:flex-start;}
+
+/* lights */
+.A-lights{grid-column:2;grid-row:1;}
+.A-master{display:flex;align-items:center;gap:12px;background:rgba(255,178,62,0.12);border:1px solid rgba(255,178,62,0.35);border-radius:14px;padding:10px 14px;margin-bottom:10px;}
+.A-master .ic{width:32px;height:32px;border-radius:9px;background:rgba(255,178,62,0.25);display:flex;align-items:center;justify-content:center;font-size:17px;}
+.A-master b{font-size:14px;}
+.A-master span{font-size:12px;color:#ffcf8a;}
+.A-master .pct{margin-left:auto;font-size:18px;font-weight:700;color:#ffb23e;}
+.A-ltiles{display:grid;grid-template-columns:1fr 1fr;gap:9px;flex:1;}
+.A-lt{border-radius:13px;padding:10px 12px;display:flex;flex-direction:column;justify-content:space-between;min-height:74px;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.04);}
+.A-lt.on{background:rgba(255,178,62,0.16);border-color:rgba(255,178,62,0.45);box-shadow:0 0 20px rgba(255,178,62,0.15);}
+.A-lt .lname{font-size:14px;font-weight:600;display:flex;align-items:center;gap:7px;}
+.A-lt .bulb{width:20px;height:20px;border-radius:50%;background:#3a3f4d;}
+.A-lt.on .bulb{background:#ffb23e;box-shadow:0 0 12px #ffb23e;}
+.A-lt .lstate{font-size:12px;color:#aab3c8;}
+.A-lt.on .lstate{color:#ffcf8a;}
+.A-lt.kid{min-height:92px;}
+.A-lt.kid .lname{font-size:16px;}
+.A-lt .kidtag{font-size:9px;letter-spacing:0.06em;text-transform:uppercase;color:#9aa3b8;}
+
+/* shutters */
+.A-shut{grid-column:1;grid-row:2;}
+.A-srows{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;flex:1;}
+.A-srow{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:14px;padding:10px 11px;display:flex;flex-direction:column;gap:8px;}
+.A-srow.master{background:rgba(74,163,255,0.12);border-color:rgba(74,163,255,0.35);}
+.A-srow .sn{font-size:13px;font-weight:600;}
+.A-srow .sp{font-size:12px;color:#9fc8ff;}
+.A-sctrl{display:flex;gap:6px;margin-top:auto;}
+.A-sctrl button{flex:1;height:34px;border-radius:9px;border:1px solid rgba(74,163,255,0.3);background:rgba(74,163,255,0.1);color:#bcd9ff;font-size:15px;cursor:default;}
+.A-sbar{height:5px;border-radius:3px;background:rgba(255,255,255,0.12);overflow:hidden;}
+.A-sbar i{display:block;height:100%;background:#4aa3ff;}
+
+/* climate */
+.A-clim{grid-column:2;grid-row:2;background:rgba(53,224,216,0.08);border-color:rgba(53,224,216,0.28);}
+.A-clim h3{color:#9fefe9;}
+.A-clim-body{display:flex;align-items:center;gap:16px;flex:1;}
+.A-set{display:flex;align-items:center;gap:10px;}
+.A-set button{width:44px;height:44px;border-radius:12px;border:1px solid rgba(53,224,216,0.4);background:rgba(53,224,216,0.14);color:#35e0d8;font-size:22px;cursor:default;}
+.A-set .val{font-size:36px;font-weight:600;letter-spacing:-0.03em;font-variant-numeric:tabular-nums;}
+.A-set .val small{font-size:16px;color:#9fefe9;}
+.A-clim-meta{display:flex;flex-direction:column;gap:7px;margin-left:auto;align-items:flex-end;}
+.A-chip{font-size:12px;font-weight:600;padding:5px 11px;border-radius:999px;background:rgba(53,224,216,0.16);border:1px solid rgba(53,224,216,0.35);color:#7ff0e9;}
+.A-clim .off{font-size:12px;color:#8b93a8;}
+
+/* scenes */
+.A-scenes{display:flex;gap:10px;}
+.A-scene{flex:1;display:flex;align-items:center;justify-content:center;gap:8px;min-height:52px;border-radius:16px;
+  background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.14);font-size:15px;font-weight:600;}
+.A-scene .emo{font-size:18px;}
+
+/* ============================================================
+   DIRECTION B — DATA ROOM
+   ============================================================ */
+.B .screen{background:#060708;color:#dfe4ec;display:flex;font-size:13px;}
+.B-rail{width:58px;flex:0 0 58px;background:#0b0d11;border-right:1px solid #1b2029;
+  display:flex;flex-direction:column;align-items:center;padding:12px 0;gap:6px;}
+.B-rail .logo{width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,#22d3ee,#38bdf8);margin-bottom:10px;
+  display:flex;align-items:center;justify-content:center;color:#04121a;font-weight:800;font-size:16px;}
+.B-ri{width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;color:#6b7280;}
+.B-ri.act{background:#111820;color:#38bdf8;box-shadow:inset 0 0 0 1px #1e3a4a;}
+.B-main{flex:1;display:flex;flex-direction:column;min-width:0;padding:12px 14px;gap:11px;}
+.B-top{display:flex;align-items:center;gap:14px;border-bottom:1px solid #1b2029;padding-bottom:11px;}
+.B-clock{font-size:26px;font-weight:600;font-variant-numeric:tabular-nums;letter-spacing:-0.01em;}
+.B-clock small{color:#6b7280;font-size:11px;font-weight:500;margin-left:8px;}
+.B-arm{display:flex;align-items:center;gap:10px;background:#0e1a15;border:1px solid #1e3a2c;border-radius:8px;padding:7px 14px;min-height:44px;}
+.B-arm .led{width:9px;height:9px;border-radius:50%;background:#34d399;box-shadow:0 0 8px #34d399;}
+.B-arm b{font-size:14px;}
+.B-arm small{color:#6b7280;font-size:11px;}
+.B-arm .sw{width:44px;height:24px;border-radius:6px;background:#12241b;border:1px solid #1e3a2c;position:relative;margin-left:4px;}
+.B-arm .sw::after{content:"";position:absolute;left:3px;top:2px;width:18px;height:18px;border-radius:4px;background:#34d399;}
+.B-cam{margin-left:auto;display:flex;align-items:center;gap:8px;color:#9aa3b0;font-size:13px;background:#0e1116;border:1px solid #1b2029;border-radius:8px;padding:8px 12px;min-height:42px;}
+.B-cam .t{width:44px;height:26px;border-radius:5px;background:linear-gradient(135deg,#1c2733,#0a0f15);}
+
+.B-cols{display:grid;grid-template-columns:1.5fr 1fr;gap:11px;flex:1;min-height:0;}
+.B-colL{display:flex;flex-direction:column;gap:11px;min-height:0;}
+.B-colR{display:flex;flex-direction:column;gap:11px;min-height:0;}
+.B-panel{background:#0e1116;border:1px solid #1b2029;border-radius:10px;padding:11px 13px;display:flex;flex-direction:column;min-height:0;}
+.B-panel h3{margin:0 0 9px;font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#8a93a1;display:flex;align-items:center;gap:7px;}
+.B-panel h3 .ic{font-size:14px;}
+
+/* ambiance with sparkline + gauge */
+.B-amb-body{display:flex;gap:12px;}
+.B-rooms{display:grid;grid-template-columns:1fr 1fr;gap:8px;flex:1;}
+.B-room{background:#0a0e13;border:1px solid #182029;border-radius:8px;padding:8px 10px;}
+.B-room .rn{font-size:12px;font-weight:600;color:#c4cbd6;display:flex;justify-content:space-between;}
+.B-room .temp{font-size:20px;font-weight:600;font-variant-numeric:tabular-nums;margin:2px 0 3px;}
+.B-room .met{font-size:11px;color:#6b7280;font-variant-numeric:tabular-nums;}
+.B-room .met b{color:#a3e635;font-weight:600;}
+.B-room.stale{border:1px dashed #454b57;background:#0a0c0f;}
+.B-room.stale .temp,.B-room.stale .rn{color:#454b57;}
+.B-room.stale .off{font-size:10px;font-weight:700;color:#8a93a1;background:#181c22;border-radius:4px;padding:2px 6px;display:inline-block;margin-top:4px;}
+.B-viz{width:132px;flex:0 0 132px;display:flex;flex-direction:column;gap:10px;}
+.B-spark{background:#0a0e13;border:1px solid #182029;border-radius:8px;padding:8px 9px;}
+.B-spark .lbl{font-size:10px;color:#6b7280;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;}
+.B-spark .val{font-size:15px;font-weight:600;color:#38bdf8;}
+.B-gauge{background:#0a0e13;border:1px solid #182029;border-radius:8px;padding:8px 9px;text-align:center;}
+.B-gauge .lbl{font-size:10px;color:#6b7280;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px;}
+.B-gring{width:64px;height:64px;border-radius:50%;margin:0 auto;
+  background:conic-gradient(#22d3ee 0 62%, #1b2029 62% 100%);
+  display:flex;align-items:center;justify-content:center;position:relative;}
+.B-gring::after{content:"";position:absolute;width:46px;height:46px;border-radius:50%;background:#0a0e13;}
+.B-gring b{position:relative;z-index:1;font-size:15px;font-weight:700;color:#e6edf5;}
+
+/* lights */
+.B-lgrid{display:grid;grid-template-columns:1fr 1fr;gap:7px;flex:1;}
+.B-master-l{grid-column:1/-1;display:flex;align-items:center;gap:10px;background:#191307;border:1px solid #3a2e0e;border-radius:8px;padding:8px 11px;}
+.B-master-l .ic{color:#ffc531;font-size:17px;}
+.B-master-l b{font-size:13px;}
+.B-master-l .pct{margin-left:auto;font-weight:700;color:#ffc531;font-size:15px;}
+.B-lt{background:#0a0e13;border:1px solid #182029;border-radius:8px;padding:8px 10px;display:flex;align-items:center;gap:9px;min-height:44px;}
+.B-lt .ic{font-size:17px;color:#3a4150;}
+.B-lt.on .ic{color:#ffc531;}
+.B-lt .ln{font-size:13px;font-weight:600;}
+.B-lt .ls{font-size:11px;color:#6b7280;}
+.B-lt.on .ls{color:#e0b544;}
+.B-lt.kid{min-height:56px;background:#0c1219;border-color:#1c2733;}
+.B-lt.kid .ln{font-size:14px;}
+.B-lt .sw2{margin-left:auto;width:34px;height:20px;border-radius:5px;background:#161b22;border:1px solid #232a34;position:relative;}
+.B-lt.on .sw2{background:#2a2208;border-color:#4a3c12;}
+.B-lt.on .sw2::after{content:"";position:absolute;right:2px;top:2px;width:14px;height:14px;border-radius:3px;background:#ffc531;}
+.B-lt .sw2::before{content:"";position:absolute;left:2px;top:2px;width:14px;height:14px;border-radius:3px;background:#3a4150;}
+.B-lt.on .sw2::before{display:none;}
+
+/* shutters */
+.B-srows{display:flex;flex-direction:column;gap:7px;flex:1;}
+.B-srow{display:flex;align-items:center;gap:10px;background:#0a0e13;border:1px solid #182029;border-radius:8px;padding:7px 11px;min-height:42px;}
+.B-srow.master{background:#071319;border-color:#123240;}
+.B-srow .ic{color:#38bdf8;font-size:15px;}
+.B-srow .sn{font-size:13px;font-weight:600;min-width:110px;}
+.B-srow .track{flex:1;height:5px;border-radius:3px;background:#182029;overflow:hidden;}
+.B-srow .track i{display:block;height:100%;background:#38bdf8;}
+.B-srow .sp{font-size:12px;color:#8a93a1;font-variant-numeric:tabular-nums;min-width:34px;text-align:right;}
+.B-sc{display:flex;gap:5px;}
+.B-sc button{width:30px;height:30px;border-radius:6px;background:#0e1620;border:1px solid #1c2733;color:#7dc9f0;font-size:13px;cursor:default;}
+
+/* climate */
+.B-clim-body{display:flex;align-items:center;gap:14px;}
+.B-clim-body .set{display:flex;align-items:center;gap:8px;}
+.B-clim-body .set button{width:38px;height:38px;border-radius:8px;background:#08181c;border:1px solid #123240;color:#22d3ee;font-size:19px;cursor:default;}
+.B-clim-body .val{font-size:30px;font-weight:600;font-variant-numeric:tabular-nums;}
+.B-clim-body .val small{font-size:14px;color:#22d3ee;}
+.B-clim-meta{margin-left:auto;display:flex;flex-direction:column;gap:6px;align-items:flex-end;}
+.B-chip{font-size:11px;font-weight:600;padding:4px 10px;border-radius:6px;background:#08181c;border:1px solid #123240;color:#22d3ee;}
+.B-clim-meta .st{font-size:11px;color:#6b7280;}
+
+/* scenes */
+.B-scenes{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
+.B-scene{display:flex;align-items:center;justify-content:center;gap:7px;min-height:46px;border-radius:8px;background:#0e1116;border:1px solid #1b2029;font-size:13px;font-weight:600;color:#c4cbd6;}
+.B-scene .emo{font-size:15px;}
+
+/* ============================================================
+   DIRECTION C — BIG PLAY
+   ============================================================ */
+.C .screen{background:linear-gradient(160deg,#171c2e,#101321);color:#fff;display:flex;flex-direction:column;padding:18px 20px;gap:14px;font-size:15px;}
+.C-top{display:flex;align-items:center;gap:16px;}
+.C-clock{font-size:40px;font-weight:800;letter-spacing:-0.03em;font-variant-numeric:tabular-nums;}
+.C-arm{display:flex;align-items:center;gap:14px;background:#123021;border:2px solid #22c55e;border-radius:22px;padding:12px 22px;min-height:66px;}
+.C-arm .big{width:44px;height:44px;border-radius:14px;background:#22c55e;display:flex;align-items:center;justify-content:center;font-size:24px;}
+.C-arm b{font-size:20px;font-weight:800;}
+.C-arm small{display:block;font-size:12px;color:#8fe6ac;}
+.C-cam{margin-left:auto;display:flex;align-items:center;gap:12px;background:rgba(255,255,255,0.07);border-radius:20px;padding:10px 18px;min-height:60px;}
+.C-cam .t{width:66px;height:40px;border-radius:12px;background:linear-gradient(135deg,#39406a,#161a2c);}
+.C-cam b{font-size:16px;}
+.C-cam small{display:block;font-size:12px;color:#aab3c8;}
+
+.C-main{display:grid;grid-template-columns:1.15fr 1fr;grid-template-rows:auto auto;gap:14px;flex:1;min-height:0;}
+.C-sec{display:flex;flex-direction:column;min-height:0;}
+.C-sec h3{margin:0 0 9px;font-size:14px;font-weight:800;letter-spacing:0.02em;color:#c9d1e4;text-transform:uppercase;}
+
+/* ambiance: big color room blocks */
+.C-amb{grid-column:1;grid-row:1;}
+.C-rooms{display:grid;grid-template-columns:repeat(4,1fr);gap:11px;flex:1;}
+.C-rblock{border-radius:24px;padding:14px;display:flex;flex-direction:column;justify-content:space-between;color:#0f1220;min-height:118px;}
+.C-rblock.salon{background:#ff8a3d;}
+.C-rblock.parents{background:#b06bff;color:#fff;}
+.C-rblock.nathan{background:#4f7cff;color:#fff;}
+.C-rblock .rn{font-size:16px;font-weight:800;}
+.C-rblock .temp{font-size:34px;font-weight:800;letter-spacing:-0.03em;line-height:1;}
+.C-rblock .met{font-size:12px;font-weight:600;opacity:0.85;}
+.C-rblock.stale{background:#333a49;color:#8b93a8;border:3px dashed #6b7280;}
+.C-rblock.stale .temp{color:#5b6172;}
+.C-rblock.stale .off{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:800;background:rgba(0,0,0,0.3);color:#c2c8d6;border-radius:10px;padding:5px 10px;}
+
+/* lights: giant tappable tiles */
+.C-lights{grid-column:2;grid-row:1;}
+.C-lgrid{display:grid;grid-template-columns:1fr 1fr;gap:11px;flex:1;}
+.C-master-l{grid-column:1/-1;display:flex;align-items:center;gap:14px;background:#3a2c0c;border:2px solid #ffcf33;border-radius:20px;padding:12px 18px;}
+.C-master-l .ic{font-size:26px;}
+.C-master-l b{font-size:17px;font-weight:800;}
+.C-master-l .pct{margin-left:auto;font-size:22px;font-weight:800;color:#ffcf33;}
+.C-lt{border-radius:22px;padding:14px;display:flex;flex-direction:column;justify-content:space-between;min-height:96px;
+  background:#1c2133;border:2px solid #2a3048;}
+.C-lt .ic{font-size:30px;}
+.C-lt .ln{font-size:17px;font-weight:800;}
+.C-lt .ls{font-size:13px;font-weight:600;color:#9aa3b8;}
+.C-lt.on{background:#4a3a10;border-color:#ffcf33;}
+.C-lt.on .ls{color:#ffcf33;}
+.C-lt.kid{min-height:112px;border-width:3px;}
+.C-lt.kid.nathan{background:#22315e;border-color:#4f7cff;}
+.C-lt.kid.gaspard{background:#4a3a10;border-color:#ffcf33;}
+.C-lt.kid .ln{font-size:20px;}
+.C-lt.kid .ic{font-size:36px;}
+
+/* shutters big buttons */
+.C-shut{grid-column:1;grid-row:2;}
+.C-srows{display:grid;grid-template-columns:repeat(4,1fr);gap:11px;flex:1;}
+.C-sblock{background:#1c2133;border:2px solid #2a3048;border-radius:22px;padding:12px;display:flex;flex-direction:column;gap:9px;}
+.C-sblock.master{background:#0f2740;border-color:#4f7cff;}
+.C-sblock .sn{font-size:15px;font-weight:800;}
+.C-sblock .sp{font-size:13px;font-weight:600;color:#8fb4ff;}
+.C-sbtns{display:flex;gap:7px;margin-top:auto;}
+.C-sbtns button{flex:1;height:42px;border-radius:12px;background:#2a3048;border:none;color:#b9c6ff;font-size:20px;cursor:default;}
+
+/* climate */
+.C-clim{grid-column:2;grid-row:2;background:#0d2b33;border-radius:24px;border:2px solid #2dd4bf;padding:14px 16px;display:flex;flex-direction:column;}
+.C-clim h3{color:#8ef0e0;}
+.C-clim-body{display:flex;align-items:center;gap:14px;flex:1;}
+.C-clim-body .set{display:flex;align-items:center;gap:10px;}
+.C-clim-body .set button{width:52px;height:52px;border-radius:16px;background:#124249;border:none;color:#2dd4bf;font-size:26px;cursor:default;}
+.C-clim-body .val{font-size:42px;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:-0.03em;}
+.C-clim-body .val small{font-size:18px;color:#8ef0e0;}
+.C-clim-meta{margin-left:auto;display:flex;flex-direction:column;gap:8px;align-items:flex-end;}
+.C-chip{font-size:14px;font-weight:800;padding:7px 14px;border-radius:14px;background:#124249;color:#5eead4;}
+.C-clim-meta .st{font-size:13px;font-weight:700;color:#8b93a8;}
+
+/* scenes big */
+.C-scenes{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
+.C-scene{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;min-height:74px;border-radius:22px;
+  background:rgba(255,255,255,0.08);border:2px solid rgba(255,255,255,0.16);font-size:16px;font-weight:800;}
+.C-scene .emo{font-size:28px;}
+
+@media (max-width:1240px){ .page{padding-left:16px;padding-right:16px;} }
+</style>
+
+<div class="page">
+  <h1 class="page-title">Home Dashboard — 3 directions visuelles</h1>
+  <p class="page-sub">Même écran d'accueil (tablette murale cuisine, paysage). Choisissez une direction — chaque piste montre le capteur « Gaspard » hors ligne.</p>
+
+  <!-- ============ DIRECTION A ============ -->
+  <div class="dir-block A">
+    <div class="dir-head">
+      <h2 class="dir-name">Direction A — « Glass Gradient » <span class="dir-tag">Salle de contrôle premium</span></h2>
+      <p class="dir-rationale">Fond dégradé indigo → teal → magenta et cartes translucides givrées avec halos doux : calme mais riche, un vrai « cockpit » de maison. Chaque type d'appareil a une couleur d'accent unique (lumières ambre, volets bleu, clim cyan, alarme vert/rouge) pour un repérage instantané sans surcharge. Densité moyenne, grands rayons, ombres douces — élégant pour un mur de cuisine toujours allumé.</p>
+    </div>
+    <div class="ipad-scroll"><div class="ipad"><div class="screen">
+      <div class="A-top">
+        <div class="A-clock">18:42<small>Vendredi 12 juillet</small></div>
+        <div class="A-arm">
+          <span class="dot"></span>
+          <div><b>Désarmé</b><br><span>Alarme maison</span></div>
+          <div class="toggle"></div>
+          <span>Armer</span>
+        </div>
+        <div class="A-cam">
+          <div class="thumb"></div>
+          <div><b>Caméras</b><small>Entrée · Salon</small></div>
+          <span class="chev">›</span>
+        </div>
+      </div>
+
+      <div class="A-grid">
+        <div class="A-card A-amb">
+          <h3>Ambiance <span class="k">capteurs Netatmo</span></h3>
+          <div class="A-rooms">
+            <div class="A-room"><div class="rn">Salon</div><div class="temp">21,4°</div><div class="met co2ok">CO₂ 620 ppm</div><div class="met">Humidité 48 %</div></div>
+            <div class="A-room"><div class="rn">Ch. Parents</div><div class="temp">20,1°</div><div class="met co2ok">CO₂ 540 ppm</div><div class="met">Humidité 51 %</div></div>
+            <div class="A-room"><div class="rn">Nathan</div><div class="temp">21,0°</div><div class="met co2ok">CO₂ 610 ppm</div><div class="met">Humidité 49 %</div></div>
+            <div class="A-room stale"><div class="rn">Gaspard</div><div class="temp">—</div><div class="met">Dernière donnée 14:02</div><span class="A-badge-off">⏱ Hors ligne</span></div>
+          </div>
+        </div>
+
+        <div class="A-card A-lights">
+          <h3>Éclairage</h3>
+          <div class="A-master"><div class="ic">💡</div><div><b>Toutes les lumières</b><br><span>3 zones allumées</span></div><div class="pct">100 %</div></div>
+          <div class="A-ltiles">
+            <div class="A-lt on"><div class="lname"><span class="bulb"></span>Salon</div><div class="lstate">Allumé · 100 %</div></div>
+            <div class="A-lt"><div class="lname"><span class="bulb"></span>Cuisine</div><div class="lstate">Éteint</div></div>
+            <div class="A-lt kid"><div class="lname"><span class="bulb"></span>Nathan</div><span class="kidtag">Chambre enfant</span><div class="lstate">Éteint · appuyer pour allumer</div></div>
+            <div class="A-lt kid on"><div class="lname"><span class="bulb"></span>Gaspard</div><span class="kidtag">Chambre enfant</span><div class="lstate">Allumé · 40 %</div></div>
+          </div>
+        </div>
+
+        <div class="A-card A-shut">
+          <h3>Volets</h3>
+          <div class="A-srows">
+            <div class="A-srow master"><div class="sn">Tous les volets</div><div class="sp">60 %</div><div class="A-sbar"><i style="width:60%"></i></div><div class="A-sctrl"><button>▲</button><button>❚❚</button><button>▼</button></div></div>
+            <div class="A-srow"><div class="sn">Salon</div><div class="sp">Ouvert · 99 %</div><div class="A-sbar"><i style="width:99%"></i></div><div class="A-sctrl"><button>▲</button><button>❚❚</button><button>▼</button></div></div>
+            <div class="A-srow"><div class="sn">Cuisine</div><div class="sp">Fermé · 0 %</div><div class="A-sbar"><i style="width:2%"></i></div><div class="A-sctrl"><button>▲</button><button>❚❚</button><button>▼</button></div></div>
+            <div class="A-srow"><div class="sn">Chambre</div><div class="sp">Ouvert · 40 %</div><div class="A-sbar"><i style="width:40%"></i></div><div class="A-sctrl"><button>▲</button><button>❚❚</button><button>▼</button></div></div>
+          </div>
+        </div>
+
+        <div class="A-card A-clim">
+          <h3>Climatisation <span class="k">Étage</span></h3>
+          <div class="A-clim-body">
+            <div class="A-set">
+              <button>−</button>
+              <div class="val">19<small>°C</small></div>
+              <button>+</button>
+            </div>
+            <div class="A-clim-meta">
+              <span class="A-chip">Mode Auto</span>
+              <span class="off">Éteint · consigne 19 °C</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="A-scenes">
+        <div class="A-scene"><span class="emo">☀️</span>Matin</div>
+        <div class="A-scene"><span class="emo">🎬</span>Cinéma</div>
+        <div class="A-scene"><span class="emo">🌙</span>Nuit</div>
+        <div class="A-scene"><span class="emo">🔒</span>Tout fermer</div>
+      </div>
+    </div></div></div>
+  </div>
+
+  <!-- ============ DIRECTION B ============ -->
+  <div class="dir-block B">
+    <div class="dir-head">
+      <h2 class="dir-name">Direction B — « Data Room » <span class="dir-tag">Dense &amp; utilitaire</span></h2>
+      <p class="dir-rationale">Surfaces quasi-noires, grille serrée et rail d'icônes à gauche : la lecture la plus « salle de contrôle », pensée pour Florian. Icônes sémantiques vives, mini-sparkline de température et jauge radiale CO₂ signalent le registre data sans décorer. Rayons courts (~10px), typographie condensée et forte densité d'information sur un seul écran.</p>
+    </div>
+    <div class="ipad-scroll"><div class="ipad"><div class="screen">
+      <div class="B-rail">
+        <div class="logo">H</div>
+        <div class="B-ri act">🏠</div>
+        <div class="B-ri">💡</div>
+        <div class="B-ri">🪟</div>
+        <div class="B-ri">❄️</div>
+        <div class="B-ri">📷</div>
+        <div class="B-ri">📊</div>
+      </div>
+      <div class="B-main">
+        <div class="B-top">
+          <div class="B-clock">18:42<small>ven. 12 juil.</small></div>
+          <div class="B-arm"><span class="led"></span><div><b>Désarmé</b></div><small>Alarme</small><div class="sw"></div><small>Armer</small></div>
+          <div class="B-cam"><div class="t"></div>Caméras · Entrée · Salon ›</div>
+        </div>
+
+        <div class="B-cols">
+          <div class="B-colL">
+            <div class="B-panel" style="flex:1.2">
+              <h3><span class="ic">🌡️</span>Ambiance — capteurs Netatmo</h3>
+              <div class="B-amb-body">
+                <div class="B-rooms">
+                  <div class="B-room"><div class="rn">Salon</div><div class="temp">21,4°</div><div class="met">CO₂ <b>620</b> ppm · 48 %</div></div>
+                  <div class="B-room"><div class="rn">Ch. Parents</div><div class="temp">20,1°</div><div class="met">CO₂ <b>540</b> ppm · 51 %</div></div>
+                  <div class="B-room"><div class="rn">Nathan</div><div class="temp">21,0°</div><div class="met">CO₂ <b>610</b> ppm · 49 %</div></div>
+                  <div class="B-room stale"><div class="rn">Gaspard</div><div class="temp">— —</div><div class="met">maj 14:02</div><span class="off">HORS LIGNE</span></div>
+                </div>
+                <div class="B-viz">
+                  <div class="B-spark">
+                    <div class="lbl">Temp. 24 h · Salon</div>
+                    <svg width="112" height="34" viewBox="0 0 112 34" preserveAspectRatio="none">
+                      <polyline points="0,26 14,24 28,27 42,20 56,22 70,14 84,17 98,10 112,12" fill="none" stroke="#38bdf8" stroke-width="2"/>
+                    </svg>
+                    <div class="val">21,4 °C</div>
+                  </div>
+                  <div class="B-gauge">
+                    <div class="lbl">CO₂ moyen</div>
+                    <div class="B-gring"><b>620</b></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="B-panel" style="flex:1">
+              <h3><span class="ic">🪟</span>Volets</h3>
+              <div class="B-srows">
+                <div class="B-srow master"><span class="ic">🪟</span><span class="sn">Tous les volets</span><div class="track"><i style="width:60%"></i></div><span class="sp">60 %</span><div class="B-sc"><button>▲</button><button>❚❚</button><button>▼</button></div></div>
+                <div class="B-srow"><span class="ic">🪟</span><span class="sn">Salon · ouvert</span><div class="track"><i style="width:99%"></i></div><span class="sp">99 %</span><div class="B-sc"><button>▲</button><button>❚❚</button><button>▼</button></div></div>
+                <div class="B-srow"><span class="ic">🪟</span><span class="sn">Cuisine · fermé</span><div class="track"><i style="width:2%"></i></div><span class="sp">0 %</span><div class="B-sc"><button>▲</button><button>❚❚</button><button>▼</button></div></div>
+                <div class="B-srow"><span class="ic">🪟</span><span class="sn">Chambre · ouvert</span><div class="track"><i style="width:40%"></i></div><span class="sp">40 %</span><div class="B-sc"><button>▲</button><button>❚❚</button><button>▼</button></div></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="B-colR">
+            <div class="B-panel" style="flex:1.2">
+              <h3><span class="ic">💡</span>Éclairage</h3>
+              <div class="B-lgrid">
+                <div class="B-master-l"><span class="ic">💡</span><b>Toutes les lumières</b><span class="pct">100 %</span></div>
+                <div class="B-lt on"><span class="ic">💡</span><div><div class="ln">Salon</div><div class="ls">Allumé · 100 %</div></div><span class="sw2"></span></div>
+                <div class="B-lt"><span class="ic">💡</span><div><div class="ln">Cuisine</div><div class="ls">Éteint</div></div><span class="sw2"></span></div>
+                <div class="B-lt kid"><span class="ic">💡</span><div><div class="ln">Nathan</div><div class="ls">Éteint</div></div><span class="sw2"></span></div>
+                <div class="B-lt kid on"><span class="ic">💡</span><div><div class="ln">Gaspard</div><div class="ls">Allumé · 40 %</div></div><span class="sw2"></span></div>
+              </div>
+            </div>
+
+            <div class="B-panel">
+              <h3><span class="ic">❄️</span>Climatisation — Étage</h3>
+              <div class="B-clim-body">
+                <div class="set"><button>−</button><div class="val">19<small>°C</small></div><button>+</button></div>
+                <div class="B-clim-meta"><span class="B-chip">Auto</span><span class="st">Éteint · consigne 19 °C</span></div>
+              </div>
+            </div>
+
+            <div class="B-panel">
+              <h3><span class="ic">🎬</span>Scènes</h3>
+              <div class="B-scenes">
+                <div class="B-scene"><span class="emo">☀️</span>Matin</div>
+                <div class="B-scene"><span class="emo">🎬</span>Cinéma</div>
+                <div class="B-scene"><span class="emo">🌙</span>Nuit</div>
+                <div class="B-scene"><span class="emo">🔒</span>Fermer</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div></div></div>
+  </div>
+
+  <!-- ============ DIRECTION C ============ -->
+  <div class="dir-block C">
+    <div class="dir-head">
+      <h2 class="dir-name">Direction C — « Big Play » <span class="dir-tag">Ludique, orienté enfants</span></h2>
+      <p class="dir-rationale">Grands blocs colorés par pièce, icônes surdimensionnées et libellés courts : Nathan (5 ans) et Gaspard (3 ans) peuvent allumer leur propre chambre d'un doigt. Contraste élevé, cibles tactiles énormes, peu de texte secondaire — la piste la plus « ludique ». Rayons généreux (~28px) et le minimum d'éléments pour rester lisible et joyeux sur le mur de la cuisine.</p>
+    </div>
+    <div class="ipad-scroll"><div class="ipad"><div class="screen">
+      <div class="C-top">
+        <div class="C-clock">18:42</div>
+        <div class="C-arm"><div class="big">🛡️</div><div><b>Désarmé</b><small>Appuyer pour armer</small></div></div>
+        <div class="C-cam"><div class="t"></div><div><b>Caméras</b><small>Entrée · Salon</small></div></div>
+      </div>
+
+      <div class="C-main">
+        <div class="C-sec C-amb">
+          <h3>Ambiance</h3>
+          <div class="C-rooms">
+            <div class="C-rblock salon"><div class="rn">Salon</div><div class="temp">21,4°</div><div class="met">CO₂ 620 · 48 %</div></div>
+            <div class="C-rblock parents"><div class="rn">Parents</div><div class="temp">20,1°</div><div class="met">CO₂ 540 · 51 %</div></div>
+            <div class="C-rblock nathan"><div class="rn">Nathan</div><div class="temp">21,0°</div><div class="met">CO₂ 610 · 49 %</div></div>
+            <div class="C-rblock stale"><div class="rn">Gaspard</div><div class="temp">—</div><span class="off">⏱ Hors ligne</span></div>
+          </div>
+        </div>
+
+        <div class="C-sec C-lights">
+          <h3>Lumières</h3>
+          <div class="C-lgrid">
+            <div class="C-master-l"><span class="ic">💡</span><b>Toutes les lumières</b><span class="pct">100 %</span></div>
+            <div class="C-lt kid nathan"><div class="ic">🌙</div><div><div class="ln">Nathan</div><div class="ls">Éteint · tape ici</div></div></div>
+            <div class="C-lt kid gaspard on"><div class="ic">💡</div><div><div class="ln">Gaspard</div><div class="ls">Allumé · 40 %</div></div></div>
+            <div class="C-lt on"><div class="ic">💡</div><div><div class="ln">Salon</div><div class="ls">Allumé · 100 %</div></div></div>
+            <div class="C-lt"><div class="ic">🌙</div><div><div class="ln">Cuisine</div><div class="ls">Éteint</div></div></div>
+          </div>
+        </div>
+
+        <div class="C-sec C-shut">
+          <h3>Volets</h3>
+          <div class="C-srows">
+            <div class="C-sblock master"><div class="sn">Tous</div><div class="sp">60 %</div><div class="C-sbtns"><button>▲</button><button>❚❚</button><button>▼</button></div></div>
+            <div class="C-sblock"><div class="sn">Salon</div><div class="sp">Ouvert 99 %</div><div class="C-sbtns"><button>▲</button><button>❚❚</button><button>▼</button></div></div>
+            <div class="C-sblock"><div class="sn">Cuisine</div><div class="sp">Fermé</div><div class="C-sbtns"><button>▲</button><button>❚❚</button><button>▼</button></div></div>
+            <div class="C-sblock"><div class="sn">Chambre</div><div class="sp">Ouvert 40 %</div><div class="C-sbtns"><button>▲</button><button>❚❚</button><button>▼</button></div></div>
+          </div>
+        </div>
+
+        <div class="C-clim">
+          <h3>Climatisation · Étage</h3>
+          <div class="C-clim-body">
+            <div class="set"><button>−</button><div class="val">19<small>°C</small></div><button>+</button></div>
+            <div class="C-clim-meta"><span class="C-chip">Auto</span><span class="st">Éteint</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="C-scenes">
+        <div class="C-scene"><span class="emo">☀️</span>Matin</div>
+        <div class="C-scene"><span class="emo">🎬</span>Cinéma</div>
+        <div class="C-scene"><span class="emo">🌙</span>Nuit</div>
+        <div class="C-scene"><span class="emo">🔒</span>Tout fermer</div>
+      </div>
+    </div></div></div>
+  </div>
+
+</div>

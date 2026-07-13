@@ -1,0 +1,325 @@
+<title>Home Dashboard — Architecture Spine v1</title>
+<style>
+  :root{
+    --bg:#F4F6F8; --surface:#FFFFFF; --surface-2:#EDF0F4; --ink:#1A2230; --ink-soft:#5B6472;
+    --border:#D7DCE4; --accent:#0E8F8A; --accent-ink:#0A6E6A; --accent-wash:rgba(14,143,138,.09);
+    --live:#2C9A66; --stale:#B67E28; --risk:#C24B3A;
+    --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+    --sans:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --maxw:1080px; --r:14px;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --bg:#12161B; --surface:#1B212A; --surface-2:#232B35; --ink:#E7ECF2; --ink-soft:#96A0AE;
+      --border:#2C343F; --accent:#3BB6AE; --accent-ink:#5FD0C8; --accent-wash:rgba(59,182,174,.12);
+      --live:#49B981; --stale:#D69A45; --risk:#D6685A;
+    }
+  }
+  :root[data-theme="light"]{
+    --bg:#F4F6F8; --surface:#FFFFFF; --surface-2:#EDF0F4; --ink:#1A2230; --ink-soft:#5B6472;
+    --border:#D7DCE4; --accent:#0E8F8A; --accent-ink:#0A6E6A; --accent-wash:rgba(14,143,138,.09);
+    --live:#2C9A66; --stale:#B67E28; --risk:#C24B3A;
+  }
+  :root[data-theme="dark"]{
+    --bg:#12161B; --surface:#1B212A; --surface-2:#232B35; --ink:#E7ECF2; --ink-soft:#96A0AE;
+    --border:#2C343F; --accent:#3BB6AE; --accent-ink:#5FD0C8; --accent-wash:rgba(59,182,174,.12);
+    --live:#49B981; --stale:#D69A45; --risk:#D6685A;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);
+    line-height:1.55;-webkit-font-smoothing:antialiased;font-size:16px}
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:clamp(20px,5vw,56px) clamp(16px,4vw,32px)}
+  .eyebrow{font-family:var(--mono);font-size:.7rem;letter-spacing:.18em;text-transform:uppercase;
+    color:var(--accent-ink);font-weight:600}
+  h1{font-size:clamp(2rem,5.5vw,3.1rem);line-height:1.04;margin:.35em 0 .1em;letter-spacing:-.02em;
+    text-wrap:balance;font-weight:680}
+  h2{font-size:1.35rem;letter-spacing:-.01em;margin:0 0 .2em;text-wrap:balance}
+  .lede{font-size:clamp(1.05rem,2.2vw,1.3rem);color:var(--ink-soft);max-width:60ch;margin:.4em 0 0}
+  .meta{display:flex;flex-wrap:wrap;gap:8px 20px;margin-top:22px;font-family:var(--mono);
+    font-size:.74rem;color:var(--ink-soft)}
+  .meta b{color:var(--ink);font-weight:600}
+  section{margin-top:clamp(40px,7vw,68px)}
+  .sec-head{display:flex;align-items:baseline;gap:14px;margin-bottom:20px;
+    border-bottom:1px solid var(--border);padding-bottom:12px}
+  .sec-head .n{font-family:var(--mono);font-size:.8rem;color:var(--accent-ink);font-weight:600}
+  .sub{color:var(--ink-soft);max-width:62ch}
+  code,.tok{font-family:var(--mono);font-size:.86em;background:var(--surface-2);
+    padding:.08em .38em;border-radius:5px;color:var(--accent-ink)}
+
+  /* diagram */
+  .diagram{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);
+    padding:clamp(18px,3vw,30px);overflow-x:auto}
+  .flow{display:flex;align-items:stretch;gap:14px;justify-content:center;flex-wrap:wrap;min-width:min-content}
+  .node{background:var(--surface-2);border:1px solid var(--border);border-radius:11px;
+    padding:16px 18px;min-width:180px;display:flex;flex-direction:column;gap:4px}
+  .node.truth{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset}
+  .node .t{font-weight:640;font-size:.98rem}
+  .node .d{font-size:.8rem;color:var(--ink-soft);font-family:var(--mono)}
+  .arrows{display:flex;flex-direction:column;justify-content:center;gap:14px;min-width:150px}
+  .ar{font-family:var(--mono);font-size:.68rem;color:var(--ink-soft);text-align:center;line-height:1.3}
+  .ar .line{display:block;color:var(--accent);font-size:1rem;letter-spacing:-1px}
+  .ar.up .line{color:var(--stale)}
+  .row-note{margin-top:16px;font-size:.82rem;color:var(--ink-soft);text-align:center}
+
+  /* AD grid */
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
+  .ad{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);
+    padding:18px 18px 16px;display:flex;flex-direction:column;gap:10px}
+  .ad-top{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+  .ad-id{font-family:var(--mono);font-size:.72rem;font-weight:700;color:#fff;background:var(--accent);
+    padding:.2em .5em;border-radius:6px;letter-spacing:.03em}
+  .ad h3{margin:0;font-size:1rem;line-height:1.2;flex:1;min-width:120px}
+  .pill{font-family:var(--mono);font-size:.63rem;letter-spacing:.08em;text-transform:uppercase;
+    padding:.2em .5em;border-radius:20px;font-weight:600;border:1px solid}
+  .pill.adopted{color:var(--live);border-color:var(--live);background:transparent}
+  .pill.risk{color:var(--risk);border-color:var(--risk);background:transparent}
+  .ad dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:4px 10px;font-size:.85rem}
+  .ad dt{font-family:var(--mono);font-size:.64rem;letter-spacing:.06em;text-transform:uppercase;
+    color:var(--ink-soft);padding-top:3px}
+  .ad dd{margin:0;color:var(--ink)}
+  .ad dd.rule{color:var(--ink);font-weight:500}
+
+  /* dep direction */
+  .dep{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:center;
+    font-family:var(--mono);font-size:.8rem}
+  .dep .b{background:var(--surface-2);border:1px solid var(--border);border-radius:9px;padding:10px 14px}
+  .dep .b.hub{border-color:var(--accent);color:var(--accent-ink)}
+  .dep .to{color:var(--ink-soft)}
+
+  /* table */
+  .tbl-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:var(--r)}
+  table{border-collapse:collapse;width:100%;min-width:520px;font-size:.87rem}
+  th,td{text-align:left;padding:11px 14px;border-bottom:1px solid var(--border);vertical-align:top}
+  th{font-family:var(--mono);font-size:.66rem;letter-spacing:.08em;text-transform:uppercase;
+    color:var(--ink-soft);font-weight:600;background:var(--surface-2)}
+  tr:last-child td{border-bottom:0}
+  td .tok{font-size:.8rem}
+  .gov{font-family:var(--mono);font-size:.74rem;color:var(--accent-ink)}
+
+  /* roadmap */
+  .lanes{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+  .lane{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:18px}
+  .lane h3{margin:0 0 4px;font-size:1rem;display:flex;align-items:center;gap:8px}
+  .lane .tag{font-family:var(--mono);font-size:.64rem;padding:.16em .5em;border-radius:6px;
+    background:var(--accent-wash);color:var(--accent-ink);font-weight:600}
+  .lane.v1{border-color:var(--accent)}
+  .lane ul{margin:8px 0 0;padding-left:1.1em;font-size:.86rem;color:var(--ink)}
+  .lane li{margin:.28em 0}
+  .lane li::marker{color:var(--accent)}
+  .muted{color:var(--ink-soft)}
+  footer{margin-top:60px;border-top:1px solid var(--border);padding-top:18px;
+    font-family:var(--mono);font-size:.72rem;color:var(--ink-soft);display:flex;
+    justify-content:space-between;flex-wrap:wrap;gap:8px}
+  @media (max-width:560px){.ad dl{grid-template-columns:1fr}.ad dt{padding-top:8px}}
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Architecture Spine · v1 · build substrate</div>
+    <h1>Home Dashboard</h1>
+    <p class="lede">Un kiosque iPad qui pilote la maison — client React réactif, mince, au-dessus de Home Assistant.</p>
+    <div class="meta">
+      <span>Paradigme&nbsp; <b>reactive thin-client · single source of truth</b></span>
+      <span>Altitude&nbsp; <b>initiative / v1</b></span>
+      <span>Statut&nbsp; <b>final</b></span>
+      <span>2026-07-12</span>
+    </div>
+  </header>
+
+  <section>
+    <div class="sec-head"><span class="n">01</span><h2>Le paradigme</h2></div>
+    <p class="sub">Home Assistant (Raspberry Pi) est <strong>l'unique système de vérité</strong> : capteurs, appareils, scènes, historique. Le dashboard est un <strong>SPA React sans backend propre</strong>. L'état des entités descend <em>HA → UI</em> par push WebSocket&nbsp;; l'intention utilisateur remonte <em>UI → HA</em> par appels de services/scènes.</p>
+    <div class="diagram" style="margin-top:18px">
+      <div class="flow">
+        <div class="node">
+          <span class="t">iPad — kiosque PWA</span>
+          <span class="d">React SPA (Vite)</span>
+          <span class="d">plein écran · Guided Access</span>
+        </div>
+        <div class="arrows">
+          <div class="ar"><span class="line">◄────</span>état des entités<br>WebSocket push · @hakit</div>
+          <div class="ar up"><span class="line">────►</span>services / scènes<br>(intention utilisateur)</div>
+        </div>
+        <div class="node truth">
+          <span class="t">Home Assistant</span>
+          <span class="d">système de vérité</span>
+          <span class="d">Raspberry Pi · LAN</span>
+        </div>
+        <div class="arrows">
+          <div class="ar"><span class="line">────</span>local</div>
+          <div class="ar"><span class="line">────</span>cloud</div>
+        </div>
+        <div class="node">
+          <span class="t">Appareils & sources</span>
+          <span class="d">lumières · volets · clim</span>
+          <span class="d">Netatmo · Arlo (cloud)</span>
+        </div>
+      </div>
+      <p class="row-note">Aucun serveur applicatif · aucune base de données propre en v1 — le build statique est servi <em>depuis</em> HA.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head"><span class="n">02</span><h2>Invariants &amp; règles</h2></div>
+    <p class="sub">Les décisions durables qu'un futur constructeur ne peut pas lire dans le code conforme. Chaque bloc : ce qu'il <em>lie</em>, la <em>divergence</em> qu'il empêche, la <em>règle</em> à suivre.</p>
+    <div class="grid" style="margin-top:18px">
+
+      <article class="ad">
+        <div class="ad-top"><span class="ad-id">AD-1</span><h3>HA = unique source de vérité</h3><span class="pill adopted">adopté</span></div>
+        <dl><dt>Lie</dt><dd>toute donnée partagée / persistée</dd>
+        <dt>Empêche</dt><dd>états divergents · backend fantôme</dd>
+        <dt class="rule">Règle</dt><dd class="rule">tout état partagé vit dans HA ; l'app ne possède que de l'état UI éphémère. Aucun backend ni base en v1.</dd></dl>
+      </article>
+
+      <article class="ad">
+        <div class="ad-top"><span class="ad-id">AD-2</span><h3>Connectivité HA via @hakit uniquement</h3><span class="pill adopted">adopté</span></div>
+        <dl><dt>Lie</dt><dd>toute I/O vers HA</dd>
+        <dt>Empêche</dt><dd>des unités qui ré-implémentent auth/connexion</dd>
+        <dt class="rule">Règle</dt><dd class="rule">accès HA <strong>uniquement</strong> via <span class="tok">@hakit</span>. Exception unique : le média caméra passe par <strong>un seul helper</strong>.</dd></dl>
+      </article>
+
+      <article class="ad">
+        <div class="ad-top"><span class="ad-id">AD-3</span><h3>Autorité d'état : une source réactive</h3></div>
+        <dl><dt>Lie</dt><dd>l'état des entités dans l'UI</dd>
+        <dt>Empêche</dt><dd>deux widgets aux valeurs obsolètes divergentes</dd>
+        <dt class="rule">Règle</dt><dd class="rule">état confirmé via l'abonnement <span class="tok">@hakit</span> seul ; aucun cache persistant. Carve-out : la couche pending d'AD-11.</dd></dl>
+      </article>
+
+      <article class="ad">
+        <div class="ad-top"><span class="ad-id">AD-4</span><h3>Zéro automatisation côté client (v1)</h3></div>
+        <dl><dt>Lie</dt><dd>où vit le comportement</dd>
+        <dt>Empêche</dt><dd>de la logique métier qui fuit dans le client</dd>
+        <dt class="rule">Règle</dt><dd class="rule">l'app <strong>appelle</strong> services/scènes HA ; toute logique si/alors vit dans HA.</dd></dl>
+      </article>
+
+      <article class="ad">
+        <div class="ad-top"><span class="ad-id">AD-5</span><h3>Pilotage : optimiste + convergence</h3></div>
+        <dl><dt>Lie</dt><dd>chaque widget de contrôle</dd>
+        <dt>Empêche</dt><dd>réconciliation binaire cassée sur volet/clim</dd>
+        <dt class="rule">Règle</dt><dd class="rule">retour visuel &lt;200&nbsp;ms via AD-11, puis <strong>convergence vers la cible</strong> ; états transitionnels ≠ échec ; modèle par domaine + timeout.</dd></dl>
+      </article>
+
+      <article class="ad">
+        <div class="ad-top"><span class="ad-id">AD-6</span><h3>Dégradation à la déconnexion</h3></div>
+        <dl><dt>Lie</dt><dd>tous les widgets (NFR4)</dd>
+        <dt>Empêche</dt><dd>écran blanc · entité cloud tombée inaperçue</dd>
+        <dt class="rule">Règle</dt><dd class="rule">obsolescence <strong>par entité, indépendante du socket</strong> (perte WS <em>ou</em> <span class="tok">unavailable</span>) → dernière valeur + indicateur.</dd></dl>
+      </article>
+
+      <article class="ad">
+        <div class="ad-top"><span class="ad-id">AD-7</span><h3>Mapping entity_id : source unique</h3></div>
+        <dl><dt>Lie</dt><dd>organisation par pièce + widgets</dd>
+        <dt>Empêche</dt><dd>ids codés en dur · un concept en 2 entités</dd>
+        <dt class="rule">Règle</dt><dd class="rule">une config unique mappe <span class="tok">entity_id</span> ↔ pièce/widget ; <strong>une entité canonique par concept</strong> (domaine + service).</dd></dl>
+      </article>
+
+      <article class="ad">
+        <div class="ad-top"><span class="ad-id">AD-8</span><h3>Auth par jeton local</h3><span class="pill adopted">adopté</span></div>
+        <dl><dt>Lie</dt><dd>authentification (NFR3)</dd>
+        <dt>Empêche</dt><dd>ré-auth interactive · token dans le bundle</dd>
+        <dt class="rule">Règle</dt><dd class="rule">token en config <strong>gitignorée au runtime, jamais bundlée</strong> ; préférer la session HA si servi en même origine.</dd></dl>
+      </article>
+
+      <article class="ad">
+        <div class="ad-top"><span class="ad-id">AD-9</span><h3>Build statique, servi depuis HA</h3><span class="pill adopted">adopté</span></div>
+        <dl><dt>Lie</dt><dd>déploiement · NFR5 · NFR1</dd>
+        <dt>Empêche</dt><dd>serveur applicatif · démarrage froid lent</dd>
+        <dt class="rule">Règle</dt><dd class="rule">statique (Vite) servi depuis HA, même origine, LAN. PWA : cache <strong>app-shell</strong> ; données toujours live.</dd></dl>
+      </article>
+
+      <article class="ad">
+        <div class="ad-top"><span class="ad-id">AD-10</span><h3>Accueil composé + pages profondes</h3></div>
+        <dl><dt>Lie</dt><dd>navigation (FR8, FR9)</dd>
+        <dt>Empêche</dt><dd>nav profonde qui casse le glanceable</dd>
+        <dt class="rule">Règle</dt><dd class="rule">un écran d'accueil composé + routes séparées pour l'approfondissement (caméras : live + historique).</dd></dl>
+      </article>
+
+      <article class="ad">
+        <div class="ad-top"><span class="ad-id">AD-11</span><h3>Couche « pending » par entité</h3></div>
+        <dl><dt>Lie</dt><dd>toute action de pilotage + scène</dd>
+        <dt>Empêche</dt><dd>2 widgets sur <span class="tok">light.salon</span> qui font la course</dd>
+        <dt class="rule">Règle</dt><dd class="rule">intentions en vol dans <strong>une seule couche pending</strong>, clé <span class="tok">entity_id</span>, last-command-wins, bornée — distincte d'un cache (AD-3).</dd></dl>
+      </article>
+
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head"><span class="n">03</span><h2>Direction de dépendance</h2></div>
+    <p class="sub">Qui peut dépendre de qui. Tout converge vers le seam <span class="tok">@hakit</span>, seul point de contact avec Home Assistant.</p>
+    <div class="diagram" style="margin-top:18px">
+      <div class="dep">
+        <span class="b">widgets / pages</span>
+        <span class="to">→</span>
+        <span class="b">mapping entity_id (AD-7)</span>
+        <span class="to">·</span>
+        <span class="b">pending (AD-11)</span>
+        <span class="to">·</span>
+        <span class="b">helper média (AD-2)</span>
+        <span class="to">→</span>
+        <span class="b hub">seam @hakit</span>
+        <span class="to">→</span>
+        <span class="b hub">Home Assistant</span>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head"><span class="n">04</span><h2>Capacités → architecture</h2></div>
+    <div class="tbl-wrap" style="margin-top:6px">
+      <table>
+        <thead><tr><th>Capacité (v1)</th><th>Vit dans</th><th>Gouverné par</th></tr></thead>
+        <tbody>
+          <tr><td>FR1 · Capteurs Netatmo (4 pièces)</td><td><span class="tok">widgets/</span> capteurs</td><td class="gov">AD-3 · AD-6 · AD-7</td></tr>
+          <tr><td>FR2–FR3 · Éclairage</td><td><span class="tok">widgets/</span> lumières</td><td class="gov">AD-4 · AD-5 · AD-7 · AD-11</td></tr>
+          <tr><td>FR4 · Volets</td><td><span class="tok">widgets/</span> volets</td><td class="gov">AD-4 · AD-5 · AD-7 · AD-11</td></tr>
+          <tr><td>FR5 · Scènes mixtes</td><td>appel scène HA</td><td class="gov">AD-4 · AD-11</td></tr>
+          <tr><td>FR6 · Climatisation</td><td><span class="tok">widgets/</span> clim</td><td class="gov">AD-4 · AD-5 · AD-7 · AD-11</td></tr>
+          <tr><td>FR7 · Armer / désarmer</td><td>widget accueil</td><td class="gov">AD-5 · AD-7 · AD-11</td></tr>
+          <tr><td>FR8 · Caméras <span class="pill risk" style="font-size:.55rem">à risque</span></td><td><span class="tok">pages/</span> caméras</td><td class="gov">AD-2 · AD-10 · AD-6</td></tr>
+          <tr><td>FR9 · Écran d'accueil kiosque</td><td><span class="tok">pages/</span> accueil</td><td class="gov">AD-10 · NFR1 · NFR2</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head"><span class="n">05</span><h2>Roadmap &amp; différé</h2></div>
+    <div class="lanes" style="margin-top:6px">
+      <div class="lane v1">
+        <h3>v1 <span class="tag">socle domotique</span></h3>
+        <p class="muted" style="margin:.2em 0 0;font-size:.84rem">Client HA, intégrations natives, faible risque.</p>
+        <ul>
+          <li>Capteurs Netatmo · 4 pièces</li>
+          <li>Éclairage · volets · climatisation</li>
+          <li>Scènes mixtes (dans HA)</li>
+          <li>Caméras Arlo — armer + page live</li>
+        </ul>
+      </div>
+      <div class="lane">
+        <h3>v2 <span class="tag">coordination</span></h3>
+        <p class="muted" style="margin:.2em 0 0;font-size:.84rem">Persisté d'abord dans les primitives HA natives.</p>
+        <ul>
+          <li>Couche familiale à état partagé</li>
+          <li>Courses · plantes · tortues · corvées</li>
+          <li>UI d'édition des règles (écrit dans HA)</li>
+          <li>Voix : Google → HA → état partagé</li>
+        </ul>
+      </div>
+      <div class="lane">
+        <h3>Différé <span class="tag">au besoin</span></h3>
+        <ul>
+          <li><strong>Spike Arlo</strong> — mis de côté ; FR8 reste à risque (repli snapshots)</li>
+          <li><strong>Recettes / meal-planning</strong> — app dédiée séparée ; le dashboard n'en montre qu'une <em>vue read-only isolée</em></li>
+          <li>Backlog flux : météo, calendrier, poubelles, conso, colis, trafic</li>
+          <li>Durcissement sécurité · tests / observabilité</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <span>Home Dashboard · Architecture Spine v1</span>
+    <span>@hakit 6.0.2 · React 19 · Vite · Home Assistant</span>
+  </footer>
+</div>

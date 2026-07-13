@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Home Dashboard — Détail de pièce (Salon)</title>
+<style>
+/* ============================================================
+   HOME DASHBOARD — DÉTAIL DE PIÈCE "SALON"
+   Deep page, landscape iPad ~1180×738.
+   Visual language: DIRECTION A "GLASS GRADIENT" (premium control-room).
+     Ground gradient : #1a1140 indigo -> #122a3a teal -> #251034 magenta hint
+     Card fill       : rgba(255,255,255,0.06) frosted + border rgba(255,255,255,0.12)
+     Text            : #f2f4fa / muted #aab3c8
+     Accents (1 per device type):
+       lights  amber  #ffb23e
+       shutters blue  #4aa3ff
+       climate  cyan  #35e0d8  (NOT used here — Salon has no AC)
+       sensors  handled with neutral glass + subtle accent
+     Stale/offline   : #5b6172 dashed
+     Radius ~20px, soft glows/shadows, tabular numerals for figures.
+   No JS. No network. Fake sparklines via inline SVG polylines.
+   ============================================================ */
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;overflow-x:hidden;}
+body{
+  background:#0a0c10;
+  color:#e6e9ef;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;line-height:1.4;
+  min-height:100vh;display:flex;flex-direction:column;align-items:center;
+  padding:32px 24px 64px;gap:20px;
+}
+.page-title{font-size:22px;font-weight:700;letter-spacing:-0.02em;margin:0;text-align:center;}
+.page-sub{color:#8b93a3;font-size:13px;margin:0;text-align:center;}
+
+/* iPad frame */
+.ipad-scroll{overflow-x:auto;overflow-y:hidden;max-width:100%;padding:4px 0 8px;}
+.ipad{
+  width:1180px;height:738px;border-radius:34px;position:relative;
+  background:#000;padding:14px;
+  box-shadow:0 24px 60px rgba(0,0,0,0.6),0 0 0 2px #2a2e38,0 0 0 12px #0d0f14;
+}
+.ipad::after{content:"";position:absolute;top:50%;right:7px;width:6px;height:6px;border-radius:50%;
+  background:#1c2028;transform:translateY(-50%);}
+.screen{width:100%;height:100%;border-radius:22px;overflow:hidden;position:relative;}
+
+/* ---------- DIRECTION A SCREEN ---------- */
+.screen{
+  background:
+    radial-gradient(120% 90% at 12% 8%, rgba(120,80,255,0.34), transparent 55%),
+    radial-gradient(120% 120% at 90% 20%, rgba(58,16,56,0.55), transparent 60%),
+    radial-gradient(140% 120% at 78% 100%, rgba(13,58,68,0.75), transparent 65%),
+    linear-gradient(135deg,#1a1140 0%,#122a3a 48%,#251034 100%);
+  color:#f2f4fa;
+  padding:18px 22px;
+  display:flex;flex-direction:column;gap:14px;
+  font-size:14px;
+}
+
+/* top bar */
+.top{display:flex;align-items:center;gap:18px;}
+.back{
+  display:flex;align-items:center;gap:9px;
+  background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.14);
+  border-radius:16px;padding:12px 20px;min-height:56px;
+  font-size:17px;font-weight:600;color:#f2f4fa;cursor:default;
+}
+.back .chev{font-size:26px;line-height:1;color:#aab3c8;margin-top:-2px;}
+.room-id{display:flex;flex-direction:column;gap:2px;}
+.room-id .name{font-size:30px;font-weight:700;letter-spacing:-0.02em;}
+.room-id .sum{font-size:13px;color:#aab3c8;}
+.room-id .sum b{color:#c7cede;font-weight:600;}
+.top .now{margin-left:auto;text-align:right;}
+.top .now .clock{font-size:26px;font-weight:600;letter-spacing:-0.02em;font-variant-numeric:tabular-nums;}
+.top .now .day{font-size:11px;color:#aab3c8;letter-spacing:0.04em;}
+
+/* grid: sensors span full width top, then lights + shutters */
+.grid{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:auto 1fr;gap:14px;flex:1;min-height:0;}
+.card{
+  background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:20px;
+  padding:15px 18px;backdrop-filter:blur(8px);box-shadow:0 8px 30px rgba(0,0,0,0.25);
+  display:flex;flex-direction:column;min-height:0;
+}
+.card h3{margin:0 0 12px;font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;
+  color:#c7cede;display:flex;align-items:center;gap:8px;}
+.card h3 .k{font-weight:500;color:#8791a8;text-transform:none;letter-spacing:0;font-size:11px;}
+.card h3 .k::before{content:"·";margin-right:6px;color:#5b6172;}
+
+/* ---- SENSORS (Netatmo) with 24h history ---- */
+.sensors{grid-column:1 / -1;grid-row:1;}
+.sensors .row{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;}
+.metric{
+  background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:16px;
+  padding:14px 16px;display:flex;flex-direction:column;gap:8px;
+}
+.metric .head{display:flex;align-items:baseline;gap:10px;}
+.metric .lbl{font-size:12px;font-weight:600;color:#aab3c8;letter-spacing:0.02em;}
+.metric .big{font-size:40px;font-weight:600;letter-spacing:-0.03em;font-variant-numeric:tabular-nums;line-height:1;}
+.metric .big small{font-size:17px;color:#aab3c8;font-weight:500;margin-left:4px;}
+.metric .spark{width:100%;height:40px;display:block;}
+.metric .foot{display:flex;justify-content:space-between;font-size:11px;color:#8b93a3;}
+.metric .foot .good{color:#7fe3a8;font-weight:600;}
+.metric.temp .big{color:#f2f4fa;}
+.metric.co2 .big{color:#f2f4fa;}
+.metric.hum .big{color:#f2f4fa;}
+
+/* ---- LIGHTS (amber) ---- */
+.lights{grid-column:1;grid-row:2;background:rgba(255,178,62,0.08);border-color:rgba(255,178,62,0.24);}
+.lights h3{color:#ffcf8a;}
+.light-main{
+  display:flex;align-items:center;gap:14px;
+  background:rgba(255,178,62,0.14);border:1px solid rgba(255,178,62,0.38);
+  border-radius:16px;padding:14px 16px;margin-bottom:14px;
+}
+.light-main .ic{width:42px;height:42px;border-radius:12px;background:rgba(255,178,62,0.28);
+  display:flex;align-items:center;justify-content:center;font-size:22px;box-shadow:0 0 16px rgba(255,178,62,0.25);}
+.light-main .txt b{font-size:17px;}
+.light-main .txt span{display:block;font-size:12px;color:#ffcf8a;}
+.light-main .toggle{margin-left:auto;width:72px;height:40px;border-radius:999px;
+  background:rgba(255,178,62,0.28);border:1px solid rgba(255,178,62,0.55);position:relative;}
+.light-main .toggle::after{content:"";position:absolute;right:3px;top:2px;width:32px;height:32px;border-radius:50%;
+  background:#ffb23e;box-shadow:0 0 12px #ffb23e;}
+.light-main .toggle b{position:absolute;left:13px;top:11px;font-size:12px;font-weight:800;color:#4a3410;letter-spacing:0.05em;}
+
+.bright{margin-bottom:16px;}
+.bright .brow{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:9px;}
+.bright .brow .l{font-size:13px;color:#aab3c8;font-weight:600;}
+.bright .brow .v{font-size:28px;font-weight:700;color:#ffb23e;font-variant-numeric:tabular-nums;}
+.slider{height:16px;border-radius:999px;background:rgba(255,255,255,0.12);position:relative;overflow:visible;}
+.slider .fill{position:absolute;left:0;top:0;bottom:0;width:100%;border-radius:999px;
+  background:linear-gradient(90deg,rgba(255,178,62,0.55),#ffb23e);}
+.slider .knob{position:absolute;right:-4px;top:50%;transform:translateY(-50%);
+  width:30px;height:30px;border-radius:50%;background:#fff;box-shadow:0 3px 10px rgba(0,0,0,0.45),0 0 0 4px rgba(255,178,62,0.35);}
+
+.swatches .sl{font-size:12px;color:#aab3c8;font-weight:600;margin-bottom:9px;display:flex;justify-content:space-between;}
+.swatches .sl .ends{color:#8b93a3;font-weight:500;}
+.swrow{display:flex;gap:10px;}
+.sw{flex:1;height:44px;border-radius:12px;border:1px solid rgba(255,255,255,0.12);}
+.sw.active{box-shadow:0 0 0 3px rgba(255,255,255,0.85);border-color:#fff;}
+.sw.w1{background:#ff9a2e;}
+.sw.w2{background:#ffb655;}
+.sw.w3{background:#ffd08a;}
+.sw.w4{background:#fbe4c4;}
+.sw.w5{background:#eef2ff;}
+
+/* ---- SHUTTERS (blue) ---- */
+.shut{grid-column:2;grid-row:2;background:rgba(74,163,255,0.08);border-color:rgba(74,163,255,0.24);}
+.shut h3{color:#9fc8ff;}
+.shut .pos{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:10px;}
+.shut .pos .l{font-size:13px;color:#aab3c8;font-weight:600;}
+.shut .pos .v{font-size:28px;font-weight:700;color:#4aa3ff;font-variant-numeric:tabular-nums;}
+.shut .pbar{height:16px;border-radius:999px;background:rgba(255,255,255,0.12);overflow:hidden;margin-bottom:20px;}
+.shut .pbar i{display:block;height:100%;width:99%;background:linear-gradient(90deg,rgba(74,163,255,0.55),#4aa3ff);border-radius:999px;}
+.shut .sublabel{font-size:12px;color:#9fc8ff;margin-bottom:10px;font-weight:600;}
+.sctrl{display:flex;gap:14px;flex:1;}
+.sbtn{
+  flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;
+  border-radius:18px;border:1px solid rgba(74,163,255,0.35);background:rgba(74,163,255,0.12);
+  color:#cfe4ff;cursor:default;min-height:96px;
+}
+.sbtn .glyph{font-size:34px;line-height:1;}
+.sbtn .cap{font-size:14px;font-weight:600;}
+.sbtn.stop{border-color:rgba(255,255,255,0.2);background:rgba(255,255,255,0.06);color:#c7cede;}
+
+/* ---- UNDO TOAST ---- */
+.toast{
+  position:absolute;left:50%;bottom:20px;transform:translateX(-50%);
+  display:flex;align-items:center;gap:16px;
+  background:rgba(20,24,34,0.82);border:1px solid rgba(255,255,255,0.16);
+  border-radius:16px;padding:12px 16px 12px 18px;backdrop-filter:blur(10px);
+  box-shadow:0 12px 40px rgba(0,0,0,0.5);
+  font-size:14px;
+}
+.toast .dot{width:10px;height:10px;border-radius:50%;background:#4aa3ff;box-shadow:0 0 10px #4aa3ff;flex:0 0 auto;}
+.toast .msg{color:#e6e9ef;font-weight:500;}
+.toast .undo{
+  display:flex;align-items:center;gap:7px;
+  background:rgba(74,163,255,0.18);border:1px solid rgba(74,163,255,0.5);
+  color:#cfe4ff;font-weight:700;font-size:14px;border-radius:12px;padding:9px 18px;cursor:default;
+}
+.toast .undo .u{font-size:16px;}
+.toast .timer{font-size:11px;color:#8b93a3;font-variant-numeric:tabular-nums;}
+</style>
+</head>
+<body>
+
+<div>
+  <h1 class="page-title">Détail de pièce — Salon</h1>
+  <p class="page-sub">Direction A · Glass Gradient — page profonde (iPad paysage 1180 × 738)</p>
+</div>
+
+<div class="ipad-scroll">
+  <div class="ipad">
+    <div class="screen">
+
+      <!-- TOP BAR -->
+      <div class="top">
+        <div class="back"><span class="chev">‹</span> Accueil</div>
+        <div class="room-id">
+          <div class="name">Salon</div>
+          <div class="sum"><b>Air sain</b> · 1 lumière allumée · volet ouvert</div>
+        </div>
+        <div class="now">
+          <div class="clock">21:38</div>
+          <div class="day">Dim. 12 juil.</div>
+        </div>
+      </div>
+
+      <div class="grid">
+
+        <!-- SENSORS / NETATMO with 24h history -->
+        <div class="card sensors">
+          <h3>Capteurs <span class="k">Netatmo · 24 h</span></h3>
+          <div class="row">
+
+            <!-- Température -->
+            <div class="metric temp">
+              <div class="head">
+                <span class="big">21,4<small>°C</small></span>
+                <span class="lbl">Température</span>
+              </div>
+              <svg class="spark" viewBox="0 0 240 40" preserveAspectRatio="none" aria-hidden="true">
+                <polyline points="0,28 20,30 40,29 60,26 80,24 100,25 120,22 140,20 160,19 180,17 200,16 220,15 240,14"
+                  fill="none" stroke="#ffb23e" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.9"/>
+              </svg>
+              <div class="foot"><span>min 20,1°</span><span>max 22,0°</span></div>
+            </div>
+
+            <!-- CO2 -->
+            <div class="metric co2">
+              <div class="head">
+                <span class="big">620<small>ppm</small></span>
+                <span class="lbl">CO₂</span>
+              </div>
+              <svg class="spark" viewBox="0 0 240 40" preserveAspectRatio="none" aria-hidden="true">
+                <polyline points="0,20 20,18 40,22 60,30 80,34 100,31 120,24 140,18 160,15 180,17 200,14 220,16 240,13"
+                  fill="none" stroke="#35e0d8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.9"/>
+              </svg>
+              <div class="foot"><span class="good">Air sain</span><span>pic 980 ppm</span></div>
+            </div>
+
+            <!-- Humidité -->
+            <div class="metric hum">
+              <div class="head">
+                <span class="big">48<small>%</small></span>
+                <span class="lbl">Humidité</span>
+              </div>
+              <svg class="spark" viewBox="0 0 240 40" preserveAspectRatio="none" aria-hidden="true">
+                <polyline points="0,22 20,23 40,21 60,20 80,22 100,24 120,23 140,21 160,22 180,20 200,21 220,22 240,21"
+                  fill="none" stroke="#4aa3ff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.9"/>
+              </svg>
+              <div class="foot"><span>min 44 %</span><span>max 52 %</span></div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- LIGHTS -->
+        <div class="card lights">
+          <h3>Éclairage <span class="k">Salon</span></h3>
+
+          <div class="light-main">
+            <div class="ic">💡</div>
+            <div class="txt"><b>Plafonnier</b><span>Allumé · blanc chaud</span></div>
+            <div class="toggle"><b>ON</b></div>
+          </div>
+
+          <div class="bright">
+            <div class="brow"><span class="l">Luminosité</span><span class="v">100 %</span></div>
+            <div class="slider"><div class="fill"></div><div class="knob"></div></div>
+          </div>
+
+          <div class="swatches">
+            <div class="sl">Couleur <span class="ends">chaud → froid</span></div>
+            <div class="swrow">
+              <div class="sw w1"></div>
+              <div class="sw w2 active"></div>
+              <div class="sw w3"></div>
+              <div class="sw w4"></div>
+              <div class="sw w5"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SHUTTERS -->
+        <div class="card shut">
+          <h3>Volet <span class="k">Salon</span></h3>
+
+          <div class="pos"><span class="l">Position (ouvert)</span><span class="v">99 %</span></div>
+          <div class="pbar"><i></i></div>
+
+          <div class="sublabel">Commander le volet</div>
+          <div class="sctrl">
+            <div class="sbtn"><span class="glyph">▲</span><span class="cap">Monter</span></div>
+            <div class="sbtn stop"><span class="glyph">❚❚</span><span class="cap">Pause</span></div>
+            <div class="sbtn"><span class="glyph">▼</span><span class="cap">Descendre</span></div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- UNDO SAFETY TOAST -->
+      <div class="toast">
+        <span class="dot"></span>
+        <span class="msg">Volet fermé</span>
+        <span class="timer">5 s</span>
+        <div class="undo"><span class="u">↺</span> Annuler</div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
