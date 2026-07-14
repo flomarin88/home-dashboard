@@ -1,17 +1,16 @@
-import { HakitProvider } from './hakit'
-import { ConnectionCheck } from './ConnectionCheck'
+import { StyleGuide } from './ui/StyleGuide'
 
 /**
- * App root. Everything renders inside the single HA connection seam
- * (HakitProvider, AD-2). Story 1.1 renders only the throwaway connection
- * control view; the real kiosk shell and pages arrive in later stories.
+ * App root. Story 1.2 renders the throwaway design-system styleguide — a pure
+ * presentational surface, so it deliberately does NOT mount the HA connection
+ * seam (HakitProvider would gate rendering behind HA auth). The real kiosk
+ * shell reassembles the seam + pages in Story 1.3.
+ *
+ * The Story 1.1 connection view still lives in src/ConnectionCheck.tsx (proven,
+ * throwaway) and is superseded here.
  */
 function App() {
-  return (
-    <HakitProvider>
-      <ConnectionCheck />
-    </HakitProvider>
-  )
+  return <StyleGuide />
 }
 
 export default App

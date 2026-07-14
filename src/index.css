@@ -1,9 +1,134 @@
 @import 'tailwindcss';
 
 /*
- * Tailwind v4 is the primary styling system for this app (styling convention).
- * The design system (Glass Gradient tokens, TailAdmin base) lands in Story 1.2;
- * this story only proves Tailwind is wired and primary. The Emotion CSS-in-JS
- * used internally by @hakit/components must stay isolated to those components
- * and not be mixed with Tailwind utilities.
+ * Glass Gradient design system — tokens (Story 1.2, AD styling convention).
+ * Tailwind v4 is PRIMARY and configured CSS-first: these @theme tokens generate
+ * utilities (e.g. --color-accent-lights → bg-accent-lights). Single dark theme
+ * only — no light mode (deliberate, DESIGN.md). The Emotion CSS-in-JS internal
+ * to @hakit/components stays isolated and is never mixed with these utilities.
+ * Source: planning-artifacts/.../DESIGN.md
  */
+@theme {
+  /* Ground — dark diagonal gradient */
+  --color-ground-indigo: #1a1140;
+  --color-ground-teal: #122a3a;
+  --color-ground-magenta: #251034;
+
+  /* Frosted surfaces */
+  --color-card-fill: rgba(255, 255, 255, 0.06);
+  --color-card-border: rgba(255, 255, 255, 0.12);
+  --color-tile-fill: rgba(255, 255, 255, 0.04);
+  --color-tile-border: rgba(255, 255, 255, 0.1);
+
+  /* Text */
+  --color-text: #f2f4fa;
+  --color-text-muted: #aab3c8;
+
+  /* Accent-per-device-type (semantic-by-domain) */
+  --color-accent-lights: #ffb23e;
+  --color-accent-shutters: #4aa3ff;
+  --color-accent-climate: #35e0d8;
+  --color-accent-vacuum: #a06bff;
+  --color-security-ok: #38d17a;
+  --color-security-alert: #ff5d5d;
+
+  /* Stale / offline */
+  --color-stale: #5b6172;
+  --color-stale-text: #c2c8d6;
+
+  /* Radii (override Tailwind defaults intentionally — we own all UI) */
+  --radius-sm: 9px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+
+  /* Frost blur + card elevation */
+  --blur-glass: 8px;
+  --shadow-card: 0 8px 30px rgba(0, 0, 0, 0.25);
+
+  /* Spacing — touch floor, tile heights, grid gaps */
+  --spacing-target-min: 48px;
+  --spacing-target-min-kid: 56px;
+  --spacing-tile-h: 74px;
+  --spacing-tile-h-kid: 92px;
+  --spacing-grid-gap: 14px;
+  --spacing-tile-gap: 10px;
+
+  /* Typography sizes (weights/letter-spacing applied via utilities in components) */
+  --text-clock: 34px;
+  --text-numeric-xl: 36px;
+  --text-numeric-lg: 24px;
+  --text-title: 16px;
+  --text-label: 14px;
+  --text-section-heading: 12px;
+  --text-meta: 12px;
+  --text-caption: 11px;
+}
+
+/*
+ * Full-screen ground: diagonal indigo→teal→magenta + soft radial glows.
+ * Multi-layer, so a component class rather than a single gradient utility.
+ */
+.bg-ground {
+  background-color: var(--color-ground-indigo);
+  background-image:
+    radial-gradient(
+      1200px 800px at 15% 8%,
+      rgba(88, 66, 168, 0.35),
+      transparent 60%
+    ),
+    radial-gradient(
+      1000px 720px at 85% 92%,
+      rgba(74, 26, 96, 0.45),
+      transparent 60%
+    ),
+    linear-gradient(
+      135deg,
+      var(--color-ground-indigo),
+      var(--color-ground-teal) 50%,
+      var(--color-ground-magenta)
+    );
+}
+
+/*
+ * Device tile accent-per-domain (Story 1.2, AC3). A single mechanism: the
+ * domain sets --tile-accent, and the "on" state derives its tint/border/glow
+ * from it with color-mix. Adding a domain = one line here (no dynamic Tailwind
+ * class names, which the compiler cannot see).
+ */
+.device-tile[data-domain='lights'] {
+  --tile-accent: var(--color-accent-lights);
+}
+.device-tile[data-domain='shutters'] {
+  --tile-accent: var(--color-accent-shutters);
+}
+.device-tile[data-domain='climate'] {
+  --tile-accent: var(--color-accent-climate);
+}
+.device-tile[data-domain='vacuum'] {
+  --tile-accent: var(--color-accent-vacuum);
+}
+.device-tile[data-domain='security'] {
+  --tile-accent: var(--color-security-ok);
+}
+
+.device-tile[data-state='on'] {
+  background-color: color-mix(in srgb, var(--tile-accent) 16%, transparent);
+  border-color: color-mix(in srgb, var(--tile-accent) 45%, transparent);
+  box-shadow: 0 0 20px color-mix(in srgb, var(--tile-accent) 15%, transparent);
+}
+.device-tile[data-state='on'] .device-tile__state {
+  color: var(--tile-accent);
+}
+
+/*
+ * Stale styling lives here (unlayered), NOT as Tailwind utilities in the class
+ * list: two equal-specificity color utilities (base border-tile-border/text vs
+ * border-stale/stale-text) resolve by source order, and Tailwind emits the base
+ * ones last — so utility-based stale colors silently lose. Unlayered CSS beats
+ * @layer utilities deterministically, matching the on-state mechanism.
+ */
+.device-tile[data-state='stale'] {
+  border-style: dashed;
+  border-color: var(--color-stale);
+  color: var(--color-stale-text);
+}
