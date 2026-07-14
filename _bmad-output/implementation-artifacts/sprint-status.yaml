@@ -42,8 +42,8 @@
 # - Retrospective appends its action items to action_items; sprint-status surfaces open ones
 
 generated: 2026-07-13
-last_updated: 2026-07-13
-# story 1.1 implemented (review — live-proof pending human verify); epic-1 in-progress
+last_updated: 2026-07-14
+# story 1.1 done (live-proof verified 2026-07-14); story 1.2 ready-for-dev; epic-1 in-progress
 project: home-dashboard
 project_key: NOKEY
 tracking_system: file-system
@@ -52,8 +52,8 @@ story_location: "{project-root}/_bmad-output/implementation-artifacts"
 development_status:
   # Epic 1 — Fondation & coup d'œil
   epic-1: in-progress
-  1-1-scaffold-connexion-home-assistant: review
-  1-2-design-system-glass-gradient: backlog
+  1-1-scaffold-connexion-home-assistant: done
+  1-2-design-system-glass-gradient: ready-for-dev
   1-3-shell-kiosque-pwa: backlog
   1-4-mapping-entity-id-centralise: backlog
   1-5-ambiance-capteurs-netatmo-4-pieces: backlog

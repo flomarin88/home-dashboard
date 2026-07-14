@@ -4,7 +4,7 @@ baseline_commit: 76d63400fd8a853105d931038e91c8349e3edd73
 
 # Story 1.1: Scaffold & connexion Home Assistant
 
-Status: review
+Status: done
 
 ## Story
 
@@ -39,7 +39,7 @@ so that toutes les features suivantes disposent d'un socle connecté à la sourc
   - [x] Vérifié : aucun token dans `dist/` après build. **+ garde AD-8 ajoutée** dans `vite.config.ts` : `vite build` échoue si `VITE_HA_TOKEN` est présent (empêche l'inline du secret dans le bundle statique)
 - [x] **Task 5 — Validation** (AC: 1–5)
   - [x] `vite build` OK (statique → `dist/`) ; `tsc -b` (typecheck) + `oxlint src` verts
-  - [ ] **⏳ Preuve manuelle (review, à faire par Florian)** : `.env.local` avec HA URL+token → `npm run dev` → la vue affiche **N entités > 0** live depuis le HA réel. _Non exécutable côté agent (nécessite le HA et le token de Florian) — T0.4 : non coché tant que non observé._
+  - [x] **Preuve manuelle — VÉRIFIÉE par Florian (2026-07-14)** : `.env.local` (HA URL+token) → `npm run dev` → connexion `connected`, **N entités > 0**, témoin mis à jour en live depuis le HA réel. AC4/AC5 validés en runtime.
 
 ## Dev Notes
 
@@ -132,4 +132,5 @@ claude-opus-4-8 (Liza Pairing mode, Autonomous).
 | Date | Version | Description |
 | --- | --- | --- |
 | 2026-07-13 | 0.1 | Scaffold Vite+React19+TS+Tailwind, seam `src/hakit/` (@hakit 6.0.2), vue de contrôle connexion, hygiène secrets + garde AD-8. Build/typecheck/lint verts. Preuve live runtime en attente (review). |
+| 2026-07-14 | 1.0 | **Preuve live vérifiée par Florian** (connected, entités > 0, témoin live). AC1–AC5 tous satisfaits → **Status: done**. |
 | 2026-07-14 | 0.2 | Code-review (high) + corrections des 5 findings. **#1** : témoin live via `useEntity` (primitive per-entité @hakit) au lieu du sélecteur `s.entities` global — fiabilise la preuve WS d'AC4. **#2** : `isConfigured` exige URL **et** token (le variant session HA n'est pas implémenté) → message clair au lieu de l'écran de login HA. **#4** : override `VITE_HA_WITNESS_ENTITY` honoré + « not found » si typo. **#5** : `Record<ConnectionStatus, string>` (exhaustivité). **#3** : StrictMode **conservé** volontairement (le retirer masquerait un éventuel leak socket — Rule 14) + commenté. Build/typecheck/lint verts. |
