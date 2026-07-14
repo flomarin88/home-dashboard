@@ -4,7 +4,7 @@ baseline_commit: e6ed513739b060bf60cec8d5ba84ce826bf48825
 
 # Story 1.3: Shell kiosque & PWA
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -45,7 +45,7 @@ so that l'iPad de la cuisine démarre à chaud en < 1 s, reste un dashboard déd
 - [x] **Task 5 — Nettoyage + validation** (AC: 5)
   - [x] `App.tsx` rend `Home` ; `src/ui/StyleGuide.tsx` + `src/ConnectionCheck.tsx` **supprimés** (findings #4/#5 résolus) ; seam `src/hakit/` réintégré.
   - [x] `test` (4/4) + `typecheck` + `lint` (oxlint src) + `build` token-less **verts** ; `dist/` a `manifest.webmanifest` + `sw.js` + precache app-shell 399 KB ; **aucun token**.
-  - [ ] **⏳ Preuve device (Florian, review)** : PWA installée sur iPad → démarrage à chaud < 1 s + shell visible HA coupé + Guided Access. Non exécutable côté agent (nécessite l'appareil).
+  - [x] **Preuve device — acceptée par Florian (2026-07-14)** : install PWA iPad → démarrage à chaud + shell hors-ligne + Guided Access. Sous la responsabilité de Florian (non observable côté agent) ; parties automatisables (SW/manifest/precache/tests) vérifiées côté agent.
 
 ## Dev Notes
 
@@ -139,5 +139,6 @@ claude-opus-4-8 (Liza Pairing mode, Autonomous).
 
 | Date | Version | Description |
 | --- | --- | --- |
+| 2026-07-14 | 1.0 | **Accepté par Florian → Status: done.** Parties automatisables vérifiées (test/typecheck/lint/build, SW+manifest+precache app-shell, aucun token) ; preuve device (hot-start/hors-ligne/Guided Access) sous sa responsabilité. |
 | 2026-07-14 | 0.2 | Code-review (high) — corrections #1/#3/#4. **#1** : precache PWA passé d'un `globIgnores` heuristique (fragile — un futur chunk court-nommé serait exclu) à un **allowlist explicite** de l'app-shell (`index.html` + entry js/css + registerSW + icônes + manifest) ; chunks lazy non précachés (design). **#3** : `.replace(/ /g,' ')` mort retiré de `clock-format` (le format 24h fr-FR n'a pas d'espace). **#4** : placeholders alarme/Caméras passés `disabled` + `aria-label` (plus de bouton focusable inerte). #2 (remount du shell à la connexion) + #5 (tests non type-checkés) différés (1.5 / tooling). Build/typecheck/lint/test verts. |
 | 2026-07-14 | 0.1 | Shell kiosque composé (zones IA vides) + horloge live + reconnexion HA non-bloquante + PWA app-shell (`vite-plugin-pwa`, precache 399 KB, données HA live) + config iOS/Guided Access + nettoyage StyleGuide/ConnectionCheck. **TDD** (override) : clock-format + Home, 4 tests verts. Build/typecheck/lint/test verts, aucun token dans `dist/`. Preuve device en attente (review). → review. |
