@@ -1,16 +1,27 @@
-import { StyleGuide } from './ui/StyleGuide'
+import { HakitProvider, isConfigured } from './hakit'
+import { Home } from './pages/Home'
 
 /**
- * App root. Story 1.2 renders the throwaway design-system styleguide — a pure
- * presentational surface, so it deliberately does NOT mount the HA connection
- * seam (HakitProvider would gate rendering behind HA auth). The real kiosk
- * shell reassembles the seam + pages in Story 1.3.
+ * App root (Story 1.3). The kiosk shell must ALWAYS render — never a login
+ * screen, never blank, even when HA is unconfigured, connecting, or down
+ * (AD-6 / NFR4):
  *
- * The Story 1.1 connection view still lives in src/ConnectionCheck.tsx (proven,
- * throwaway) and is superseded here.
+ *  - Not configured (no HA URL) → render the shell directly, no HassConnect
+ *    (HassConnect would otherwise show its "provide hassUrl" error).
+ *  - Configured → mount the connection seam, but pass the shell as the
+ *    `loading` fallback so it stays visible while connecting/reconnecting.
+ *    Data-bound widgets (later stories) live inside the zones and handle their
+ *    own per-entity stale state.
  */
 function App() {
-  return <StyleGuide />
+  if (!isConfigured) {
+    return <Home />
+  }
+  return (
+    <HakitProvider loading={<Home />}>
+      <Home />
+    </HakitProvider>
+  )
 }
 
 export default App

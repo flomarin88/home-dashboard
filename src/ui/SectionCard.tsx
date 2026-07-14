@@ -13,7 +13,8 @@ export function SectionCard({
   className = '',
 }: {
   title: string
-  children: ReactNode
+  /** Optional — a zone can render as an empty titled card until its feature lands. */
+  children?: ReactNode
   className?: string
 }) {
   return (

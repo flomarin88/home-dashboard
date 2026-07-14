@@ -4,7 +4,7 @@ baseline_commit: a0f3db765cb932d18e6366ad019100b5e16d1c67
 
 # Story 1.2: Design system « Glass Gradient »
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -154,5 +154,6 @@ _Non modifié : `src/ConnectionCheck.tsx`, `src/hakit/*` (seam intact)._
 
 | Date | Version | Description |
 | --- | --- | --- |
+| 2026-07-14 | 1.0 | **Accepté par Florian → Status: done.** AC1–AC5 satisfaits ; validé par build/typecheck/lint verts + vérification du CSS émis (valeurs DESIGN + gagnant de cascade). Findings #4/#5 différés au shell 1.3. |
 | 2026-07-14 | 0.2 | Code-review (high) — corrections #1–#3. **#1 (confirmé)** : les couleurs de l'état `stale` perdaient la cascade face aux utilitaires de base (`border-tile-border`/`text-text` émis après, même spécificité) → tuile stale rendue en texte clair + bordure blanche faible. **#1+#2** : styling d'état `stale` déplacé dans le CSS **unlayered** `.device-tile[data-state='stale']` (comme l'état `on`) — l'unlayered bat `@layer utilities` de façon déterministe (vérifié : base utility dans `@layer`, règle stale hors layer). **#3** : placeholder `—` rétabli à côté de la pill « Hors ligne ». Build/typecheck/lint verts. #4 (dead code ConnectionCheck) + #5 (handlers no-op styleguide) différés au shell 1.3. |
 | 2026-07-14 | 0.1 | Design system Glass Gradient : tokens `@theme` + primitives `SectionCard`/`DeviceTile` (4 états, accent-par-domaine `color-mix`) + plancher a11y + styleguide jetable. Utilitaires custom vérifiés dans le CSS émis (valeurs DESIGN exactes). Build/typecheck/lint verts, aucun token dans `dist/`. → review. |

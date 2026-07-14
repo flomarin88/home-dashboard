@@ -16,9 +16,17 @@ import { hassUrl, hassToken } from './config'
  * the token is absent (e.g. the HA-session / ingress variant), `@hakit` falls
  * back to its own auth flow.
  */
-export function HakitProvider({ children }: { children: ReactNode }) {
+export function HakitProvider({
+  children,
+  loading,
+}: {
+  children: ReactNode
+  /** Rendered while HA is connecting/unauthenticated — pass the shell so the
+   *  kiosk is never blank behind the connection gate (AD-6 / NFR4). */
+  loading?: ReactNode
+}) {
   return (
-    <HassConnect hassUrl={hassUrl} hassToken={hassToken}>
+    <HassConnect hassUrl={hassUrl} hassToken={hassToken} loading={loading}>
       {children}
     </HassConnect>
   )
