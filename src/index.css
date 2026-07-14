@@ -1,0 +1,9 @@
+@import 'tailwindcss';
+
+/*
+ * Tailwind v4 is the primary styling system for this app (styling convention).
+ * The design system (Glass Gradient tokens, TailAdmin base) lands in Story 1.2;
+ * this story only proves Tailwind is wired and primary. The Emotion CSS-in-JS
+ * used internally by @hakit/components must stay isolated to those components
+ * and not be mixed with Tailwind utilities.
+ */
