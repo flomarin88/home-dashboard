@@ -7,6 +7,7 @@ import { useEntityValue } from '../hakit/useEntityValue'
 import { formatSensorValue } from './room-sensor-format'
 import { Sparkline } from './Sparkline'
 import { OfflinePill } from '../ui/OfflinePill'
+import { Skeleton } from '../ui/Skeleton'
 import { TEMPERATURE_THRESHOLD_C, SPARKLINE_HOURS } from '../config'
 
 /**
@@ -39,8 +40,11 @@ export function RoomSensorCard({ room }: { room: RoomId }) {
     .map((h) => Number(h.s))
     .filter((n) => Number.isFinite(n))
 
-  // The card reads stale from its primary sensor (temperature).
-  const stale = temperature.isStale
+  // Three states, keyed off the primary sensor (temperature):
+  //  loading = waiting for first data (skeleton) · offline = last value + pill
+  //  (stale but known) · live = values + sparkline.
+  const loading = temperature.loading
+  const offline = temperature.isStale && !loading
 
   return (
     <button
@@ -49,24 +53,34 @@ export function RoomSensorCard({ room }: { room: RoomId }) {
       className={[
         'flex min-h-tile-h cursor-pointer flex-col justify-between gap-1 rounded-md border bg-tile-fill px-4 py-3 text-left',
         // one border-color + one text-color per state — never stack conflicting
-        // utilities (Story 1.2 cascade lesson).
-        stale
+        // utilities (Story 1.2 cascade lesson). Only the offline state is dashed.
+        offline
           ? 'border-dashed border-stale text-stale-text'
           : 'border-tile-border text-text',
       ].join(' ')}
     >
       <span className="text-label font-semibold">{getRoom(room).label}</span>
-      <span className="text-numeric-lg font-semibold tabular-nums">
-        {formatSensorValue(temperature.value, 1)} {temperature.unit ?? '°C'}
-      </span>
-      <span className="text-meta tabular-nums text-text-muted">
-        CO₂ {formatSensorValue(co2.value, 0)} ppm ·{' '}
-        {formatSensorValue(humidity.value, 0)} %
-      </span>
-      {stale ? (
-        <OfflinePill since={temperature.since} />
+
+      {loading ? (
+        <div className="flex flex-col gap-2 py-1">
+          <Skeleton className="h-6 w-24" />
+          <Skeleton className="h-3 w-28" />
+        </div>
       ) : (
-        <Sparkline values={tempSeries} threshold={TEMPERATURE_THRESHOLD_C} />
+        <>
+          <span className="text-numeric-lg font-semibold tabular-nums">
+            {formatSensorValue(temperature.value, 1)} {temperature.unit ?? '°C'}
+          </span>
+          <span className="text-meta tabular-nums text-text-muted">
+            CO₂ {formatSensorValue(co2.value, 0)} ppm ·{' '}
+            {formatSensorValue(humidity.value, 0)} %
+          </span>
+          {offline ? (
+            <OfflinePill since={temperature.since} />
+          ) : (
+            <Sparkline values={tempSeries} threshold={TEMPERATURE_THRESHOLD_C} />
+          )}
+        </>
       )}
     </button>
   )

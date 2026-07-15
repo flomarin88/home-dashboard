@@ -110,4 +110,5 @@ claude-opus-4-8 (Liza Pairing mode, Autonomous).
 
 | Date | Version | Description |
 | --- | --- | --- |
+| 2026-07-15 | 0.2 | **État `loading` / skeleton** (demandé par Florian) : distinction *loading* (obsolète **sans** valeur connue → skeleton) vs *offline* (obsolète **avec** dernière valeur → pill). Corrige le flash « Hors ligne » au démarrage à froid (connexion en cours ≠ hors ligne). `useEntityValue.loading` + `src/ui/Skeleton.tsx` + `RoomSensorCard` 3 états. 35 tests verts. |
 | 2026-07-15 | 0.1 | Pattern d'obsolescence (AD-6) : `isStale` + `formatSince` (TDD) ; hook unique `useEntityValue` (dernière valeur éphémère + `since`, socket-indépendant) ; `OfflinePill` (+ `OfflineIcon` extrait, `DeviceTile` unifié) ; retrofit `RoomSensorCard` (obsolète → dernière valeur + pill + horodatage, jamais blanc). 33 tests verts, build/typecheck/lint verts, 0 token. Preuve device en attente (review). → review. |

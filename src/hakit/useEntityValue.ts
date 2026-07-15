@@ -8,6 +8,9 @@ export interface EntityValue {
   readonly value: string | null
   readonly unit: string | undefined
   readonly isStale: boolean
+  /** Stale AND no value ever seen — still waiting for first data (show a
+   *  skeleton). Distinct from "offline", which has a last-known value + pill. */
+  readonly loading: boolean
   /** last_changed (ISO) of the last-known good value, for "dernière donnée HH:MM". */
   readonly since: string | undefined
 }
@@ -42,6 +45,7 @@ export function useEntityValue(entityId: EntityName): EntityValue {
     value: stale ? (known?.value ?? null) : raw,
     unit: entity?.attributes?.unit_of_measurement,
     isStale: stale,
+    loading: stale && known == null,
     since: known?.since,
   }
 }

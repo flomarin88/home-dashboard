@@ -79,4 +79,13 @@ describe('RoomSensorCard', () => {
     expect(screen.getByText(/21\.5/)).toBeInTheDocument() // frozen last value, not blank
     expect(screen.getByText(/dernière donnée \d{2}:\d{2}/)).toBeInTheDocument()
   })
+
+  it('shows a skeleton while connecting with no data yet — not the offline pill', () => {
+    state.connectionStatus = 'pending'
+    state.tempState = 'unavailable' // no known value
+    const { container } = renderCard()
+    expect(container.querySelector('.animate-pulse')).toBeInTheDocument()
+    expect(screen.queryByText(/Hors ligne/)).toBeNull()
+    expect(screen.queryByText(/°C/)).toBeNull()
+  })
 })
