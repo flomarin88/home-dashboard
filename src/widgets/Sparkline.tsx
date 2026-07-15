@@ -29,7 +29,7 @@ export function Sparkline({
       preserveAspectRatio="none"
       role="img"
       aria-hidden
-      className="h-full w-full"
+      className="h-full min-h-8 w-full"
     >
       {thresholdY !== null && (
         <line

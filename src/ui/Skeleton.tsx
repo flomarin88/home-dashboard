@@ -4,7 +4,7 @@ export function Skeleton({ className = '' }: { className?: string }) {
   return (
     <span
       aria-hidden
-      className={`block animate-pulse rounded bg-white/10 ${className}`}
+      className={`block animate-pulse rounded bg-text-muted/20 ${className}`}
     />
   )
 }

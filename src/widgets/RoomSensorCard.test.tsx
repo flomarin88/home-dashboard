@@ -88,4 +88,13 @@ describe('RoomSensorCard', () => {
     expect(screen.queryByText(/Hors ligne/)).toBeNull()
     expect(screen.queryByText(/°C/)).toBeNull()
   })
+
+  it('shows offline (not a perpetual skeleton) when connected but the entity is unavailable', () => {
+    state.connectionStatus = 'connected'
+    state.tempState = 'unavailable' // connected, but never a value
+    const { container } = renderCard()
+    expect(screen.getByText(/Hors ligne/)).toBeInTheDocument()
+    expect(container.querySelector('.animate-pulse')).toBeNull()
+    expect(screen.getByText(/—/)).toBeInTheDocument()
+  })
 })

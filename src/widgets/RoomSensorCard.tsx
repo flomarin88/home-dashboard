@@ -44,7 +44,11 @@ export function RoomSensorCard({ room }: { room: RoomId }) {
   //  loading = waiting for first data (skeleton) · offline = last value + pill
   //  (stale but known) · live = values + sparkline.
   const loading = temperature.loading
-  const offline = temperature.isStale && !loading
+  // Offline if ANY of the room's sensors is stale (not just temperature), so a
+  // single failing measure still surfaces the offline cue (AD-6, per entity).
+  const offline =
+    !loading &&
+    (temperature.isStale || co2.isStale || humidity.isStale)
 
   return (
     <button
@@ -77,7 +81,7 @@ export function RoomSensorCard({ room }: { room: RoomId }) {
         {loading ? (
           <Skeleton className="h-3 w-28" />
         ) : (
-          <span className="text-meta tabular-nums text-text-muted">
+          <span className="w-full truncate text-meta tabular-nums text-text-muted">
             CO₂ {formatSensorValue(co2.value, 0)} ppm ·{' '}
             {formatSensorValue(humidity.value, 0)} %
           </span>

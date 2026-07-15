@@ -1,4 +1,4 @@
-import { useRef } from 'react'
+import { useEffect, useRef } from 'react'
 import { useEntity, useHass } from '@hakit/core'
 import type { EntityName } from '@hakit/core'
 import { isStale } from './stale'
@@ -30,22 +30,29 @@ export function useEntityValue(entityId: EntityName): EntityValue {
   const raw = entity?.state ?? null
   const rawIsReal = raw != null && raw !== 'unavailable' && raw !== 'unknown'
   const stale = isStale(raw, connected)
+  const lastChanged = entity?.last_changed ?? ''
 
   // Remember the last non-stale value in-session (ephemeral, no persistence).
-  if (!stale && rawIsReal) {
-    lastGood.current = { value: raw, since: entity?.last_changed ?? '' }
-  }
+  // Captured after commit — never mutate the ref during render (concurrency).
+  useEffect(() => {
+    if (!stale && rawIsReal) {
+      lastGood.current = { value: raw, since: lastChanged }
+    }
+  }, [stale, rawIsReal, raw, lastChanged])
 
   // When stale, prefer the remembered value; on socket loss the entity is
   // frozen at a still-real state, so fall back to that.
-  const frozen = rawIsReal ? { value: raw, since: entity?.last_changed ?? '' } : null
+  const frozen = rawIsReal ? { value: raw, since: lastChanged } : null
   const known = lastGood.current ?? frozen
 
   return {
     value: stale ? (known?.value ?? null) : raw,
     unit: entity?.attributes?.unit_of_measurement,
     isStale: stale,
-    loading: stale && known == null,
+    // Only "loading" while still connecting with nothing to show. Once
+    // connected, a missing/unavailable entity falls through to offline
+    // (— + pill) instead of a perpetual skeleton.
+    loading: !connected && known == null,
     since: known?.since,
   }
 }
