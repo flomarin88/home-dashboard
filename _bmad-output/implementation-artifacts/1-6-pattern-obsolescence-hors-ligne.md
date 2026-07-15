@@ -4,7 +4,7 @@ baseline_commit: ddb791a669db39b776b46c48992c3adac8ce57be
 
 # Story 1.6: Pattern d'obsolescence (hors ligne)
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -110,6 +110,7 @@ claude-opus-4-8 (Liza Pairing mode, Autonomous).
 
 | Date | Version | Description |
 | --- | --- | --- |
+| 2026-07-15 | 1.0 | **Accepté par Florian → Status: done.** Code-review (high) traitée + parties automatisables vérifiées (36 tests, typecheck/lint/build, 0 token). Preuve live device (offline/loading sur vraies données) à confirmer par Florian une fois connecté au HA. **Clôt l'Epic 1 (Fondation).** |
 | 2026-07-15 | 0.3 | Code-review (high) — 6 corrections. **#1** `loading = !connected && known == null` (entité manquante/`unavailable` en connecté → **offline** — + pill, plus de skeleton perpétuel). **#2** capture `lastGood` déplacée en `useEffect` (plus de mutation de ref en render). **#3** ligne CO₂/humidité `truncate` (plus de clip au wrap sur tuile étroite). **#4** carte offline si **l'une** des 3 mesures est stale (pas seulement la température). **#5** `Sparkline` `min-h-8` (self-contained). **#6** `Skeleton` token `bg-text-muted/20`. 36 tests verts. |
 | 2026-07-15 | 0.2 | **État `loading` / skeleton** (demandé par Florian) : distinction *loading* (obsolète **sans** valeur connue → skeleton) vs *offline* (obsolète **avec** dernière valeur → pill). Corrige le flash « Hors ligne » au démarrage à froid (connexion en cours ≠ hors ligne). `useEntityValue.loading` + `src/ui/Skeleton.tsx` + `RoomSensorCard` 3 états. 35 tests verts. |
 | 2026-07-15 | 0.1 | Pattern d'obsolescence (AD-6) : `isStale` + `formatSince` (TDD) ; hook unique `useEntityValue` (dernière valeur éphémère + `since`, socket-indépendant) ; `OfflinePill` (+ `OfflineIcon` extrait, `DeviceTile` unifié) ; retrofit `RoomSensorCard` (obsolète → dernière valeur + pill + horodatage, jamais blanc). 33 tests verts, build/typecheck/lint verts, 0 token. Preuve device en attente (review). → review. |
