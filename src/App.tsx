@@ -1,26 +1,39 @@
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { HakitProvider, isConfigured } from './hakit'
 import { Home } from './pages/Home'
+import { RoomDetail } from './pages/RoomDetail'
 
 /**
- * App root (Story 1.3). The kiosk shell must ALWAYS render — never a login
- * screen, never blank, even when HA is unconfigured, connecting, or down
- * (AD-6 / NFR4):
+ * App root (Story 1.5). Routing (AD-10): Home + a room-detail stub. The kiosk
+ * shell must always render — never a login screen or blank (AD-6 / NFR4):
  *
- *  - Not configured (no HA URL) → render the shell directly, no HassConnect
- *    (HassConnect would otherwise show its "provide hassUrl" error).
- *  - Configured → mount the connection seam, but pass the shell as the
- *    `loading` fallback so it stays visible while connecting/reconnecting.
- *    Data-bound widgets (later stories) live inside the zones and handle their
- *    own per-entity stale state.
+ *  - Not configured (no HA URL) → render the routes with NO HassConnect (the
+ *    provider would show its "provide hassUrl" error). The Ambiance cards, which
+ *    need HA, are gated off in Home when unconfigured.
+ *  - Configured → mount the connection seam with the shell as the `loading`
+ *    fallback so it stays visible while connecting; the sensor widgets inside
+ *    read live state and degrade to "—" until ready.
  */
-function App() {
-  if (!isConfigured) {
-    return <Home />
-  }
+function AppRoutes() {
   return (
-    <HakitProvider loading={<Home />}>
-      <Home />
-    </HakitProvider>
+    <Routes>
+      <Route path="/" element={<Home />} />
+      <Route path="/room/:roomId" element={<RoomDetail />} />
+    </Routes>
+  )
+}
+
+function App() {
+  return (
+    <BrowserRouter>
+      {isConfigured ? (
+        <HakitProvider loading={<Home />}>
+          <AppRoutes />
+        </HakitProvider>
+      ) : (
+        <AppRoutes />
+      )}
+    </BrowserRouter>
   )
 }
 

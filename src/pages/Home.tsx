@@ -1,13 +1,17 @@
 import { SectionCard } from '../ui/SectionCard'
 import { Clock } from '../ui/Clock'
+import { RoomSensorCard } from '../widgets/RoomSensorCard'
+import { listRooms } from '../entities'
+import { isConfigured } from '../hakit'
 
 /**
  * Home — the composed landscape kiosk shell (Story 1.3, UX-DR11 / AD-10).
  *
  * A single non-scrolling screen on the Glass Gradient ground: a top bar
  * (clock · alarm · Cameras entry) then the zones in IA order — Scènes
- * (prominent) · Ambiance · Éclairage · Volets · Climatisation — each an empty
- * titled SectionCard until its feature story fills it.
+ * (prominent) · Ambiance · Éclairage · Volets · Climatisation. Ambiance is
+ * live (Story 1.5); the other zones stay empty titled cards until their
+ * feature stories fill them.
  *
  * This is pure, provider-independent chrome: it renders with no HA connection,
  * so a disconnected/unavailable HA can never blank the kiosk (AD-6 / NFR4).
@@ -21,8 +25,22 @@ export function Home() {
       {/* Scènes — hero prominence (spine wins over the mock's bottom placement) */}
       <SectionCard title="Scènes" />
 
-      <div className="grid gap-grid-gap md:grid-cols-2 xl:grid-cols-4">
-        <SectionCard title="Ambiance" />
+      {/* Ambiance — 4 room sensor cards (live). The cards use useEntity, so they
+          only render when HA is configured (i.e. under HakitProvider); otherwise
+          the shell still shows, never blank (AD-6/NFR4). */}
+      <SectionCard title="Ambiance">
+        {isConfigured ? (
+          <div className="grid grid-cols-2 gap-tile-gap md:grid-cols-4">
+            {listRooms().map((r) => (
+              <RoomSensorCard key={r.id} room={r.id} />
+            ))}
+          </div>
+        ) : (
+          <p className="text-meta text-text-muted">Home Assistant non configuré.</p>
+        )}
+      </SectionCard>
+
+      <div className="grid gap-grid-gap md:grid-cols-3">
         <SectionCard title="Éclairage" />
         <SectionCard title="Volets" />
         <SectionCard title="Climatisation" />
