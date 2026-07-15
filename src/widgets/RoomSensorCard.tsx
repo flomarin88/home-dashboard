@@ -51,7 +51,7 @@ export function RoomSensorCard({ room }: { room: RoomId }) {
       type="button"
       onClick={() => navigate(`/room/${room}`)}
       className={[
-        'flex min-h-tile-h cursor-pointer flex-col justify-between gap-1 rounded-md border bg-tile-fill px-4 py-3 text-left',
+        'flex cursor-pointer flex-col gap-1 rounded-md border bg-tile-fill px-4 py-3 text-left',
         // one border-color + one text-color per state — never stack conflicting
         // utilities (Story 1.2 cascade lesson). Only the offline state is dashed.
         offline
@@ -59,29 +59,40 @@ export function RoomSensorCard({ room }: { room: RoomId }) {
           : 'border-tile-border text-text',
       ].join(' ')}
     >
+      {/* Fixed row heights so loading/offline/live occupy the SAME footprint —
+          no tile-height jump when data arrives (CLS). */}
       <span className="text-label font-semibold">{getRoom(room).label}</span>
 
-      {loading ? (
-        <div className="flex flex-col gap-2 py-1">
+      <div className="flex h-8 items-center">
+        {loading ? (
           <Skeleton className="h-6 w-24" />
-          <Skeleton className="h-3 w-28" />
-        </div>
-      ) : (
-        <>
+        ) : (
           <span className="text-numeric-lg font-semibold tabular-nums">
             {formatSensorValue(temperature.value, 1)} {temperature.unit ?? '°C'}
           </span>
+        )}
+      </div>
+
+      <div className="flex h-4 items-center">
+        {loading ? (
+          <Skeleton className="h-3 w-28" />
+        ) : (
           <span className="text-meta tabular-nums text-text-muted">
             CO₂ {formatSensorValue(co2.value, 0)} ppm ·{' '}
             {formatSensorValue(humidity.value, 0)} %
           </span>
-          {offline ? (
-            <OfflinePill since={temperature.since} />
-          ) : (
-            <Sparkline values={tempSeries} threshold={TEMPERATURE_THRESHOLD_C} />
-          )}
-        </>
-      )}
+        )}
+      </div>
+
+      <div className="mt-1 flex h-8 items-center">
+        {loading ? (
+          <Skeleton className="h-full w-full" />
+        ) : offline ? (
+          <OfflinePill since={temperature.since} />
+        ) : (
+          <Sparkline values={tempSeries} threshold={TEMPERATURE_THRESHOLD_C} />
+        )}
+      </div>
     </button>
   )
 }
