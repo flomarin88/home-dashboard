@@ -58,7 +58,7 @@ development_status:
   1-4-mapping-entity-id-centralise: done
   1-5-ambiance-capteurs-netatmo-4-pieces: done
   1-6-pattern-obsolescence-hors-ligne: done
-  epic-1-retrospective: optional
+  epic-1-retrospective: done
 
   # Epic 2 — Pilotage des appareils
   epic-2: backlog
@@ -88,3 +88,30 @@ development_status:
   5-1-page-detail-de-piece-appareils: backlog
   5-2-detail-de-piece-historique-capteurs: backlog
   epic-5-retrospective: optional
+
+# Retrospective action items (see epic-1-retro-2026-07-15.md)
+action_items:
+  - epic: 1
+    action: "Capture deferred findings in TECH_DEBT.md (TD-1 shell remount, TD-2 tests-not-typechecked, TD-3 live-proof)"
+    owner: "Liza"
+    status: done
+  - epic: 1
+    action: "Fix 1.3 #2 (shell remount on connect) before Epic 2 control widgets (in 2.1) — it resets optimistic state"
+    owner: "Liza"
+    status: open
+  - epic: 1
+    action: "Add an infra/CI/deployment section to the architecture (deploy mechanism, LAN-only constraint, CI/CD); treat infra as part of the architecture phase going forward"
+    owner: "Liza"
+    status: open
+  - epic: 1
+    action: "Unblock live proof: Tailscale + 5 deploy secrets, then run E2E proof of the foundation on real HA"
+    owner: "Florian"
+    status: open
+  - epic: 1
+    action: "Gather Epic-2 control entity_ids (lights/shutters/climate/vacuum)"
+    owner: "Florian"
+    status: open
+  - epic: 1
+    action: "Independent (different-model) review on Epic 2 control logic"
+    owner: "Florian"
+    status: open
