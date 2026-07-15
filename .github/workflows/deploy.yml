@@ -1,0 +1,53 @@
+name: Deploy
+
+# Push the built dashboard to the Raspberry Pi's Home Assistant www/ folder.
+# Cloud runner → tailnet (Tailscale) → rsync over SSH. No inbound port is
+# opened on the home network. Runs only on master, after the gates pass.
+on:
+  push:
+    branches: [master]
+
+concurrency:
+  group: deploy-pi
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+
+      # Never push a broken build.
+      - name: Gates
+        run: |
+          npm test
+          npm run typecheck
+          npm run lint
+
+      # Served from HA at http://<ha>:8123/local/home-dashboard/ — token-less
+      # (AD-8 guard passes with no VITE_HA_TOKEN in CI).
+      - name: Build for HA www
+        run: DEPLOY_BASE=/local/home-dashboard/ npm run build
+
+      - name: Join tailnet
+        uses: tailscale/github-action@v3
+        with:
+          # Ephemeral, reusable auth key from the Tailscale admin console.
+          authkey: ${{ secrets.TS_AUTHKEY }}
+
+      - name: Add deploy SSH key
+        run: |
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          printf '%s\n' "${{ secrets.PI_SSH_KEY }}" > ~/.ssh/deploy
+          chmod 600 ~/.ssh/deploy
+
+      - name: Rsync to HA www/
+        run: |
+          rsync -az --delete \
+            -e "ssh -i ~/.ssh/deploy -o StrictHostKeyChecking=accept-new" \
+            dist/ "${{ secrets.PI_USER }}@${{ secrets.PI_HOST }}:${{ secrets.PI_WWW_PATH }}/"

@@ -23,9 +23,13 @@ function AppRoutes() {
   )
 }
 
+// Serve-path aware: matches Vite's base so routes work under a subpath deploy
+// (e.g. /local/home-dashboard/) as well as at root.
+const basename = import.meta.env.BASE_URL.replace(/\/$/, '')
+
 function App() {
   return (
-    <BrowserRouter>
+    <BrowserRouter basename={basename}>
       {isConfigured ? (
         <HakitProvider loading={<Home />}>
           <AppRoutes />

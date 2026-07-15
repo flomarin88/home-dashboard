@@ -3,6 +3,14 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 
+// Deploy base path. Default '/' keeps dev (localhost) and a root/add-on deploy
+// simple. For the HA `www/` deploy the CI sets DEPLOY_BASE=/local/home-dashboard/
+// (served at http://ha:8123/local/home-dashboard/). Always normalised with a
+// leading + trailing slash.
+const rawBase = process.env.DEPLOY_BASE || '/'
+const base = `/${rawBase.replace(/^\/+|\/+$/g, '')}/`.replace('//', '/')
+const isRoot = base === '/'
+
 // Static build (AD-9): `vite build` emits a self-contained bundle to dist/,
 // meant to be served same-origin from Home Assistant (add-on / ingress / www).
 // No application server. Tailwind is primary (styling convention); the Emotion
@@ -26,32 +34,32 @@ export default defineConfig(({ command, mode }) => {
   }
 
   return {
+    base,
     plugins: [
       react(),
       tailwindcss(),
       // PWA app-shell (AD-9 / NFR1 / NFR3): the service worker precaches the
       // static shell for a near-instant warm start. HA entity data is NEVER
-      // cached — it stays live over the WebSocket; and HA HTTP routes are kept
-      // off the SPA navigate-fallback so a same-origin HA deploy still serves
-      // /api, /auth, /local directly.
+      // cached — it stays live over the WebSocket.
       VitePWA({
         registerType: 'autoUpdate',
         includeAssets: ['icon.svg', 'favicon.svg'],
         workbox: {
-          // App-shell allowlist (AD-9): precache ONLY what first paint needs —
-          // index.html, the entry chunk + CSS, the SW registration, icons and
-          // the manifest. Lazy-loaded chunks (e.g. @hakit's ~60 i18n locale
-          // bundles, ~18MB) are intentionally NOT precached; they load on
-          // demand at runtime. An explicit allowlist avoids both the 18MB
-          // precache and the fragility of excluding unknown chunks by name.
+          // App-shell allowlist (AD-9): precache ONLY what first paint needs.
+          // Lazy chunks (e.g. @hakit's ~60 i18n locale bundles) load on demand.
           globPatterns: [
             'index.html',
             'registerSW.js',
             'assets/index-*.{js,css}',
             '**/*.{svg,webmanifest,woff,woff2}',
           ],
-          navigateFallback: '/index.html',
-          navigateFallbackDenylist: [/^\/api/, /^\/auth/, /^\/local/],
+          navigateFallback: `${base}index.html`,
+          // Only needed for a root/add-on deploy where the SW scope is '/' and
+          // could intercept HA's own routes. Under a /local/ subpath the SW
+          // scope already isolates the app, so no denylist.
+          navigateFallbackDenylist: isRoot
+            ? [/^\/api/, /^\/auth/, /^\/local/]
+            : [],
         },
         devOptions: { enabled: false },
         manifest: {
@@ -60,8 +68,8 @@ export default defineConfig(({ command, mode }) => {
           description: 'Tableau de bord domotique — cuisine',
           lang: 'fr',
           dir: 'ltr',
-          start_url: '/',
-          scope: '/',
+          start_url: base,
+          scope: base,
           display: 'fullscreen',
           orientation: 'landscape',
           background_color: '#1a1140',
