@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { OfflinePill } from './OfflinePill'
 
 export type DeviceDomain =
   | 'lights'
@@ -76,10 +77,7 @@ export function DeviceTile({
         <div className="flex items-center gap-2">
           {/* '—' placeholder (DESIGN) + "Hors ligne" pill as the PRIMARY cue */}
           <span className="text-meta tabular-nums">—</span>
-          <span className="inline-flex w-fit items-center gap-1 rounded-full border border-stale px-2 py-0.5 text-caption text-stale-text">
-            <OfflineIcon />
-            Hors ligne
-          </span>
+          <OfflinePill />
         </div>
       ) : (
         <span className="device-tile__state text-meta tabular-nums text-text-muted">
@@ -107,25 +105,5 @@ export function DeviceTile({
     <div data-domain={domain} data-state={state} className={classes}>
       {body}
     </div>
-  )
-}
-
-/** Minimal inline "offline" glyph; the "Hors ligne" text is the real cue. */
-function OfflineIcon() {
-  return (
-    <svg
-      width="12"
-      height="12"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      aria-hidden
-    >
-      <path d="M2 2 L22 22" />
-      <path d="M5 12.5a10 10 0 0 1 4-2.4M12 5c2.5 0 4.9.9 6.8 2.5" />
-      <path d="M8.5 16a5 5 0 0 1 5-1.3" />
-    </svg>
   )
 }
