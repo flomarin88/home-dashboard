@@ -4,7 +4,7 @@ baseline_commit: c9ed4e4804eb6e1ca009f1819e6aa3b7c71b8559
 
 # Story 1.5: Ambiance — capteurs Netatmo (4 pièces)
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -106,6 +106,7 @@ claude-opus-4-8 (Liza Pairing mode, Autonomous).
 - `src/widgets/RoomSensorCard.tsx`, `src/widgets/RoomSensorCard.test.tsx`
 - `src/widgets/room-sensor-format.ts`, `src/widgets/room-sensor-format.test.ts`
 - `src/pages/RoomDetail.tsx`
+- **(v0.2)** `src/config.ts` (seuil global) ; `src/widgets/sparkline-scale.ts` (+ test) ; `src/widgets/Sparkline.tsx` (+ test)
 
 **Modifiés :**
 - `src/App.tsx` (BrowserRouter + Routes + RoomDetail ; branche `isConfigured`)
@@ -121,4 +122,6 @@ claude-opus-4-8 (Liza Pairing mode, Autonomous).
 
 | Date | Version | Description |
 | --- | --- | --- |
+| 2026-07-15 | 1.0 | **Accepté par Florian → Status: done.** Parties automatisables vérifiées (27 tests, typecheck/lint/build, 0 entity_id en dur, 0 token). **Preuve live device (valeurs + sparkline sur vraies données)** reste à confirmer par Florian une fois connecté au HA (actuellement absent du réseau local) — non observée à ce stade. |
+| 2026-07-15 | 0.2 | **Ajout demandé par Florian** : mini-courbe de température (sparkline SVG maison, 24 h via `useHistory`) sur chaque tuile Ambiance + ligne pointillée à un **seuil global configurable** (`TEMPERATURE_THRESHOLD_C = 26` dans `src/config.ts`). **Override assumé** de la décision UX « historique → Détail de pièce » (densité accueil) — choix owner. TDD (`computeSparkline` + composant `Sparkline`), 27 tests. Nécessite HA (visible une fois connecté). Build/typecheck/lint verts. |
 | 2026-07-15 | 0.1 | Zone Ambiance live : 4 `RoomSensorCard` (temp coup d'œil + CO₂/humidité) via `roomSensors` + `useEntity` (AD-3, 0 entity_id en dur) ; routing `react-router-dom` + route détail stub `/room/:roomId` + tap navigate. **TDD** (formatSensorValue + composant), 21 tests verts. Build/typecheck/lint verts, aucun token. Preuve device en attente (review). → review. |

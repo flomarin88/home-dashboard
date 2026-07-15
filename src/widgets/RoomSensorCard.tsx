@@ -1,9 +1,11 @@
 import { useNavigate } from 'react-router-dom'
-import { useEntity } from '@hakit/core'
+import { useEntity, useHistory } from '@hakit/core'
 import type { EntityName } from '@hakit/core'
 import type { RoomId, Measure } from '../entities'
 import { roomSensors, getRoom } from '../entities'
 import { formatSensorValue } from './room-sensor-format'
+import { Sparkline } from './Sparkline'
+import { TEMPERATURE_THRESHOLD_C, SPARKLINE_HOURS } from '../config'
 
 /**
  * Room sensor card (Story 1.5, UX-DR4) — one room's Netatmo ambience.
@@ -27,6 +29,15 @@ export function RoomSensorCard({ room }: { room: RoomId }) {
   const co2 = useEntity(idFor('co2'), { returnNullIfNotFound: true })
   const humidity = useEntity(idFor('humidity'), { returnNullIfNotFound: true })
 
+  // 24h temperature history for the sparkline. entityHistory uses the compressed
+  // HA shape ({ s: state }); keep only finite numeric points.
+  const { entityHistory } = useHistory(idFor('temperature'), {
+    hoursToShow: SPARKLINE_HOURS,
+  })
+  const tempSeries = entityHistory
+    .map((h) => Number(h.s))
+    .filter((n) => Number.isFinite(n))
+
   const tempUnit = temperature?.attributes?.unit_of_measurement ?? '°C'
 
   return (
@@ -45,6 +56,7 @@ export function RoomSensorCard({ room }: { room: RoomId }) {
         CO₂ {formatSensorValue(co2?.state, 0)} ppm ·{' '}
         {formatSensorValue(humidity?.state, 0)} %
       </span>
+      <Sparkline values={tempSeries} threshold={TEMPERATURE_THRESHOLD_C} />
     </button>
   )
 }

@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { MemoryRouter, Routes, Route, useParams } from 'react-router-dom'
 
-// Mock the live HA hook with fixed states keyed by the sensor id.
+// Mock the live HA hooks with fixed states keyed by the sensor id.
 vi.mock('@hakit/core', () => ({
   useEntity: (id: string) => {
     if (id.includes('temperature'))
@@ -13,6 +13,12 @@ vi.mock('@hakit/core', () => ({
       return { state: '48', attributes: { unit_of_measurement: '%' } }
     return null
   },
+  useHistory: () => ({
+    entityHistory: [{ s: '20' }, { s: '22' }, { s: '21.5' }],
+    coordinates: [],
+    timeline: [],
+    loading: false,
+  }),
 }))
 
 import { RoomSensorCard } from './RoomSensorCard'

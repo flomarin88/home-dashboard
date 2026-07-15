@@ -43,7 +43,7 @@
 
 generated: 2026-07-13
 last_updated: 2026-07-14
-# stories 1.1-1.4 done; story 1.5 review (capteurs Netatmo live + routing) 2026-07-15; epic-1 in-progress
+# stories 1.1-1.5 done (2026-07-15); story 1.6 next (obsolescence); epic-1 in-progress
 project: home-dashboard
 project_key: NOKEY
 tracking_system: file-system
@@ -56,7 +56,7 @@ development_status:
   1-2-design-system-glass-gradient: done
   1-3-shell-kiosque-pwa: done
   1-4-mapping-entity-id-centralise: done
-  1-5-ambiance-capteurs-netatmo-4-pieces: review
+  1-5-ambiance-capteurs-netatmo-4-pieces: done
   1-6-pattern-obsolescence-hors-ligne: backlog
   epic-1-retrospective: optional
 
