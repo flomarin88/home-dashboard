@@ -4,7 +4,7 @@ baseline_commit: 93b1876ec109cd81f60bdc85af0fd6e1ab0af52c
 
 # Story 1.4: Mapping entity_id centralisé
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -88,7 +88,7 @@ claude-opus-4-8 (Liza Pairing mode, Autonomous).
 ### Completion Notes List
 
 - **AC1–AC5 satisfaits et vérifiés** (build/typecheck/lint/test verts ; 0 `entity_id` en dur hors `src/entities/`).
-- **⚠️ PLACEHOLDERS `entity_id`** : les 12 capteurs utilisent `sensor.<room>_<measure>` (marqués `TODO` dans `mapping.ts`). **À remplacer par les vrais ids du HA de Florian** (Outils de dev → États, filtre `sensor.`) **avant la preuve live de 1.5** — sinon les cartes 1.5 afficheront `unavailable`. La structure/logique est complète et testée ; seules les valeurs de données restent à confirmer.
+- **`entity_id` réels câblés (2026-07-14)** : les 12 capteurs Netatmo pointent les vraies entités du HA de Florian (Salon = `sensor.interieur_*` ; parents/nathan/gaspard = `interieur_thermometre_<pièce>_*`). `assertNoPlaceholders()` passe. **Hypothèse à confirmer par Florian** : la station principale `interieur_*` est bien dans le Salon (seul module non nommé par pièce) — sinon corriger les 3 entrées Salon.
 - **Source unique extensible** : `ENTITIES` ne contient que les capteurs ; lumières/volets/clim/aspirateur/alarme seront **ajoutés ici** par leurs stories (AD-7 préservé).
 - **Invariant** vérifié par test (le mapping réel passe ; doublons rejetés) — tient lieu de garde (AC4 « test unitaire »).
 - Baseline de tests portée à **12** (rooms + accesseurs + invariant).
@@ -111,5 +111,7 @@ claude-opus-4-8 (Liza Pairing mode, Autonomous).
 
 | Date | Version | Description |
 | --- | --- | --- |
+| 2026-07-15 | 1.0 | **Salon = `interieur_*` confirmé par Florian → Status: done.** Mapping réel complet (12 capteurs), validé (17 tests, gates verts, `assertNoPlaceholders` OK). |
+| 2026-07-14 | 0.3 | **Vrais `entity_id` Netatmo câblés** (fournis par Florian) — plus de placeholders. Salon = station principale `sensor.interieur_*` ; parents/nathan/gaspard = `interieur_thermometre_<pièce>_*` ; CO₂ = `dioxyde_de_carbone`, humidité = `humidite`. Flag `placeholder` retiré ; test « real mapping has no unresolved placeholders » ajouté (garde anti-régression). **Hypothèse à confirmer** : la station `interieur_*` est bien dans le Salon. 17 tests verts. |
 | 2026-07-14 | 0.2 | Code-review (high) — corrections #1–#4 (durcissement du validateur). **#1** : `assertCanonicalMapping` vérifie la **forme** `<domain>.<object_id>` (un `entity_id` mal formé échoue le gate au lieu de finir en `unavailable`). **#2** : appel `if (import.meta.env.DEV) assertCanonicalMapping()` au module-load → auto-enforcé en dev, plus seulement au test. **#3** : flag `placeholder: true` sur les 12 capteurs + `assertNoPlaceholders()` (à appeler avant la preuve live de 1.5 — « placeholders restants » = échec bruyant). **#4** : test renforcé — **chaque** pièce a ses 3 mesures (plus seulement Salon). #5 (throw `getRoom` injoignable) : skip. 16 tests verts. |
 | 2026-07-14 | 0.1 | Mapping `entity_id` centralisé (AD-7) : pièces canoniques + `EntityEntry` (entity_id↔pièce/domaine/service) + 12 capteurs Netatmo (**placeholders TODO**) + accesseurs `roomSensors`/`sensor` + invariant canonique. **TDD**, 12 tests verts. Build/typecheck/lint verts, 0 entity_id en dur ailleurs. → review. |

@@ -39,29 +39,30 @@ const ENTITY_ID_RE = /^[a-z_]+\.[a-z0-9_]+$/
 
 /**
  * Netatmo sensors — 4 rooms × { temperature, CO₂, humidity } (Story 1.5).
+ * Real HA entity_ids (Florian's HA, 2026-07-14).
  *
- * TODO(entity_id): these are PLACEHOLDERS following the assumed Netatmo naming
- * `sensor.<room>_<measure>`. Replace each with the REAL id from Florian's HA
- * (Developer Tools → States, filter `sensor.`) before Story 1.5's live-proof —
- * otherwise the cards will render `unavailable`.
+ * NOTE: the Salon uses the main Netatmo indoor station (`sensor.interieur_*`) —
+ * the only module not room-named (confirmed in the Salon by Florian). The other
+ * rooms use their named thermometer modules (`interieur_thermometre_<room>_*`).
+ * CO₂ = `dioxyde_de_carbone`, humidity = `humidite`.
  */
 const SENSORS: readonly EntityEntry[] = [
-  // Salon
-  { entityId: 'sensor.salon_temperature', room: 'salon', domain: 'sensor', service: null, measure: 'temperature', placeholder: true },
-  { entityId: 'sensor.salon_co2', room: 'salon', domain: 'sensor', service: null, measure: 'co2', placeholder: true },
-  { entityId: 'sensor.salon_humidity', room: 'salon', domain: 'sensor', service: null, measure: 'humidity', placeholder: true },
+  // Salon — main indoor station
+  { entityId: 'sensor.interieur_temperature', room: 'salon', domain: 'sensor', service: null, measure: 'temperature' },
+  { entityId: 'sensor.interieur_dioxyde_de_carbone', room: 'salon', domain: 'sensor', service: null, measure: 'co2' },
+  { entityId: 'sensor.interieur_humidite', room: 'salon', domain: 'sensor', service: null, measure: 'humidity' },
   // Chambre Parents
-  { entityId: 'sensor.chambre_parents_temperature', room: 'chambre_parents', domain: 'sensor', service: null, measure: 'temperature', placeholder: true },
-  { entityId: 'sensor.chambre_parents_co2', room: 'chambre_parents', domain: 'sensor', service: null, measure: 'co2', placeholder: true },
-  { entityId: 'sensor.chambre_parents_humidity', room: 'chambre_parents', domain: 'sensor', service: null, measure: 'humidity', placeholder: true },
+  { entityId: 'sensor.interieur_thermometre_parents_temperature', room: 'chambre_parents', domain: 'sensor', service: null, measure: 'temperature' },
+  { entityId: 'sensor.interieur_thermometre_parents_dioxyde_de_carbone', room: 'chambre_parents', domain: 'sensor', service: null, measure: 'co2' },
+  { entityId: 'sensor.interieur_thermometre_parents_humidite', room: 'chambre_parents', domain: 'sensor', service: null, measure: 'humidity' },
   // Nathan
-  { entityId: 'sensor.nathan_temperature', room: 'nathan', domain: 'sensor', service: null, measure: 'temperature', placeholder: true },
-  { entityId: 'sensor.nathan_co2', room: 'nathan', domain: 'sensor', service: null, measure: 'co2', placeholder: true },
-  { entityId: 'sensor.nathan_humidity', room: 'nathan', domain: 'sensor', service: null, measure: 'humidity', placeholder: true },
+  { entityId: 'sensor.interieur_thermometre_nathan_temperature', room: 'nathan', domain: 'sensor', service: null, measure: 'temperature' },
+  { entityId: 'sensor.interieur_thermometre_nathan_dioxyde_de_carbone', room: 'nathan', domain: 'sensor', service: null, measure: 'co2' },
+  { entityId: 'sensor.interieur_thermometre_nathan_humidite', room: 'nathan', domain: 'sensor', service: null, measure: 'humidity' },
   // Gaspard
-  { entityId: 'sensor.gaspard_temperature', room: 'gaspard', domain: 'sensor', service: null, measure: 'temperature', placeholder: true },
-  { entityId: 'sensor.gaspard_co2', room: 'gaspard', domain: 'sensor', service: null, measure: 'co2', placeholder: true },
-  { entityId: 'sensor.gaspard_humidity', room: 'gaspard', domain: 'sensor', service: null, measure: 'humidity', placeholder: true },
+  { entityId: 'sensor.interieur_thermometre_gaspard_temperature', room: 'gaspard', domain: 'sensor', service: null, measure: 'temperature' },
+  { entityId: 'sensor.interieur_thermometre_gaspard_dioxyde_de_carbone', room: 'gaspard', domain: 'sensor', service: null, measure: 'co2' },
+  { entityId: 'sensor.interieur_thermometre_gaspard_humidite', room: 'gaspard', domain: 'sensor', service: null, measure: 'humidity' },
 ]
 
 /** All mapped entities. Feature stories append their entities here (AD-7). */

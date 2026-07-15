@@ -92,6 +92,10 @@ describe('canonical invariant (AD-7)', () => {
 })
 
 describe('placeholder guard', () => {
+  it('the real mapping has no unresolved placeholders', () => {
+    expect(() => assertNoPlaceholders()).not.toThrow()
+  })
+
   it('throws while any placeholder entity_id remains', () => {
     const withPlaceholder: EntityEntry[] = [
       { entityId: 'sensor.x', room: 'salon', domain: 'sensor', service: null, measure: 'temperature', placeholder: true },
