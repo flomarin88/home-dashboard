@@ -68,7 +68,7 @@ development_status:
   2-4-eclairage-intensite-couleur: backlog
   2-5-volets-ouvrir-fermer-position: backlog
   2-6-climatisation-etage: backlog
-  2-7-robot-aspirateur-roborock: backlog
+  2-7-robot-aspirateur-roborock: done
   epic-2-retrospective: optional
 
   # Epic 3 — Scènes

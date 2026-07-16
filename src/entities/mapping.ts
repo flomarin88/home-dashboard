@@ -32,6 +32,12 @@ export interface EntityEntry {
   readonly measure?: Measure
   /** True while `entityId` is a placeholder awaiting Florian's real HA id. */
   readonly placeholder?: boolean
+  /** Vacuum-only: battery is a SEPARATE sensor entity (HA removed `battery_level`
+   *  from vacuum entities), read for display. */
+  readonly batteryEntityId?: string
+  /** Vacuum-only: "Lancer" runs a routine via a `button` entity (e.g. the
+   *  "Quotidien" program), not `vacuum.start`. */
+  readonly startButtonEntityId?: string
 }
 
 /** Well-formed HA entity_id: `<domain>.<object_id>`. */
@@ -75,8 +81,27 @@ const LIGHTS: readonly EntityEntry[] = [
   { entityId: 'light.salon', room: 'salon', domain: 'light', service: 'light.toggle', placeholder: true },
 ]
 
+/**
+ * Vacuum (FR10) — Roborock, Story 2.7. REAL entity_id (Florian's HA, 2026-07-16).
+ * A single device with no canonical room; `room: 'salon'` is a required-field
+ * default, not meaningful here.
+ */
+const VACUUM: readonly EntityEntry[] = [
+  {
+    entityId: 'vacuum.roborock_s8',
+    room: 'salon',
+    domain: 'vacuum',
+    service: 'vacuum.start',
+    // Battery moved to its own sensor in modern HA; "Lancer" runs the "Quotidien"
+    // routine via a button entity. (Confirm both ids against HA if the tile shows
+    // "—" / no-op — one-line fix here.)
+    batteryEntityId: 'sensor.roborock_s8_batterie',
+    startButtonEntityId: 'button.salon_roborock_s8_quotidien',
+  },
+]
+
 /** All mapped entities. Feature stories append their entities here (AD-7). */
-export const ENTITIES: readonly EntityEntry[] = [...SENSORS, ...LIGHTS]
+export const ENTITIES: readonly EntityEntry[] = [...SENSORS, ...LIGHTS, ...VACUUM]
 
 /** The Netatmo measures for a room (temperature, CO₂, humidity). */
 export function roomSensors(room: RoomId): EntityEntry[] {
@@ -86,6 +111,11 @@ export function roomSensors(room: RoomId): EntityEntry[] {
 /** All mapped lights (FR2). Feature stories append to LIGHTS above (AD-7). */
 export function lights(): EntityEntry[] {
   return ENTITIES.filter((e) => e.domain === 'light')
+}
+
+/** The mapped vacuum entity (FR10), or undefined if none. */
+export function vacuum(): EntityEntry | undefined {
+  return ENTITIES.find((e) => e.domain === 'vacuum')
 }
 
 /** The single sensor entity for a (room, measure), or undefined if unmapped. */

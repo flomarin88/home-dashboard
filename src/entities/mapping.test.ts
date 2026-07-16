@@ -5,6 +5,7 @@ import {
   roomSensors,
   sensor,
   lights,
+  vacuum,
   assertCanonicalMapping,
   assertNoPlaceholders,
   ENTITIES,
@@ -98,6 +99,15 @@ describe('lights mapping (FR2)', () => {
     const ls = lights()
     expect(ls.length).toBeGreaterThanOrEqual(1)
     expect(ls.every((l) => l.domain === 'light' && l.service != null)).toBe(true)
+  })
+})
+
+describe('vacuum mapping (FR10)', () => {
+  it('maps the real Roborock vacuum entity (not a placeholder)', () => {
+    const v = vacuum()
+    expect(v?.entityId).toBe('vacuum.roborock_s8')
+    expect(v?.domain).toBe('vacuum')
+    expect(v?.placeholder).toBeUndefined()
   })
 })
 

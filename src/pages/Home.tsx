@@ -1,7 +1,8 @@
 import { SectionCard } from '../ui/SectionCard'
 import { RoomSensorCard } from '../widgets/RoomSensorCard'
 import { LightTile } from '../widgets/LightTile'
-import { listRooms, lights } from '../entities'
+import { VacuumTile } from '../widgets/VacuumTile'
+import { listRooms, lights, vacuum } from '../entities'
 import { isConfigured } from '../hakit'
 
 /**
@@ -17,6 +18,7 @@ import { isConfigured } from '../hakit'
  * never blank (AD-6/NFR4).
  */
 export function Home() {
+  const vacuumEntry = vacuum()
   return (
     <div className="flex flex-col gap-grid-gap">
       {/* Scènes — hero prominence (spine wins over the mock's bottom placement) */}
@@ -47,6 +49,16 @@ export function Home() {
         <SectionCard title="Volets" />
         <SectionCard title="Climatisation" />
       </div>
+
+      {/* Aspirateur — the IA has no dedicated vacuum zone; a small section after
+          the control row is the default placement (Story 2.7). */}
+      {isConfigured && vacuumEntry ? (
+        <SectionCard title="Aspirateur">
+          <div className="grid grid-cols-2 gap-tile-gap md:grid-cols-4">
+            <VacuumTile entry={vacuumEntry} />
+          </div>
+        </SectionCard>
+      ) : null}
     </div>
   )
 }
