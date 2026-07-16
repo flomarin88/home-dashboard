@@ -55,6 +55,9 @@ export function useOptimisticControl<D extends AllDomains, T extends string>(
   // The sentAt of the intent THIS hook instance last issued, so unmount cleanup
   // only clears its own in-flight intent (never a sibling's / a newer one's).
   const ownSentAt = useRef<number | null>(null)
+  // The last target we attempted, to retire a stale `failed` if the entity
+  // reaches it later (see the reset effect below).
+  const lastTarget = useRef<T | null>(null)
 
   const confirmedState = entity?.state ?? null
   const stale = isStale(confirmedState, connected)
@@ -68,6 +71,23 @@ export function useOptimisticControl<D extends AllDomains, T extends string>(
       setFailed(false)
     }
   }, [pending, confirmedState, entityId, model, clearPending])
+
+  // Retire a stale failure (AD-5): once no intent is in flight, a leftover
+  // `failed` from a timed-out command is outdated the moment the entity actually
+  // reaches the last-attempted target (e.g. a late echo, or another actor). This
+  // prevents a converged state from being shown as a failure — notably a lit
+  // tile still labelled "Échec".
+  useEffect(() => {
+    if (
+      !pending &&
+      failed &&
+      confirmedState != null &&
+      lastTarget.current != null &&
+      model.isConverged(lastTarget.current, confirmedState)
+    ) {
+      setFailed(false)
+    }
+  }, [pending, failed, confirmedState, model])
 
   // Timeout (AD-5): at the deadline, re-check the LIVE confirmed state — a state
   // that just converged is not a failure, and a legitimately transitional state
@@ -115,6 +135,7 @@ export function useOptimisticControl<D extends AllDomains, T extends string>(
       // Offline precedence (AD-6): never command an entity we can't see.
       if (!entity || stale) return
       setFailed(false)
+      lastTarget.current = target
       const now = Date.now()
       setPending(entityId, target, model.timeoutMs, now)
       ownSentAt.current = now

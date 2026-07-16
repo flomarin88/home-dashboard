@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { HakitProvider, isConfigured } from './hakit'
 import { TopBar } from './ui/TopBar'
+import { UndoToast } from './ui/UndoToast'
 import { SectionCard } from './ui/SectionCard'
 import { Skeleton } from './ui/Skeleton'
 import { Home } from './pages/Home'
@@ -65,6 +66,11 @@ function KioskShell() {
       ) : (
         <AppRoutes />
       )}
+
+      {/* Undo safety-net toast (NFR6) — chrome, above the connection gate so it
+          persists across (re)connect; the undo closure (built under the provider)
+          is what reaches HA. */}
+      <UndoToast />
     </main>
   )
 }

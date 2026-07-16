@@ -19,7 +19,7 @@ import { DeviceTile } from '../ui/DeviceTile'
 export function LightTile({ entry }: { entry: EntityEntry }) {
   const id = entry.entityId as EntityName
   const room = getRoom(entry.room)
-  const { displayState, send, isStale } = useOptimisticControl(id, lightModel)
+  const { displayState, send, isStale, failed } = useOptimisticControl(id, lightModel)
 
   if (isStale) {
     return (
@@ -28,12 +28,15 @@ export function LightTile({ entry }: { entry: EntityEntry }) {
   }
 
   const on = displayState === 'on'
+  // A timed-out command surfaces "Échec" (text, not colour alone) instead of a
+  // silent snap-back (Story 2.2, closes the 2.1 review finding). Still pressable
+  // — the next tap retries and clears `failed`.
   return (
     <DeviceTile
       domain="lights"
       label={room.label}
       state={on ? 'on' : 'default'}
-      value={on ? 'Allumé' : 'Éteint'}
+      value={failed ? 'Échec' : on ? 'Allumé' : 'Éteint'}
       kid={room.kid}
       onPress={() => send(on ? 'off' : 'on')}
     />

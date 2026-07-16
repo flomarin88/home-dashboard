@@ -63,7 +63,7 @@ development_status:
   # Epic 2 — Pilotage des appareils
   epic-2: in-progress
   2-1-infra-de-controle-optimiste-convergence: done
-  2-2-undo-des-actions-a-fort-impact: backlog
+  2-2-undo-des-actions-a-fort-impact: done
   2-3-eclairage-allumer-eteindre-piece-groupe: backlog
   2-4-eclairage-intensite-couleur: backlog
   2-5-volets-ouvrir-fermer-position: backlog

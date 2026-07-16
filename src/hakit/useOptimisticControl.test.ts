@@ -81,6 +81,31 @@ describe('useOptimisticControl (AD-5 / AD-11)', () => {
     }
   })
 
+  it('retires a stale "failed" once the entity later reaches the target (no converged-but-failed)', () => {
+    vi.useFakeTimers()
+    try {
+      const { result, rerender } = renderHook(() =>
+        useOptimisticControl(ID, lightModel),
+      )
+      act(() => result.current.send('on'))
+      act(() => {
+        vi.advanceTimersByTime(lightModel.timeoutMs + 10) // times out
+      })
+      expect(result.current.failed).toBe(true)
+
+      // HA finally reports the light DID turn on (late echo / another actor).
+      act(() => {
+        hass.state = 'on'
+        rerender()
+      })
+
+      expect(result.current.failed).toBe(false) // no lit-tile-labelled-Échec
+      expect(result.current.displayState).toBe('on')
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
   it('rapid opposing sends settle to the last target with no stuck intent', () => {
     // confirmed state is 'off'. send('on') → pending 'on'; the follow-up
     // send('off') already matches confirmed → converges at once. Each send still

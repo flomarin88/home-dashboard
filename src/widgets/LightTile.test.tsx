@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { render, screen, fireEvent, act } from '@testing-library/react'
 import type { EntityEntry } from '../entities'
 import { usePendingStore } from '../state/pending'
 import { LightTile } from './LightTile'
@@ -38,6 +38,10 @@ describe('LightTile (Story 2.1 vertical slice)', () => {
     hass.turnOff.mockClear()
   })
 
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
   it('shows off state, then flips optimistically to on and calls the HA service', () => {
     render(<LightTile entry={ENTRY} />)
     expect(screen.getByText('Éteint')).toBeInTheDocument()
@@ -55,5 +59,17 @@ describe('LightTile (Story 2.1 vertical slice)', () => {
     expect(screen.getByText(/hors ligne/i)).toBeInTheDocument()
     expect(screen.queryByRole('button')).toBeNull() // cannot command an offline entity
     expect(hass.turnOn).not.toHaveBeenCalled()
+  })
+
+  it('surfaces "Échec" when a command times out instead of snapping back silently (Story 2.2)', () => {
+    vi.useFakeTimers()
+    render(<LightTile entry={ENTRY} />)
+    fireEvent.click(screen.getByRole('button')) // send('on'); no HA echo follows
+
+    act(() => {
+      vi.advanceTimersByTime(6000) // past the light control timeout (5s)
+    })
+
+    expect(screen.getByText('Échec')).toBeInTheDocument()
   })
 })
