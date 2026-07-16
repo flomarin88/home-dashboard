@@ -90,6 +90,11 @@ development_status:
   5-3-page-detail-aspirateur: done  # added 2026-07-16 (correct-course)
   epic-5-retrospective: optional
 
+  # Epic 6 — Maison & coordination (correct-course 2026-07-16)
+  epic-6: in-progress
+  6-1-sortie-poubelles: ready-for-dev
+  epic-6-retrospective: optional
+
 # Retrospective action items (see epic-1-retro-2026-07-15.md)
 action_items:
   - epic: 1

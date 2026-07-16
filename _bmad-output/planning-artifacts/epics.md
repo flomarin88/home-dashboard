@@ -415,6 +415,26 @@ So that je vois l'évolution de la température/CO₂/humidité.
 **Then** l'historique (température, CO₂, humidité) de la pièce est affiché (courbes)
 **And** une série indisponible relève du pattern d'obsolescence (AD-6)
 
+## Epic 6: Maison & coordination
+
+_Ajouté en cours de sprint (2026-07-16, correct-course) — amorce de la **couche coordination familiale** (spine Deferred v2), tirée en avant. Persistée dans les **primitives HA natives** (sensors/calendar + `input_boolean`) ; le dashboard **reflète** (AD-1/AD-3) et **écrit via services HA** (AD-4), aucune logique d'échéancier côté client._
+
+### Story 6.1: Sortie des poubelles (jaune / noire)
+
+As a Florian,
+I want une tuile poubelle (grosse icône jaune/noire selon le jour, rouge si oubli) à marquer « sortie » pendant le créneau,
+So that on n'oublie pas de sortir la bonne poubelle, avec historique.
+
+**Acceptance Criteria:**
+
+**Given** un **capteur template HA** `sensor.poubelle_a_sortir` (état `jaune`/`noire`/`oubli_*`/`aucune`, **schéma horaire côté HA** — AD-4) et un `input_datetime` « sortie » par poubelle
+**When** l'accueil s'affiche
+**Then** une **tuile** montre une **grosse icône poubelle colorée** selon l'état (jaune/noire, **rouge si oubli**, atténuée si repos), reflétant HA (AD-1/AD-3) ; obsolescence → AD-6
+
+**Given** un créneau actif
+**When** j'appuie sur la tuile (≥56px)
+**Then** l'app **écrit `now`** dans l'`input_datetime` (`set_datetime`, service HA uniquement — AD-4), en **optimiste** ; une fois sortie, le geste est désactivé (le capteur repasse `aucune`) ; **l'historique HA de l'`input_datetime` = le journal**
+
 ### Story 5.3: Page détail « Aspirateur » (Roborock)
 
 _Ajoutée en cours de sprint (2026-07-16, correct-course) — page profonde **par appareil** (extension du thème « pages de détail » d'Epic 5 / AD-10), pour les infos riches gardées **hors** de la tuile glanceable (Story 2.7)._
