@@ -10,10 +10,11 @@ export function RoomDetail() {
   const { roomId } = useParams()
   const room = ROOMS.find((r) => r.id === (roomId as RoomId))
 
+  // Content only — the ground + top bar are owned by KioskShell (App.tsx).
   return (
-    <main className="bg-ground flex min-h-svh flex-col gap-2 p-6 text-text">
+    <div className="flex flex-col gap-2">
       <h1 className="text-title font-bold">{room?.label ?? 'Pièce inconnue'}</h1>
       <p className="text-meta text-text-muted">Détail de pièce — à venir (Epic 5).</p>
-    </main>
+    </div>
   )
 }

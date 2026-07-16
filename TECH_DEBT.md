@@ -7,18 +7,23 @@ Opened from the Epic 1 retrospective (`_bmad-output/implementation-artifacts/epi
 
 ---
 
-## TD-1 — Shell remounts on HA (re)connect  ·  severity: medium
-_Source: Story 1.3 code-review finding #2._
+## TD-1 — Shell remounts on HA (re)connect  ·  ✅ PAID (Story 2.1)
+_Source: Story 1.3 code-review finding #2. Resolved: Story 2.1 (2026-07-15)._
 
-- **What:** `App` passes `<Home/>` as both `HassConnect`'s `loading` fallback **and**
+- **What:** `App` passed `<Home/>` as both `HassConnect`'s `loading` fallback **and**
   its children. On connect (and every reconnect) HassConnect swaps loading→children,
-  so `Home` unmounts and a fresh `Home` mounts — the `Clock` interval restarts and any
-  component state is lost.
-- **Why deferred:** cosmetic while the zones were empty/stateless (Stories 1.3–1.6).
-- **Payback trigger:** **Epic 2 / Story 2.1** — control widgets will hold *optimistic*
-  in-flight state (AD-11 pending layer); the remount would reset it mid-action. Fix by
-  keeping the shell **chrome outside the connection gate** so individual widgets (not the
-  whole shell) handle connecting/offline. **Do this before the first control widget.**
+  so `Home` unmounted and a fresh `Home` mounted — the `Clock` interval restarted and any
+  component state was lost.
+- **Fix (Story 2.1):** introduced `KioskShell` (App.tsx) — the ground + `TopBar` (which
+  runs the Clock) now live **above** the connection gate; `HakitProvider` wraps only the
+  data zones, with a `ConnectingZones` skeleton fallback. A (re)connect now remounts only
+  the data zones (they degrade via `useEntityValue`), never the shell or Clock. `TopBar`
+  extracted to `src/ui/TopBar.tsx`; `Home`/`RoomDetail` became content-only (shell owns the
+  ground). Note: because the pending layer (AD-11) is a module-level Zustand store, in-flight
+  optimistic state already survived a remount — so this fix is about chrome/Clock stability
+  and structural correctness, not saving pending state.
+- **Follow-up (minor):** `TopBar` is now persistent across routes (also shows on the
+  `RoomDetail` stub). Fine for the kiosk; revisit when Epic 5 designs RoomDetail.
 
 ## TD-2 — Test files are not type-checked  ·  severity: low
 _Source: Story 1.3 code-review finding #5._

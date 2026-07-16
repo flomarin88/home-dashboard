@@ -4,8 +4,10 @@ import {
   getRoom,
   roomSensors,
   sensor,
+  lights,
   assertCanonicalMapping,
   assertNoPlaceholders,
+  ENTITIES,
   type EntityEntry,
 } from './index'
 
@@ -91,9 +93,22 @@ describe('canonical invariant (AD-7)', () => {
   })
 })
 
+describe('lights mapping (FR2)', () => {
+  it('exposes the mapped light control entities with a service', () => {
+    const ls = lights()
+    expect(ls.length).toBeGreaterThanOrEqual(1)
+    expect(ls.every((l) => l.domain === 'light' && l.service != null)).toBe(true)
+  })
+})
+
 describe('placeholder guard', () => {
-  it('the real mapping has no unresolved placeholders', () => {
-    expect(() => assertNoPlaceholders()).not.toThrow()
+  it('has exactly one known placeholder — light.salon, pending Florian real HA id (Story 2.1)', () => {
+    // Sensors are real since 1.5; 2.1 adds ONE deliberate light placeholder.
+    // This documents the interim state AND still catches any unexpected/forgotten
+    // placeholder (incl. a sensor regressing to placeholder).
+    const placeholders = ENTITIES.filter((e) => e.placeholder).map((e) => e.entityId)
+    expect(placeholders).toEqual(['light.salon'])
+    expect(() => assertNoPlaceholders()).toThrow(/light\.salon/)
   })
 
   it('throws while any placeholder entity_id remains', () => {

@@ -65,12 +65,27 @@ const SENSORS: readonly EntityEntry[] = [
   { entityId: 'sensor.interieur_thermometre_gaspard_humidite', room: 'gaspard', domain: 'sensor', service: null, measure: 'humidity' },
 ]
 
+/**
+ * Lights (FR2) — Story 2.1 wires the first tile (vertical slice); Story 2.3
+ * fills the rest (per-room + master). Control entities declare their HA
+ * `service`. PLACEHOLDER entity_id until Florian provides the real HA light id
+ * (assertNoPlaceholders flags it until then, on purpose).
+ */
+const LIGHTS: readonly EntityEntry[] = [
+  { entityId: 'light.salon', room: 'salon', domain: 'light', service: 'light.toggle', placeholder: true },
+]
+
 /** All mapped entities. Feature stories append their entities here (AD-7). */
-export const ENTITIES: readonly EntityEntry[] = [...SENSORS]
+export const ENTITIES: readonly EntityEntry[] = [...SENSORS, ...LIGHTS]
 
 /** The Netatmo measures for a room (temperature, CO₂, humidity). */
 export function roomSensors(room: RoomId): EntityEntry[] {
   return ENTITIES.filter((e) => e.room === room && e.domain === 'sensor')
+}
+
+/** All mapped lights (FR2). Feature stories append to LIGHTS above (AD-7). */
+export function lights(): EntityEntry[] {
+  return ENTITIES.filter((e) => e.domain === 'light')
 }
 
 /** The single sensor entity for a (room, measure), or undefined if unmapped. */
