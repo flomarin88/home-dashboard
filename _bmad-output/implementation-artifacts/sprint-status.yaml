@@ -87,6 +87,7 @@ development_status:
   epic-5: backlog
   5-1-page-detail-de-piece-appareils: backlog
   5-2-detail-de-piece-historique-capteurs: backlog
+  5-3-page-detail-aspirateur: done  # added 2026-07-16 (correct-course)
   epic-5-retrospective: optional
 
 # Retrospective action items (see epic-1-retro-2026-07-15.md)

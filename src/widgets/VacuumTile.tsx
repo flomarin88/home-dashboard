@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router-dom'
 import { useEntity, useService } from '@hakit/core'
 import type { EntityName } from '@hakit/core'
 import type { EntityEntry } from '../entities'
@@ -31,12 +32,16 @@ export function VacuumTile({ entry }: { entry: EntityEntry }) {
   const batteryId = (entry.batteryEntityId ?? entry.entityId) as EntityName
   const batterySensor = useEntity(batteryId, { returnNullIfNotFound: true })
   const buttonSvc = useService('button')
+  const navigate = useNavigate()
   const { displayState, send, isStale, failed } = useOptimisticControl(
     id,
     vacuumModel,
   )
 
   const battery = parseBattery(batterySensor?.state)
+  // Tapping the info area opens the detail page (Story 5.3); the action buttons
+  // are siblings (not nested), so pressing them never navigates.
+  const openDetail = () => navigate('/aspirateur')
 
   if (isStale) {
     return (
@@ -44,8 +49,14 @@ export function VacuumTile({ entry }: { entry: EntityEntry }) {
         data-domain="vacuum"
         className="flex flex-col gap-2 rounded-md border border-dashed border-stale bg-tile-fill px-4 py-3 text-stale-text"
       >
-        <Header />
-        <OfflinePill />
+        <button
+          type="button"
+          onClick={openDetail}
+          className="flex flex-col gap-2 text-left"
+        >
+          <Header />
+          <OfflinePill />
+        </button>
       </div>
     )
   }
@@ -66,20 +77,26 @@ export function VacuumTile({ entry }: { entry: EntityEntry }) {
       data-domain="vacuum"
       className="flex flex-col gap-2 rounded-md border border-tile-border bg-tile-fill px-4 py-3"
     >
-      <Header />
-
-      <div className="flex items-center justify-between gap-2">
-        <span className="flex items-center gap-1.5 text-meta text-text">
-          <StatusIcon state={state} />
-          {failed ? 'Échec' : vacuumStatusLabel(displayState)}
-        </span>
-        <span
-          className={`flex items-center gap-1 text-meta tabular-nums ${batteryColorClass(battery)}`}
-        >
-          <BatteryIcon charging={docked} />
-          {battery ?? '—'} %
-        </span>
-      </div>
+      <button
+        type="button"
+        onClick={openDetail}
+        aria-label="Aspirateur — ouvrir le détail"
+        className="flex flex-col gap-2 text-left"
+      >
+        <Header />
+        <div className="flex items-center justify-between gap-2">
+          <span className="flex items-center gap-1.5 text-meta text-text">
+            <StatusIcon state={state} />
+            {failed ? 'Échec' : vacuumStatusLabel(displayState)}
+          </span>
+          <span
+            className={`flex items-center gap-1 text-meta tabular-nums ${batteryColorClass(battery)}`}
+          >
+            <BatteryIcon charging={docked} />
+            {battery ?? '—'} %
+          </span>
+        </div>
+      </button>
 
       <div className="flex gap-tile-gap">
         <button

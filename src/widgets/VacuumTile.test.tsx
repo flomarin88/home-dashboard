@@ -1,8 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
+import { MemoryRouter } from 'react-router-dom'
+import type { ReactElement } from 'react'
 import type { EntityEntry } from '../entities'
 import { usePendingStore } from '../state/pending'
 import { VacuumTile } from './VacuumTile'
+
+const renderTile = (ui: ReactElement) =>
+  render(<MemoryRouter>{ui}</MemoryRouter>)
 
 const hass = vi.hoisted(() => ({
   vacuumState: 'docked' as string,
@@ -48,13 +53,13 @@ describe('VacuumTile (Story 2.7)', () => {
   })
 
   it('shows status + battery from the separate battery sensor (docked → "En charge", 100 %)', () => {
-    render(<VacuumTile entry={ENTRY} />)
+    renderTile(<VacuumTile entry={ENTRY} />)
     expect(screen.getByText(/en charge/i)).toBeInTheDocument()
     expect(screen.getByText(/100 %/)).toBeInTheDocument()
   })
 
   it('Lancer runs the "Quotidien" button (not vacuum.start) and shows "En ménage" optimistically', () => {
-    render(<VacuumTile entry={ENTRY} />)
+    renderTile(<VacuumTile entry={ENTRY} />)
     fireEvent.click(screen.getByRole('button', { name: /lancer/i }))
 
     expect(hass.press).toHaveBeenCalledWith({
@@ -65,23 +70,25 @@ describe('VacuumTile (Story 2.7)', () => {
 
   it('Retour base calls vacuum.return_to_base (shown when not docked)', () => {
     hass.vacuumState = 'cleaning' // not docked → Retour base is offered
-    render(<VacuumTile entry={ENTRY} />)
+    renderTile(<VacuumTile entry={ENTRY} />)
     fireEvent.click(screen.getByRole('button', { name: /retour base/i }))
     expect(hass.returnToBase).toHaveBeenCalledOnce()
   })
 
   it('shows "Retour à la base" for the transitional returning state (not a failure)', () => {
     hass.vacuumState = 'returning'
-    render(<VacuumTile entry={ENTRY} />)
+    renderTile(<VacuumTile entry={ENTRY} />)
     expect(screen.getByText(/retour à la base/i)).toBeInTheDocument()
     expect(screen.queryByText(/échec/i)).toBeNull()
   })
 
-  it('offline: non-interactive "Hors ligne" tile (AD-6)', () => {
+  it('offline: "Hors ligne" tile with no control actions (AD-6)', () => {
     hass.connectionStatus = 'disconnected'
-    render(<VacuumTile entry={ENTRY} />)
+    renderTile(<VacuumTile entry={ENTRY} />)
     expect(screen.getByText(/hors ligne/i)).toBeInTheDocument()
-    expect(screen.queryByRole('button')).toBeNull()
+    // No control actions when offline (the info area still links to the detail).
+    expect(screen.queryByRole('button', { name: /lancer/i })).toBeNull()
+    expect(screen.queryByRole('button', { name: /retour base/i })).toBeNull()
     expect(hass.press).not.toHaveBeenCalled()
   })
 })

@@ -414,3 +414,22 @@ So that je vois l'évolution de la température/CO₂/humidité.
 **When** je la consulte
 **Then** l'historique (température, CO₂, humidité) de la pièce est affiché (courbes)
 **And** une série indisponible relève du pattern d'obsolescence (AD-6)
+
+### Story 5.3: Page détail « Aspirateur » (Roborock)
+
+_Ajoutée en cours de sprint (2026-07-16, correct-course) — page profonde **par appareil** (extension du thème « pages de détail » d'Epic 5 / AD-10), pour les infos riches gardées **hors** de la tuile glanceable (Story 2.7)._
+
+As a Florian,
+I want une page dédiée à l'aspirateur (état, batterie, nettoyage en cours, consommables, alertes) que j'ouvre depuis sa tuile,
+So that j'ai le suivi complet du Roborock sans ouvrir son app.
+
+**Acceptance Criteria:**
+
+**Given** la tuile « Aspirateur » sur l'accueil (Story 2.7)
+**When** je la tape (hors boutons d'action)
+**Then** une **page dédiée** `/aspirateur` s'ouvre (navigation peu profonde, un niveau — AD-10) avec les **contrôles** (Lancer/Arrêter/Retour base) + un **jeu curé d'infos** : État & batterie · Nettoyage en cours (progression %, surface, durée, pièce) · Consommables (temps restant brosses/filtre/capteurs) · Alertes (erreur, eau, réservoir/serpillière)
+**And** un retour « ‹ Accueil » ramène à l'écran d'accueil
+
+**Given** les capteurs Roborock mappés
+**When** une valeur est indisponible/obsolète
+**Then** elle relève du **pattern d'obsolescence** (AD-6) — jamais de blanc

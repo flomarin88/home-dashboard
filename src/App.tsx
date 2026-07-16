@@ -6,12 +6,14 @@ import { SectionCard } from './ui/SectionCard'
 import { Skeleton } from './ui/Skeleton'
 import { Home } from './pages/Home'
 import { RoomDetail } from './pages/RoomDetail'
+import { VacuumDetail } from './pages/VacuumDetail'
 
 function AppRoutes() {
   return (
     <Routes>
       <Route path="/" element={<Home />} />
       <Route path="/room/:roomId" element={<RoomDetail />} />
+      <Route path="/aspirateur" element={<VacuumDetail />} />
     </Routes>
   )
 }
@@ -57,7 +59,10 @@ function ConnectingZones() {
  */
 function KioskShell() {
   return (
-    <main className="bg-ground flex min-h-svh w-full flex-col gap-grid-gap p-6 text-text">
+    // Fixed kiosk viewport — iPad Pro 9.7" landscape (1024×768 CSS px). Locked to
+    // the viewport height with no scrolling anywhere (NEVER scroll); every page is
+    // designed to fit. See memory: target-device-and-layout.
+    <main className="bg-ground flex h-dvh w-full flex-col gap-grid-gap overflow-hidden p-6 text-text">
       <TopBar />
       {isConfigured ? (
         <HakitProvider loading={<ConnectingZones />}>

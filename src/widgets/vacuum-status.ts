@@ -30,3 +30,15 @@ export function batteryColorClass(level: number | null): string {
   if (level >= 20) return 'text-accent-lights'
   return 'text-security-alert'
 }
+
+/**
+ * A consumable "time left" sensor is in SECONDS. Show it as whole days remaining,
+ * or "À remplacer" once it hits zero/negative (Roborock reports overdue as a
+ * negative value — never surface the raw number). `—` if not numeric.
+ */
+export function consumableLabel(state: string | null | undefined): string {
+  const seconds = parseBattery(state) // reuses the numeric parse
+  if (seconds == null) return '—'
+  if (seconds <= 0) return 'À remplacer'
+  return `${Math.round(seconds / 86400)} j`
+}

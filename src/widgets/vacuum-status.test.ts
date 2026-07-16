@@ -3,6 +3,7 @@ import {
   vacuumStatusLabel,
   parseBattery,
   batteryColorClass,
+  consumableLabel,
 } from './vacuum-status'
 
 describe('vacuumStatusLabel', () => {
@@ -41,5 +42,20 @@ describe('batteryColorClass', () => {
     expect(batteryColorClass(20)).toBe('text-accent-lights')
     expect(batteryColorClass(19)).toBe('text-security-alert')
     expect(batteryColorClass(null)).toBe('text-text-muted')
+  })
+})
+
+describe('consumableLabel', () => {
+  it('shows whole days remaining for a positive time-left', () => {
+    expect(consumableLabel(String(665461))).toBe('8 j') // ~7.7 → 8
+    expect(consumableLabel(String(150434))).toBe('2 j')
+  })
+  it('shows "À remplacer" once due (zero or negative)', () => {
+    expect(consumableLabel('0')).toBe('À remplacer')
+    expect(consumableLabel(String(-216049))).toBe('À remplacer')
+  })
+  it('shows — for non-numeric / missing', () => {
+    expect(consumableLabel(null)).toBe('—')
+    expect(consumableLabel('unavailable')).toBe('—')
   })
 })

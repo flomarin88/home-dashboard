@@ -118,6 +118,64 @@ export function vacuum(): EntityEntry | undefined {
   return ENTITIES.find((e) => e.domain === 'vacuum')
 }
 
+/** A labelled reference to a secondary HA entity used on the vacuum detail page. */
+export interface LabelledEntity {
+  readonly label: string
+  readonly entityId: string
+}
+
+/**
+ * Vacuum detail-page entities (Story 5.3) — the richer Roborock data kept OFF
+ * the glanceable home tile. All ids live here (AD-7). The map is an HA `image`
+ * entity: the page reads its `entity_picture` at RUNTIME (its token is never
+ * stored — AD-8). Real ids from Florian's HA (2026-07-16).
+ */
+export interface VacuumDetail {
+  /** HA `image` entity — its `entity_picture` (with a live token) is read at runtime. */
+  readonly mapEntityId: string
+  /** binary_sensor: charging at the dock. */
+  readonly chargingEntityId: string
+  /** Launchable routines (`button` entities). */
+  readonly programs: readonly LabelledEntity[]
+  /** In-progress cleaning fields. */
+  readonly cleaning: readonly LabelledEntity[]
+  /** Consumable time-left sensors (seconds; ≤0 → "à remplacer"). */
+  readonly consumables: readonly LabelledEntity[]
+  /** Alerts (error sensor + binary_sensors). */
+  readonly alerts: readonly LabelledEntity[]
+}
+
+const VACUUM_DETAIL: VacuumDetail = {
+  mapEntityId: 'image.salon_roborock_s8_map_0',
+  chargingEntityId: 'binary_sensor.salon_roborock_s8_en_charge',
+  programs: [
+    { label: 'Quotidien', entityId: 'button.salon_roborock_s8_quotidien' },
+    { label: 'Après les repas', entityId: 'button.salon_roborock_s8_apres_les_repas' },
+  ],
+  cleaning: [
+    { label: 'Surface', entityId: 'sensor.roborock_s8_surface_de_nettoyage' },
+    { label: 'Durée', entityId: 'sensor.roborock_s8_duree_de_nettoyage' },
+    { label: 'Pièce actuelle', entityId: 'sensor.salon_roborock_s8_piece_actuelle' },
+  ],
+  consumables: [
+    { label: 'Brosse principale', entityId: 'sensor.roborock_s8_temps_restant_brosse_principale' },
+    { label: 'Brosse latérale', entityId: 'sensor.roborock_s8_temps_restant_brosse_laterale' },
+    { label: 'Filtre', entityId: 'sensor.roborock_s8_temps_restant_filtre' },
+    { label: 'Capteurs', entityId: 'sensor.roborock_s8_temps_restant_capteurs' },
+  ],
+  alerts: [
+    { label: 'Erreur', entityId: 'sensor.roborock_s8_erreur_aspirateur' },
+    { label: "Pénurie d'eau", entityId: 'binary_sensor.roborock_s8_penurie_d_eau' },
+    { label: "Réservoir d'eau", entityId: 'binary_sensor.roborock_s8_reservoir_d_eau_fixe' },
+    { label: 'Serpillière', entityId: 'binary_sensor.roborock_s8_serpilliere_fixee' },
+  ],
+}
+
+/** The vacuum detail-page entity references (Story 5.3), or undefined if no vacuum. */
+export function vacuumDetail(): VacuumDetail | undefined {
+  return vacuum() ? VACUUM_DETAIL : undefined
+}
+
 /** The single sensor entity for a (room, measure), or undefined if unmapped. */
 export function sensor(
   room: RoomId,
