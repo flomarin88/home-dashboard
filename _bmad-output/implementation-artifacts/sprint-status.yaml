@@ -92,7 +92,7 @@ development_status:
 
   # Epic 6 — Maison & coordination (correct-course 2026-07-16)
   epic-6: in-progress
-  6-1-sortie-poubelles: ready-for-dev
+  6-1-sortie-poubelles: review
   epic-6-retrospective: optional
 
 # Retrospective action items (see epic-1-retro-2026-07-15.md)

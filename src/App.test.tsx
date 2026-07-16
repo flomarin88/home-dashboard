@@ -7,10 +7,7 @@ describe('App / KioskShell (TD-1: chrome above the connection gate)', () => {
     render(<App />)
     // Chrome (TopBar) lives above the provider → always present.
     expect(screen.getByText(/désarmé/i)).toBeInTheDocument()
-    // Zones (Home) render within the same shell.
-    const headings = screen
-      .getAllByRole('heading')
-      .map((h) => h.textContent?.trim().toLowerCase() ?? '')
-    expect(headings).toContain('scènes')
+    // Content (Home) renders within the same shell (unconfigured fallback here).
+    expect(screen.getByText(/non configuré/i)).toBeInTheDocument()
   })
 })

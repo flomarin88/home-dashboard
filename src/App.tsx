@@ -2,7 +2,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { HakitProvider, isConfigured } from './hakit'
 import { TopBar } from './ui/TopBar'
 import { UndoToast } from './ui/UndoToast'
-import { SectionCard } from './ui/SectionCard'
+import { BinTile } from './widgets/BinTile'
 import { Skeleton } from './ui/Skeleton'
 import { Home } from './pages/Home'
 import { RoomDetail } from './pages/RoomDetail'
@@ -24,20 +24,18 @@ function AppRoutes() {
  * — being outside the provider — uses no HA hooks. Never blank (NFR4/AD-6).
  */
 function ConnectingZones() {
+  // Skeleton tiles mirroring Home so connecting→connected has no layout jump.
   return (
     <div className="flex flex-col gap-grid-gap">
-      <SectionCard title="Scènes" />
-      <SectionCard title="Ambiance">
-        <div className="grid grid-cols-2 gap-tile-gap md:grid-cols-4">
-          {[0, 1, 2, 3].map((i) => (
-            <Skeleton key={i} className="h-tile-h w-full rounded-md" />
-          ))}
-        </div>
-      </SectionCard>
-      <div className="grid gap-grid-gap md:grid-cols-3">
-        <SectionCard title="Éclairage" />
-        <SectionCard title="Volets" />
-        <SectionCard title="Climatisation" />
+      <div className="grid grid-cols-2 gap-tile-gap md:grid-cols-4">
+        {[0, 1, 2, 3].map((i) => (
+          <Skeleton key={i} className="h-tile-h w-full rounded-md" />
+        ))}
+      </div>
+      <div className="grid grid-cols-2 gap-tile-gap md:grid-cols-4">
+        {[0, 1].map((i) => (
+          <Skeleton key={i} className="h-tile-h w-full rounded-md" />
+        ))}
       </div>
     </div>
   )
@@ -67,6 +65,10 @@ function KioskShell() {
       {isConfigured ? (
         <HakitProvider loading={<ConnectingZones />}>
           <AppRoutes />
+          {/* Bin reminder (Story 6.1) — needs HA, so it lives UNDER the provider,
+              fixed-positioned into the top-bar area (TopBar itself is above the
+              gate, TD-1). Shows only when a bin is due. */}
+          <BinTile />
         </HakitProvider>
       ) : (
         <AppRoutes />

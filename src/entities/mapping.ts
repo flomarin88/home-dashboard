@@ -176,6 +176,31 @@ export function vacuumDetail(): VacuumDetail | undefined {
   return vacuum() ? VACUUM_DETAIL : undefined
 }
 
+/**
+ * Bins (Story 6.1) — the app REFLECTS a HA template sensor (schedule + oubli
+ * logic live in HA, AD-4) and WRITES a timestamp to a per-bin `input_datetime`
+ * on "sortie" (its HA history is the log). Contract: see docs/home-assistant.md.
+ */
+export interface BinsConfig {
+  /** HA template sensor: state ∈ jaune | noire | oubli_jaune | oubli_noire | aucune. */
+  readonly stateEntityId: string
+  /** input_datetime written (`set_datetime`) when a bin is marked out. */
+  readonly sortie: { readonly jaune: string; readonly noire: string }
+}
+
+const BINS: BinsConfig = {
+  stateEntityId: 'sensor.poubelle_a_sortir',
+  sortie: {
+    jaune: 'input_datetime.poubelle_jaune_sortie',
+    noire: 'input_datetime.poubelle_noire_sortie',
+  },
+}
+
+/** The bins config (Story 6.1). */
+export function binsConfig(): BinsConfig {
+  return BINS
+}
+
 /** The single sensor entity for a (room, measure), or undefined if unmapped. */
 export function sensor(
   room: RoomId,
