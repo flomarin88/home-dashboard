@@ -435,6 +435,24 @@ So that on n'oublie pas de sortir la bonne poubelle, avec historique.
 **When** j'appuie sur la tuile (≥56px)
 **Then** l'app **écrit `now`** dans l'`input_datetime` (`set_datetime`, service HA uniquement — AD-4), en **optimiste** ; une fois sortie, le geste est désactivé (le capteur repasse `aucune`) ; **l'historique HA de l'`input_datetime` = le journal**
 
+### Story 6.2: Météo — widget barre supérieure + détail
+
+_Ajoutée en cours de sprint (2026-07-16). Coup d'œil météo extérieur, tout **via HA** (AD-1/AD-2)._
+
+As a Florian,
+I want un widget météo dans la barre supérieure (icône temps + température extérieure, humidité, tendance, batterie) qui ouvre une page détail (historique, prévisions 7 j, pluie dans 1 h),
+So that j'ai la météo d'un coup d'œil sans quitter le dashboard.
+
+**Acceptance Criteria:**
+
+**Given** les capteurs Netatmo extérieurs mappés (`sensor.interieur_exterieur_temperature`/`_humidite`/`_batterie`/`_temperature_trend`)
+**When** l'accueil s'affiche
+**Then** un **widget compact** apparaît dans la barre supérieure (près de l'heure) : icône + **température extérieure**, **tendance** (↑/↓/→), **humidité**, **batterie** (colorée) ; obsolescence → AD-6
+
+**Given** le widget météo
+**When** je le tape
+**Then** une **page `/meteo`** (AD-10) s'ouvre : **actuel** + **historique** de la température (courbe, réutilise 1.5) + **prévisions 7 jours** + **pluie dans 1 h** — ces deux dernières + l'**icône de condition** venant d'une **intégration météo HA** (`weather.*` + capteur pluie ; **à ajouter** — Task 0), affichées « à venir » tant qu'absentes ; retour « ‹ Accueil »
+
 ### Story 5.3: Page détail « Aspirateur » (Roborock)
 
 _Ajoutée en cours de sprint (2026-07-16, correct-course) — page profonde **par appareil** (extension du thème « pages de détail » d'Epic 5 / AD-10), pour les infos riches gardées **hors** de la tuile glanceable (Story 2.7)._
