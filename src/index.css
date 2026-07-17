@@ -65,6 +65,17 @@
 }
 
 /*
+ * Kiosk viewport lock. The shell is already h-dvh + overflow-hidden (never
+ * scrolls), but iOS Safari still rubber-band overscrolls the document on a
+ * flick — which visually drifts the `fixed` top-bar tiles away from the chrome.
+ * `overscroll-behavior: none` kills that bounce so nothing moves.
+ */
+html,
+body {
+  overscroll-behavior: none;
+}
+
+/*
  * Full-screen ground: diagonal indigo→teal→magenta + soft radial glows.
  * Multi-layer, so a component class rather than a single gradient utility.
  */
