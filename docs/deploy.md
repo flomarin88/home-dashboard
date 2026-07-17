@@ -8,13 +8,17 @@ builds it in the cloud and **pushes** it to the Pi over Tailscale.
 push to master ─▶ GitHub Actions (cloud)
                    ├─ CI (ci.yml): test · typecheck · lint · build      [gate]
                    └─ Deploy (deploy.yml): build → tailnet → rsync ─▶ Pi HA www/
-iPad (LAN) ─▶ http://<ha>:8123/local/home-dashboard/   (@hakit login once)
+iPad (LAN) ─▶ http://<ha>:8123/local/home-dashboard/index.html   (@hakit login once)
 ```
 
 ## Hosting
 
 - Build output is copied to HA's `config/www/home-dashboard/`, which HA serves
-  at **`/local/home-dashboard/`**. LAN-only by construction.
+  at **`/local/home-dashboard/index.html`**. LAN-only by construction.
+  > HA's `/local/` static handler does not serve `index.html` for a directory
+  > URL — the bare `…/home-dashboard/` returns **403**. Always point at the file.
+  > And `config/www/` must exist when HA starts, or `/local/` **404s** until a
+  > **Restart** (Settings → System → Restart) re-registers the static path.
 - The build's base path is set by `DEPLOY_BASE` (see `vite.config.ts`); CI uses
   `DEPLOY_BASE=/local/home-dashboard/`. Local dev stays at `/`. If you later
   switch to an add-on/ingress served at root, drop `DEPLOY_BASE` (base `/`).

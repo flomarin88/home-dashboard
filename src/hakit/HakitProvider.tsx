@@ -12,9 +12,10 @@ import { hassUrl, hassToken } from "./config";
  * entity state is read live from that subscription; it is never copied into a
  * persistent cache (AD-3).
  *
- * Providing `hassToken` bypasses the interactive HA login screen (AD-8). When
- * the token is absent (e.g. the HA-session / ingress variant), `@hakit` falls
- * back to its own auth flow.
+ * Providing `hassToken` (dev) bypasses the interactive HA login screen. When
+ * the token is absent — the prod same-origin session variant (AD-8) — `@hakit`
+ * runs HA's own login once: it redirects to `/auth/authorize`, then caches the
+ * token in `localStorage` keyed by `hassUrl` so later loads never re-auth (NFR3).
  */
 export function HakitProvider({
   children,
