@@ -62,6 +62,8 @@ describe('RoomSensorCard', () => {
     expect(screen.getByText('Salon')).toBeInTheDocument()
     expect(screen.getByText(/21\.5\s*°C/)).toBeInTheDocument()
     expect(screen.getByText(/620 ppm/)).toBeInTheDocument()
+    // CO₂ 620 < 1000 → green air-quality colour while live.
+    expect(screen.getByText(/620 ppm/).className).toContain('text-security-ok')
     expect(screen.getByText(/48 %/)).toBeInTheDocument()
     expect(screen.queryByText(/Hors ligne/)).toBeNull()
   })

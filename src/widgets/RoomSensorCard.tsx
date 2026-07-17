@@ -4,7 +4,8 @@ import type { EntityName } from '@hakit/core'
 import type { RoomId, Measure } from '../entities'
 import { roomSensors, getRoom } from '../entities'
 import { useEntityValue } from '../hakit/useEntityValue'
-import { formatSensorValue } from './room-sensor-format'
+import { formatSensorValue, co2ColorClass } from './room-sensor-format'
+import { DropletIcon, Co2Icon } from './WeatherIcon'
 import { Sparkline } from './Sparkline'
 import { OfflinePill } from '../ui/OfflinePill'
 import { Skeleton } from '../ui/Skeleton'
@@ -81,9 +82,21 @@ export function RoomSensorCard({ room }: { room: RoomId }) {
         {loading ? (
           <Skeleton className="h-3 w-28" />
         ) : (
-          <span className="w-full truncate text-meta tabular-nums text-text-muted">
-            CO₂ {formatSensorValue(co2.value, 0)} ppm ·{' '}
-            {formatSensorValue(humidity.value, 0)} %
+          <span className="flex w-full min-w-0 items-center gap-2 text-meta tabular-nums text-text-muted">
+            {/* CO₂: leaf icon + value, air-quality colour only when live — a
+                stale value stays muted (colour would mislead). */}
+            <span
+              className={`inline-flex items-center gap-1 ${
+                offline ? '' : co2ColorClass(co2.value)
+              }`}
+            >
+              <Co2Icon size={12} />
+              {formatSensorValue(co2.value, 0)} ppm
+            </span>
+            <span className="inline-flex items-center gap-1">
+              <DropletIcon size={12} />
+              {formatSensorValue(humidity.value, 0)} %
+            </span>
           </span>
         )}
       </div>
