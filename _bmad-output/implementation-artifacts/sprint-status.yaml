@@ -94,8 +94,8 @@ development_status:
   epic-6: in-progress
   6-1-sortie-poubelles: done  # app impl reviewed (9f14001) & shipped 2026-07-17; HA Task 0 + device-proof remain (Florian)
   6-2-meteo-topbar-detail: done
-  6-3-nourrir-les-tortues: review  # impl done (dev-story) 2026-07-17; HA Task 0 (counter+automation) + device-proof remain (Florian)
-  6-4-composition-barre-superieure: review  # TD-4 payback; impl done (dev-story) 2026-07-17, device-proof pending (Florian)
+  6-3-nourrir-les-tortues: done  # done 2026-07-18 — HA Task 0 (counter+automation) + device-proof validated (Florian)
+  6-4-composition-barre-superieure: done  # done 2026-07-18 — device-proof validated (Florian); un-fix follow-on is a new story
   epic-6-retrospective: optional
 
 # Retrospective action items (see epic-1-retro-2026-07-15.md)

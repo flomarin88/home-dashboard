@@ -4,7 +4,9 @@ baseline_commit: d57fd519ff94ab81aaad815a442e21a98f94414a
 
 # Story 6.4: Composition barre supérieure — `TopBarSlots` (TD-4)
 
-Status: review
+Status: done
+
+<!-- Done 2026-07-18: device-proof validated by Florian. NB: the "un-fix TopBarSlots (drop fixed)" follow-on is tracked separately (deferred-work / new story). -->
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -60,7 +62,7 @@ so that ajouter une tuile (tortue 6.3, et au-delà) **ne provoque plus de chevau
 
 - [x] **Task 4 — Validation (gates) + preuve device** (AC: 3)
   - [x] `typecheck` + `oxlint` + suite complète **verts** (138 tests, 28 fichiers, +2 ; 0 régression) ; `build` **sans token** OK (PWA générée, AD-8 respecté) ; 0 token dans `dist/`.
-  - [ ] **⏳ Preuve device (Florian)** : sur iPad 1024×768 — météo + poubelle bien placées dans la bande top-bar, **sans chevauchement** avec l'heure (gauche) ni Alarme/Caméras (droite) ; pas de scroll ; poubelle qui apparaît/disparaît sans décaler la météo. _(Valide les offsets du cluster centré.)_
+  - [x] **⏳ Preuve device (Florian)** — ✅ validée 2026-07-18 (ancrage gauche météo→tortue→poubelle). _(Le décrochage au scroll → un-fix, story de suivi.)_
 
 ## Dev Notes
 

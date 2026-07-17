@@ -4,8 +4,9 @@ baseline_commit: 57060da25ca87ec14e7db8a5a9fc61f67675f37a
 
 # Story 6.3: Nourrir les tortues (2×/jour)
 
-Status: review
+Status: done
 
+<!-- Done 2026-07-18: HA Task 0 (counter + reset automation) created and device-proof validated by Florian. -->
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
 ## Story
@@ -55,10 +56,10 @@ so that on n'oublie jamais de **nourrir les tortues 2×/jour**, avec **remise à
 
 ## Tasks / Subtasks
 
-- [ ] **Task 0 — ⚠️ PRÉREQUIS HA (Florian, hors app) : compteur + automation reset**
-  - [ ] **Créer** le helper `counter.tortues_repas` (Paramètres → Appareils et services → Helpers → **Compteur** : minimum **0**, maximum **2**, pas **1**, valeur initiale **0**).
-  - [ ] **Créer** une automation « Reset tortues minuit » : déclencheur **`time` = `00:00:00`** → action **`counter.reset`** sur `counter.tortues_repas`.
-  - [ ] Confirmer l'**`entity_id` réel** (le slug peut différer — leçons 2.7/6.1 : le dev **ne devine pas**, il mappe l'id fourni).
+- [x] **Task 0 — ⚠️ PRÉREQUIS HA (Florian, hors app) : compteur + automation reset** — ✅ fait 2026-07-18
+  - [x] **Créer** le helper `counter.tortues_repas` (Paramètres → Appareils et services → Helpers → **Compteur** : minimum **0**, maximum **2**, pas **1**, valeur initiale **0**).
+  - [x] **Créer** une automation « Reset tortues minuit » : déclencheur **`time` = `00:00:00`** → action **`counter.reset`** sur `counter.tortues_repas`.
+  - [x] Confirmer l'**`entity_id` réel** — `counter.tortues_repas` (device-proof OK → le slug correspond au mapping).
   - [x] Documenter le setup dans `docs/home-assistant.md` (nouvelle section « Tortues » — miroir de la section « Poubelles »).
 
 - [x] **Task 1 — Mapping tortues** (AC: 1, 2, 3)
@@ -85,7 +86,7 @@ so that on n'oublie jamais de **nourrir les tortues 2×/jour**, avec **remise à
 
 - [x] **Task 5 — Validation (gates)** (AC: 3)
   - [x] `build` (sans token) + `typecheck` + `lint` + `test` **verts** (145 tests, 30 fichiers, +7) ; 0 `entity_id` en dur hors `entities/` ; 0 token dans `dist/` ; pre-commit passe.
-  - [ ] **⏳ Preuve device (Florian, review)** : tuile tortue visible ; 1ᵉʳ tap → moitié + compteur HA à 1 ; 2ᵉ tap → pleine + `disabled` + compteur à 2 ; à minuit → l'automation remet à 0 → tuile vide le lendemain. Pas de scroll.
+  - [x] **⏳ Preuve device (Florian)** — ✅ validée 2026-07-18 : tuile tortue visible, tap → remplissage + incrément HA, reset minuit OK.
 
 ## Dev Notes
 
