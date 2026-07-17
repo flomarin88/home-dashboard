@@ -453,6 +453,38 @@ So that j'ai la météo d'un coup d'œil sans quitter le dashboard.
 **When** je le tape
 **Then** une **page `/meteo`** (AD-10) s'ouvre : **actuel** + **historique** de la température (courbe, réutilise 1.5) + **prévisions 7 jours** + **pluie dans 1 h** — ces deux dernières + l'**icône de condition** venant d'une **intégration météo HA** (`weather.*` + capteur pluie ; **à ajouter** — Task 0), affichées « à venir » tant qu'absentes ; retour « ‹ Accueil »
 
+### Story 6.3: Nourrir les tortues (2×/jour)
+
+_Ajoutée en cours de sprint (2026-07-17, correct-course) — rituel « tortues » (renvoyé à v2 dans 6.1) tiré en avant, même archi que 6.1 : **compteur + reset côté HA** (AD-4), l'app reflète + incrémente._
+
+As a Florian,
+I want une tuile tortue dans la barre supérieure qui se remplit à chaque repas (vide → moitié → pleine, 2 taps) et se désactive une fois les 2 repas donnés,
+So that on n'oublie pas de nourrir les tortues 2×/jour, avec remise à zéro automatique chaque nuit.
+
+**Acceptance Criteria:**
+
+**Given** un **compteur HA** `counter.tortues_repas` (`0`..`2`, reset minuit par **automation HA** — AD-4)
+**When** l'accueil s'affiche
+**Then** une **tuile tortue** dans la barre supérieure montre un **niveau de remplissage** selon l'état (vide/moitié/plein), reflétant HA (AD-1/AD-3) ; obsolescence → AD-6
+
+**Given** l'état `0` ou `1`
+**When** j'appuie sur la tuile (≥56px)
+**Then** l'app appelle **`counter.increment`** (service HA uniquement — AD-4) ; l'état reflète HA (`0`→`1`→`2`) ; à `2` le geste est **désactivé** ; le reset quotidien vit dans une **automation HA**, pas l'app
+
+### Story 6.4: Composition barre supérieure — `TopBarSlots` (TD-4)
+
+_Ajoutée en cours de sprint (2026-07-17) — **refactor / remboursement TD-4**, préalable à 6.3. La tortue (6.3) est le 4ᵉ élément top-bar → trigger TD-4._
+
+As a Florian,
+I want les tuiles HA de la barre supérieure disposées par une couche de composition (`TopBarSlots`) plutôt que par des coordonnées `fixed` posées à la main,
+So that ajouter une tuile ne provoque plus de chevauchement et les positions ne sont plus fragiles.
+
+**Acceptance Criteria:**
+
+**Given** `TopBarWeather` (6.2) et `BinTile` (6.1), aujourd'hui frères `fixed` sous le provider (contrainte TD-1)
+**When** l'accueil s'affiche
+**Then** une **région `fixed` unique** (flex/grid) sous le provider dispose ces tuiles qui **s'écoulent** (aucune coordonnée par-tuile), **sans chevaucher** l'heure ni les contrôles de droite ; **comportement 6.1/6.2 inchangé** (tests verts) ; extensible (la tortue 6.3 s'y insère) ; TD-4 marqué payé
+
 ### Story 5.3: Page détail « Aspirateur » (Roborock)
 
 _Ajoutée en cours de sprint (2026-07-16, correct-course) — page profonde **par appareil** (extension du thème « pages de détail » d'Epic 5 / AD-10), pour les infos riches gardées **hors** de la tuile glanceable (Story 2.7)._
