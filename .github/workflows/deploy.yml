@@ -37,8 +37,12 @@ jobs:
       - name: Join tailnet
         uses: tailscale/github-action@v3
         with:
-          # Ephemeral, reusable auth key from the Tailscale admin console.
-          authkey: ${{ secrets.TS_AUTHKEY }}
+          # OAuth client (scope auth_keys, owns tag:ci) — the action mints a
+          # fresh ephemeral, tagged node per run, so there is no 90-day auth-key
+          # rotation to forget. tag:ci must exist in the tailnet ACL (tagOwners).
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:ci
 
       - name: Add deploy SSH key
         run: |

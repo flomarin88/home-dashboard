@@ -38,13 +38,19 @@ On push to `master`, after the gates: build for the www base, join the tailnet,
 
 ### GitHub secrets to set (repo → Settings → Secrets → Actions)
 
-| Secret        | Value                                                                           |
-| ------------- | ------------------------------------------------------------------------------- |
-| `TS_AUTHKEY`  | A **reusable, ephemeral** Tailscale auth key (admin console → Settings → Keys). |
-| `PI_SSH_KEY`  | Private half of an SSH **deploy key** (`ssh-keygen -t ed25519 -f deploy`).      |
-| `PI_HOST`     | The Pi's Tailscale name or `100.x.y.z` IP.                                      |
-| `PI_USER`     | SSH user that can write `www/` (e.g. `root` on the HAOS SSH add-on).            |
-| `PI_WWW_PATH` | `/config/www/home-dashboard` (or wherever HA's `www/` lives).                   |
+| Secret               | Value                                                                                       |
+| -------------------- | ------------------------------------------------------------------------------------------- |
+| `TS_OAUTH_CLIENT_ID` | Tailscale **OAuth client** ID (Trust credentials → OAuth, scope `auth_keys`, tag `tag:ci`). |
+| `TS_OAUTH_SECRET`    | The OAuth client **secret**. Does not expire — no 90-day auth-key rotation.                 |
+| `PI_SSH_KEY`         | Private half of an SSH **deploy key** (`ssh-keygen -t ed25519 -f deploy`).                  |
+| `PI_HOST`            | The Pi's Tailscale name or `100.x.y.z` IP.                                                  |
+| `PI_USER`            | SSH user that can write `www/` (e.g. `root` on the HAOS SSH add-on).                        |
+| `PI_WWW_PATH`        | `/config/www/home-dashboard` (or wherever HA's `www/` lives).                               |
+
+> The deploy workflow joins the tailnet with the OAuth client (`tags: tag:ci`),
+> which mints a fresh ephemeral node each run. `tag:ci` must be declared in the
+> tailnet ACL (`tagOwners`), and the ACL must let `tag:ci` reach the Pi on `:22`
+> (the default allow-all ACL already does).
 
 ### Pi prerequisites (one-time)
 
