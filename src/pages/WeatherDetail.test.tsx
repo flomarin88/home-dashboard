@@ -9,6 +9,10 @@ const state = vi.hoisted(() => ({
   battery: '75' as string,
   trend: 'down' as string,
   condition: 'sunny' as string,
+  // useWeather behaviours (per-test): throw like @hakit on a subscription
+  // error, or return a forecast row missing `temperature`.
+  throwForecast: false as boolean,
+  partialForecast: false as boolean,
 }))
 
 const DAILY = vi.hoisted(() => [
@@ -28,6 +32,11 @@ const HOURLY = vi.hoisted(() => [
     condition: 'rainy',
     precipitation_probability: 60,
   },
+])
+// A daily row missing `temperature` — HA does not guarantee every field. Must
+// render "—", never "NaN°".
+const PARTIAL_DAILY = vi.hoisted(() => [
+  { datetime: '2026-07-19T00:00:00Z', templow: 12, condition: 'cloudy' },
 ])
 
 vi.mock('@hakit/core', () => ({
@@ -67,12 +76,17 @@ vi.mock('@hakit/core', () => ({
     timeline: [],
     loading: false,
   }),
-  useWeather: (_id: string, opts: { type: string }) => ({
-    forecast: {
-      type: opts.type,
-      forecast: opts.type === 'daily' ? DAILY : HOURLY,
-    },
-  }),
+  useWeather: (_id: string, opts: { type: string }) => {
+    // @hakit's useWeather re-throws a forecast-subscription error during render.
+    if (state.throwForecast) throw new Error('subscribe_forecast rejected')
+    const daily = state.partialForecast ? PARTIAL_DAILY : DAILY
+    return {
+      forecast: {
+        type: opts.type,
+        forecast: opts.type === 'daily' ? daily : HOURLY,
+      },
+    }
+  },
   useHass: (selector: (s: { connectionStatus: string }) => unknown) =>
     selector({ connectionStatus: state.connectionStatus }),
 }))
@@ -111,6 +125,8 @@ beforeEach(() => {
   state.battery = '75'
   state.trend = 'down'
   state.condition = 'sunny'
+  state.throwForecast = false
+  state.partialForecast = false
 })
 
 describe('WeatherDetail (Story 6.2)', () => {
@@ -151,5 +167,35 @@ describe('WeatherDetail (Story 6.2)', () => {
     renderPage()
     fireEvent.click(screen.getByRole('button', { name: /Accueil/i }))
     expect(screen.getByText('home-page')).toBeInTheDocument()
+  })
+
+  // Regression (code review 2026-07-17, P1): @hakit's useWeather re-throws a
+  // forecast-subscription error during render and there is no other ErrorBoundary
+  // in the app — without the tile boundary this blanks the whole kiosk (AD-6).
+  it('degrades each forecast tile to "Prévisions indisponibles" when useWeather throws (no blank page)', () => {
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    state.throwForecast = true
+    renderPage()
+    // Both tiles fall back independently; the rest of the page still renders.
+    expect(screen.getAllByText('Prévisions indisponibles')).toHaveLength(2)
+    expect(screen.getByText(/13\.2\s*°C/)).toBeInTheDocument()
+    spy.mockRestore()
+  })
+
+  // Regression (P2): a forecast row missing `temperature` must read "—", not "NaN°".
+  it('renders "—" (never "NaN") for a forecast row missing temperature', () => {
+    state.partialForecast = true
+    renderPage()
+    expect(screen.queryByText(/NaN/)).toBeNull()
+    expect(screen.getByText(/12°/)).toBeInTheDocument() // templow still shown
+  })
+
+  // Regression (P3, AC2 "obsolescence par champ"): a stale humidity is greyed
+  // independently while a fresh temperature is not.
+  it('applies per-field staleness — stale humidity greyed, fresh temp not', () => {
+    state.humidity = 'unavailable'
+    renderPage()
+    expect(screen.getByText(/—\s*%/)).toHaveClass('text-stale-text')
+    expect(screen.getByText(/13\.2\s*°C/)).toHaveClass('text-text')
   })
 })

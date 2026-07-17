@@ -4,7 +4,7 @@ baseline_commit: a94ed8961c60df7ae4882270fd2551fbbc2516b0
 
 # Story 6.2: Météo — widget barre supérieure + page détail
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -86,6 +86,16 @@ Coup d'œil météo extérieur. **Tout via HA** (décision Florian) : temp/humid
 - [x] **Task 6 — Validation (gates)** (AC: 3)
   - [x] `build` (sans token) + `typecheck` + `lint` + `test` **verts** (115 tests) ; 0 `entity_id` en dur hors `entities/` (code non-test) ; **0 `fetch` externe** ; 0 token dans `dist/`.
   - [ ] **⏳ Preuve device (Florian, review)** : widget météo près de l'heure (temp/tendance/humidité/batterie réelles) ; tap → `/meteo` (Actuel + courbe historique) ; après ajout de l'intégration météo → condition + 7 j + pluie 1 h ; capteur coupé → obsolescence ; pas de scroll.
+
+### Review Findings
+
+_Code review 2026-07-17 (bmad-code-review — scope : commit `19ad5fd`, story 6.2 seule). Couches : Blind Hunter + Edge Case Hunter + Acceptance Auditor. AC1/AC2/AC3 tenus sur le fond._
+
+- [x] [Review][Decision→Patch] Obsolescence par champ non rendue (AC2) — **appliqué** : `text-stale-text` par champ sur `/meteo` Actuel (temp/humidité/batterie/tendance/condition) ; le widget glance est dimmé dès qu'**un** capteur est obsolète (`anyStale`). Décision Florian : par-champ sur la page, dim global sur le widget (trop petit pour un grisé par champ).
+- [x] [Review][Patch] `useWeather` lève pendant le render sans ErrorBoundary → kiosque blanc au moindre échec d'abonnement prévisions — **appliqué** : nouvel `ErrorBoundary` (`src/ui/ErrorBoundary.tsx`) autour de chaque tuile de prévision → repli « Prévisions indisponibles » (AD-6, jamais de blanc). Régression testée (useWeather qui lève → 2 replis, page intacte). [src/pages/WeatherDetail.tsx:169,180]
+- [x] [Review][Patch] `Math.round(f.temperature)` non gardé → « NaN° » si une ligne de prévision n'a pas de température — **appliqué** : garde `Number.isFinite(f.temperature)` → « — » (daily + hourly). Régression testée. [src/pages/WeatherDetail.tsx:189,208]
+- [x] [Review][Defer] `SensorHistoryChart` — domaine Y dégénéré si série parfaitement plate (`stepTicks` → tick unique → `domain=[x,x]`) + pas de garde NaN dans le composant réutilisable (le chemin `/meteo` pré-filtre les valeurs finies, `:65`) [src/widgets/SensorHistoryChart.tsx:98,165] — deferred, durcir quand le consommateur room-detail arrive
+- [x] [Review][Defer] `BackLink`/`Tile` dupliqués quasi à l'identique avec `VacuumDetail.tsx` — « zéro duplication » (AC3) tenu au niveau hooks/helpers, pattern de page copié [src/pages/WeatherDetail.tsx:219,250] — deferred, extraire une coquille de page contenu-seul partagée (lié TD-4)
 
 ## Dev Notes
 
@@ -170,6 +180,7 @@ claude-opus-4-8 (Amelia / dev-story)
 ### File List
 
 **NEW**
+- `src/ui/ErrorBoundary.tsx` — boundary générique (code review 6.2, P1) : repli au lieu d'un démontage du tree quand un descendant lève au render (requis autour de `useWeather`).
 - `src/widgets/weather-format.ts` — `trendArrow`, `trendColorClass`, `conditionCategory`, `conditionLabel`, `forecastDayLabel`, `forecastHourLabel` (purs).
 - `src/widgets/weather-format.test.ts`
 - `src/widgets/WeatherIcon.tsx` — icône de condition (SVG par catégorie ; défaut thermo) + `DropletIcon` (humidité, partagé widget/détail).
@@ -195,3 +206,4 @@ claude-opus-4-8 (Amelia / dev-story)
 | 2026-07-17 | 0.2 | Retour Florian : batterie retirée du widget accueil (garde-la sur `/meteo`) ; icône goutte 💧 ajoutée pour l'humidité (bleu `accent-shutters`). Gates verts (115 tests). |
 | 2026-07-17 | 0.3 | `weather.forecast_home` mappé (Task 0 done, Florian) : icône de condition (widget + Actuel), prévisions **7 j (daily)** + **horaires** via `useWeather` (l'horaire remplace « pluie 1 h »). Tendance colorée (↑ rouge / ↓ bleu). Widget aligné sur la rangée de boutons TopBar (`top-6`/`px-4`). Icône humidité sur `/meteo`. Blocs graphe/prévisions remplissent leur tuile. Prévisions inversées (horaire en haut, jour en bas). Gates verts. |
 | 2026-07-17 | 0.4 | Graphe historique migré vers **Recharts** (interactif, décision Florian) — lazy-loadé sur `/meteo` (chunk séparé ~101 KB gz, hors bundle accueil) ; SVG maison `temp-chart`/`TempHistoryChart` supprimé. `Sparkline` accueil inchangé. Gates verts (122 tests). |
+| 2026-07-17 | 0.5 | **Code review (bmad-code-review)** : 3 correctifs appliqués — P1 `ErrorBoundary` autour des tuiles prévisions (`useWeather` lève au render → sinon kiosque blanc, AD-6) ; P2 garde `Number.isFinite` sur la température de prévision (plus de « NaN° ») ; P3 obsolescence **par champ** sur `/meteo` + widget dimmé si un champ obsolète (AC2). 2 items différés (durcissement `SensorHistoryChart`, extraction coquille de page — voir `deferred-work.md`). Gates verts (**132 tests**, +4 régressions). |

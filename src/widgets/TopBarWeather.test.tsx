@@ -85,4 +85,13 @@ describe('TopBarWeather (Story 6.2)', () => {
     expect(btn.className).toContain('opacity-60')
     expect(screen.getByText(/12\.3\s*°C/)).toBeInTheDocument()
   })
+
+  // Regression (code review 2026-07-17, P3): any stale field dims the glance
+  // widget, not only temperature — here humidity goes stale while temp is live.
+  it('connected but one sensor stale → still dimmed (obsolescence par champ)', () => {
+    state.humidity = 'unavailable'
+    renderWidget()
+    expect(screen.getByRole('button').className).toContain('opacity-60')
+    expect(screen.getByText(/12\.3\s*°C/)).toBeInTheDocument()
+  })
 })

@@ -33,6 +33,15 @@ export function TopBarWeather() {
 
   const arrow = trendArrow(trend.value)
 
+  // Obsolescence par champ (AD-6): the compact glance is too small to grey each
+  // field, so any stale sensor dims the whole widget. Condition only counts when
+  // a weather.* entity is mapped (else `condition` mirrors the temp entity).
+  const anyStale =
+    temp.isStale ||
+    humidity.isStale ||
+    trend.isStale ||
+    (Boolean(cfg.conditionEntityId) && condition.isStale)
+
   const tempLabel = `${formatSensorValue(temp.value, 1)} ${temp.unit ?? '°C'}`
   const humLabel = `${formatSensorValue(humidity.value, 0)} %`
   const trendWord = TREND_WORD[trend.value ?? ''] ?? ''
@@ -46,7 +55,7 @@ export function TopBarWeather() {
         trendWord ? `, ${trendWord}` : ''
       } — ouvrir le détail`}
       className={`fixed left-44 top-6 z-40 inline-flex min-h-[48px] items-center gap-2 rounded-lg border border-card-border bg-card-fill px-4 backdrop-blur-glass ${
-        temp.isStale ? 'opacity-60' : ''
+        anyStale ? 'opacity-60' : ''
       }`}
     >
       <WeatherIcon

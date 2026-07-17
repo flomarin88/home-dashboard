@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useHistory, useWeather } from '@hakit/core'
 import type { EntityName, FilterByDomain } from '@hakit/core'
 import { isConfigured } from '../hakit'
+import { ErrorBoundary } from '../ui/ErrorBoundary'
 import { weatherConfig } from '../entities'
 import type { WeatherConfig } from '../entities'
 import { useEntityValue } from '../hakit/useEntityValue'
@@ -80,7 +81,9 @@ export function WeatherDetailContent({ cfg }: { cfg: WeatherConfig }) {
             {hasCondition ? (
               <div className="flex items-center gap-2">
                 <WeatherIcon condition={condition.value} size={28} />
-                <span className="text-label text-text-muted">
+                <span
+                  className={`text-label ${condition.isStale ? 'text-stale-text' : 'text-text-muted'}`}
+                >
                   {conditionLabel(condition.value)}
                 </span>
               </div>
@@ -95,20 +98,26 @@ export function WeatherDetailContent({ cfg }: { cfg: WeatherConfig }) {
               </span>
               {arrow ? (
                 <span
-                  className={`text-numeric-lg tabular-nums ${trendColorClass(trend.value)}`}
+                  className={`text-numeric-lg tabular-nums ${
+                    trend.isStale ? 'text-stale-text' : trendColorClass(trend.value)
+                  }`}
                 >
                   {arrow}
                 </span>
               ) : null}
             </div>
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-meta tabular-nums text-text-muted">
-              <span className="inline-flex items-center gap-1">
+              <span
+                className={`inline-flex items-center gap-1 ${humidity.isStale ? 'text-stale-text' : ''}`}
+              >
                 <DropletIcon size={16} />
                 {formatSensorValue(humidity.value, 0)} %
               </span>
               <span>
                 Batterie{' '}
-                <span className={batteryColorClass(bat)}>{bat ?? '—'} %</span>
+                <span className={battery.isStale ? 'text-stale-text' : batteryColorClass(bat)}>
+                  {bat ?? '—'} %
+                </span>
               </span>
             </div>
           </Tile>
@@ -138,7 +147,9 @@ export function WeatherDetailContent({ cfg }: { cfg: WeatherConfig }) {
         <div className="flex min-h-0 flex-col gap-grid-gap overflow-hidden">
           <Tile title="Prévisions horaires" className="min-h-0 flex-1">
             {forecastId ? (
-              <HourlyForecast weatherId={forecastId} />
+              <ErrorBoundary fallback={<ForecastUnavailable />}>
+                <HourlyForecast weatherId={forecastId} />
+              </ErrorBoundary>
             ) : (
               <ComingSoon note="Nécessite une intégration météo HA (prévisions horaires)." />
             )}
@@ -146,7 +157,9 @@ export function WeatherDetailContent({ cfg }: { cfg: WeatherConfig }) {
 
           <Tile title="Prévisions 7 jours" className="min-h-0 flex-1">
             {forecastId ? (
-              <DailyForecast weatherId={forecastId} />
+              <ErrorBoundary fallback={<ForecastUnavailable />}>
+                <DailyForecast weatherId={forecastId} />
+              </ErrorBoundary>
             ) : (
               <ComingSoon note="Ajouter une intégration météo à Home Assistant (ex. Météo-France)." />
             )}
@@ -174,7 +187,7 @@ function DailyForecast({ weatherId }: { weatherId: WeatherEntityId }) {
           <span className="text-meta text-text-muted">{forecastDayLabel(f.datetime)}</span>
           <WeatherIcon condition={f.condition} size={22} />
           <span className="text-meta tabular-nums text-text">
-            {Math.round(f.temperature)}°
+            {Number.isFinite(f.temperature) ? `${Math.round(f.temperature)}°` : '—'}
             {f.templow != null ? (
               <span className="text-text-muted"> / {Math.round(f.templow)}°</span>
             ) : null}
@@ -202,7 +215,7 @@ function HourlyForecast({ weatherId }: { weatherId: WeatherEntityId }) {
           <span className="text-meta text-text-muted">{forecastHourLabel(f.datetime)}</span>
           <WeatherIcon condition={f.condition} size={20} />
           <span className="text-meta tabular-nums text-text">
-            {Math.round(f.temperature)}°
+            {Number.isFinite(f.temperature) ? `${Math.round(f.temperature)}°` : '—'}
           </span>
           {f.precipitation_probability != null ? (
             <span className="text-meta tabular-nums text-accent-shutters">
@@ -235,6 +248,15 @@ function Tile({
       {children}
     </div>
   )
+}
+
+/**
+ * Fallback rendered by the forecast ErrorBoundary when `useWeather` throws (e.g.
+ * the entity doesn't support the requested forecast type, or a transient HA
+ * subscription error). Degrades the tile instead of blanking the page (AD-6).
+ */
+function ForecastUnavailable() {
+  return <span className="text-meta text-text-muted">Prévisions indisponibles</span>
 }
 
 /** Placeholder for a seam awaiting the HA weather integration (Task 0). */
