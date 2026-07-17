@@ -35,6 +35,14 @@ describe("TurtleTile (Story 6.3 — top-bar feeding counter)", () => {
     });
   });
 
+  it("rapid double-tap → increments only once (in-flight guard, counter is not idempotent)", () => {
+    render(<TurtleTile />);
+    const btn = screen.getByRole("button", { name: /0 repas sur 2.*nourrir/i });
+    fireEvent.click(btn);
+    fireEvent.click(btn);
+    expect(hass.increment).toHaveBeenCalledTimes(1);
+  });
+
   it("1 feeding → half fill, still tappable", () => {
     hass.state = "1";
     render(<TurtleTile />);

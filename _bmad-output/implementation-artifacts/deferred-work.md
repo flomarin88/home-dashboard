@@ -13,6 +13,13 @@ Ajouter en haut à droite tuile -> étage (0 ou 1 dans une pill avec couleur dif
 ~~Chambre Parents -> Parents~~ ✅ fait 2026-07-17
 ~~Inverser les tuiles Gaspard et Nathan~~ ✅ fait 2026-07-17
 
+## Deferred from: code review of 6-3/6-4 (2026-07-17)
+
+_Revue multi-agent. Patchs (double-tap, 56px, ordre) appliqués ; ci-dessous = accepté/différé._
+
+- **Durcissement collision top-bar** — `TopBarSlots` est un `fixed` ancré `left-44` avec des offsets à la main ; rien en code n'empêche un chevauchement si l'horloge/le label météo s'élargit ou si une 4ᵉ tuile s'ajoute. Aujourd'hui ~280px de marge → OK, mais fragile. Piste : `max-w`/borne droite, ou vraie couche grid (reste contraint par TD-1). À revoir si un 5ᵉ élément arrive ou si le device-proof montre un souci. [src/ui/TopBarSlots.tsx]
+- **Distinction « fait » (2/2) vs hors-ligne** — les deux états sont atténués/désactivés et sans texte ; l'`aria-label` à 2/2 dit « 2 repas sur 2 » sans « fait/terminé ». Marginal sur kiosque mono-utilisateur ; ajouter « — fait » à l'aria + un repère visuel si besoin. [src/widgets/TurtleTile.tsx]
+
 ## Deferred from: code review of 6-2-meteo-topbar-detail (2026-07-17)
 
 - **`SensorHistoryChart` — robustesse du composant réutilisable** — garder contre un domaine Y dégénéré (série plate → `stepTicks` renvoie un seul tick → `domain=[x,x]`, ligne rendue à plat/invisible) et filtrer les valeurs non finies **dans le composant** (aujourd'hui seul le chemin `/meteo` pré-filtre `Number.isFinite`, `WeatherDetail.tsx:65`). À durcir quand le consommateur room-detail (historique CO₂/humidité) est branché — c'est lui qui n'aura pas le pré-filtre. [src/widgets/SensorHistoryChart.tsx:98,165]

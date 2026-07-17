@@ -20,7 +20,7 @@ export function TopBar() {
           type="button"
           disabled
           aria-label="Alarme — bientôt disponible"
-          className="inline-flex min-h-[48px] items-center gap-2 rounded-lg border border-card-border bg-card-fill px-4 text-label font-semibold text-text opacity-60"
+          className="inline-flex min-h-[56px] items-center gap-2 rounded-lg border border-card-border bg-card-fill px-4 text-label font-semibold text-text opacity-60"
         >
           <LockOpenIcon />
           <span>Désarmé</span>
@@ -29,7 +29,7 @@ export function TopBar() {
           type="button"
           disabled
           aria-label="Caméras — bientôt disponible"
-          className="inline-flex min-h-[48px] items-center gap-2 rounded-lg border border-card-border bg-card-fill px-4 text-label font-semibold text-text opacity-60"
+          className="inline-flex min-h-[56px] items-center gap-2 rounded-lg border border-card-border bg-card-fill px-4 text-label font-semibold text-text opacity-60"
         >
           <span>Caméras</span>
           <ChevronRightIcon />

@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { useService } from "@hakit/core";
 import type { EntityName } from "@hakit/core";
 import { turtlesConfig } from "../entities";
@@ -29,12 +30,25 @@ export function TurtleTile() {
   const view = turtleView(value);
   const interactive = !isStale && !view.done;
 
-  // Tap → increment the HA counter (no serviceData). HA echoes the new count;
-  // no local optimistic state. Surface a failed call (lesson from 6.1).
+  // In-flight guard: the counter is NOT idempotent (unlike BinTile's timestamp),
+  // so a double-tap during the HA round-trip would over-count (0→2 from one tap).
+  // Block a second write until HA echoes a new count. This is a write debounce,
+  // NOT the display-optimism removed in 6.1 — the shown state still mirrors HA.
+  const pending = useRef(false);
+  useEffect(() => {
+    pending.current = false;
+  }, [value]);
+
+  // Tap → increment the HA counter (no serviceData). HA echoes the new count.
+  // On failure, release the guard so a retry is possible.
   const feed = () => {
-    if (!interactive) return;
+    if (!interactive || pending.current) return;
+    pending.current = true;
     void Promise.resolve(svc.increment({ target: cfg.counterEntityId })).catch(
-      (err) => console.warn("turtle: counter.increment failed", err),
+      (err) => {
+        pending.current = false;
+        console.warn("turtle: counter.increment failed", err);
+      },
     );
   };
 
@@ -46,7 +60,7 @@ export function TurtleTile() {
       onClick={feed}
       disabled={!interactive}
       aria-label={label}
-      className={`relative inline-flex min-h-[48px] items-center justify-center overflow-hidden rounded-lg border border-card-border bg-card-fill px-4 backdrop-blur-glass ${
+      className={`relative inline-flex min-h-[56px] items-center justify-center overflow-hidden rounded-lg border border-card-border bg-card-fill px-4 backdrop-blur-glass ${
         isStale ? "opacity-60" : ""
       }`}
     >
