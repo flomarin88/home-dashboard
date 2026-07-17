@@ -1,76 +1,86 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
-import { MemoryRouter, Routes, Route } from 'react-router-dom'
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { render, screen, fireEvent } from "@testing-library/react";
+import { MemoryRouter, Routes, Route } from "react-router-dom";
 
 const state = vi.hoisted(() => ({
-  connectionStatus: 'connected' as string,
-  temp: '13.2' as string,
-  humidity: '81' as string,
-  battery: '75' as string,
-  trend: 'down' as string,
-  condition: 'sunny' as string,
+  connectionStatus: "connected" as string,
+  temp: "13.2" as string,
+  humidity: "81" as string,
+  battery: "75" as string,
+  trend: "down" as string,
+  condition: "sunny" as string,
   // useWeather behaviours (per-test): throw like @hakit on a subscription
   // error, or return a forecast row missing `temperature`.
   throwForecast: false as boolean,
   partialForecast: false as boolean,
-}))
+}));
 
 const DAILY = vi.hoisted(() => [
-  { datetime: '2026-07-17T00:00:00Z', temperature: 24, templow: 14, condition: 'sunny' },
-  { datetime: '2026-07-18T00:00:00Z', temperature: 22, templow: 13, condition: 'rainy' },
-])
+  {
+    datetime: "2026-07-17T00:00:00Z",
+    temperature: 24,
+    templow: 14,
+    condition: "sunny",
+  },
+  {
+    datetime: "2026-07-18T00:00:00Z",
+    temperature: 22,
+    templow: 13,
+    condition: "rainy",
+  },
+]);
 const HOURLY = vi.hoisted(() => [
   {
-    datetime: '2026-07-17T10:00:00Z',
+    datetime: "2026-07-17T10:00:00Z",
     temperature: 20,
-    condition: 'cloudy',
+    condition: "cloudy",
     precipitation_probability: 30,
   },
   {
-    datetime: '2026-07-17T11:00:00Z',
+    datetime: "2026-07-17T11:00:00Z",
     temperature: 21,
-    condition: 'rainy',
+    condition: "rainy",
     precipitation_probability: 60,
   },
-])
+]);
 // A daily row missing `temperature` — HA does not guarantee every field. Must
 // render "—", never "NaN°".
 const PARTIAL_DAILY = vi.hoisted(() => [
-  { datetime: '2026-07-19T00:00:00Z', templow: 12, condition: 'cloudy' },
-])
+  { datetime: "2026-07-19T00:00:00Z", templow: 12, condition: "cloudy" },
+]);
 
-vi.mock('@hakit/core', () => ({
+vi.mock("@hakit/core", () => ({
   useEntity: (id: string) => {
-    const last_changed = '2026-07-16T14:00:00Z'
-    if (id.includes('weather'))
-      return { state: state.condition, last_changed, attributes: {} }
-    if (id.includes('temperature_trend'))
-      return { state: state.trend, last_changed, attributes: {} }
-    if (id.includes('temperature'))
+    const last_changed = "2026-07-16T14:00:00Z";
+    if (id.includes("weather"))
+      return { state: state.condition, last_changed, attributes: {} };
+    if (id.includes("temperature_trend"))
+      return { state: state.trend, last_changed, attributes: {} };
+    if (id.includes("temperature"))
       return {
         state: state.temp,
         last_changed,
-        attributes: { unit_of_measurement: '°C' },
-      }
-    if (id.includes('humidite'))
+        attributes: { unit_of_measurement: "°C" },
+      };
+    if (id.includes("humidite"))
       return {
         state: state.humidity,
         last_changed,
-        attributes: { unit_of_measurement: '%' },
-      }
-    if (id.includes('batterie'))
+        attributes: { unit_of_measurement: "%" },
+      };
+    if (id.includes("batterie"))
       return {
         state: state.battery,
         last_changed,
-        attributes: { unit_of_measurement: '%' },
-      }
-    return null
+        attributes: { unit_of_measurement: "%" },
+      };
+    return null;
   },
   useHistory: () => ({
     entityHistory: [
-      { s: '12', lu: 1_752_000_000 },
-      { s: '13', lu: 1_752_003_600 },
-      { s: '13.2', lu: 1_752_007_200 },
+      { s: "12", lu: 1_752_000_000 },
+      { s: "13", lu: 1_752_003_600 },
+      { s: "13.2", lu: 1_752_007_200 },
     ],
     coordinates: [],
     timeline: [],
@@ -78,22 +88,22 @@ vi.mock('@hakit/core', () => ({
   }),
   useWeather: (_id: string, opts: { type: string }) => {
     // @hakit's useWeather re-throws a forecast-subscription error during render.
-    if (state.throwForecast) throw new Error('subscribe_forecast rejected')
-    const daily = state.partialForecast ? PARTIAL_DAILY : DAILY
+    if (state.throwForecast) throw new Error("subscribe_forecast rejected");
+    const daily = state.partialForecast ? PARTIAL_DAILY : DAILY;
     return {
       forecast: {
         type: opts.type,
-        forecast: opts.type === 'daily' ? daily : HOURLY,
+        forecast: opts.type === "daily" ? daily : HOURLY,
       },
-    }
+    };
   },
   useHass: (selector: (s: { connectionStatus: string }) => unknown) =>
     selector({ connectionStatus: state.connectionStatus }),
-}))
+}));
 
 // Recharts is only needed for its declarative shell here — stub it so the chart
 // mounts (with data) without pulling ResizeObserver/canvas into jsdom.
-vi.mock('recharts', () => ({
+vi.mock("recharts", () => ({
   ResponsiveContainer: ({ children }: { children: unknown }) => children,
   LineChart: ({ children }: { children: unknown }) => children,
   Line: () => null,
@@ -102,100 +112,100 @@ vi.mock('recharts', () => ({
   CartesianGrid: () => null,
   Tooltip: () => null,
   ReferenceLine: () => null,
-}))
+}));
 
-import { WeatherDetailContent } from './WeatherDetail'
-import { weatherConfig } from '../entities'
+import { WeatherDetailContent } from "./WeatherDetail";
+import { weatherConfig } from "../entities";
 
 function renderPage(cfg = weatherConfig()) {
   return render(
-    <MemoryRouter initialEntries={['/meteo']}>
+    <MemoryRouter initialEntries={["/meteo"]}>
       <Routes>
         <Route path="/meteo" element={<WeatherDetailContent cfg={cfg} />} />
         <Route path="/" element={<div>home-page</div>} />
       </Routes>
     </MemoryRouter>,
-  )
+  );
 }
 
 beforeEach(() => {
-  state.connectionStatus = 'connected'
-  state.temp = '13.2'
-  state.humidity = '81'
-  state.battery = '75'
-  state.trend = 'down'
-  state.condition = 'sunny'
-  state.throwForecast = false
-  state.partialForecast = false
-})
+  state.connectionStatus = "connected";
+  state.temp = "13.2";
+  state.humidity = "81";
+  state.battery = "75";
+  state.trend = "down";
+  state.condition = "sunny";
+  state.throwForecast = false;
+  state.partialForecast = false;
+});
 
-describe('WeatherDetail (Story 6.2)', () => {
-  it('renders Actuel (condition + temp/humidité/batterie/tendance) and the history chart', async () => {
-    renderPage()
-    expect(screen.getByText('Ensoleillé')).toBeInTheDocument()
-    expect(screen.getByText(/13\.2\s*°C/)).toBeInTheDocument()
-    expect(screen.getByText(/↓/)).toBeInTheDocument()
-    expect(screen.getByText(/81\s*%/)).toBeInTheDocument() // humidity (icon + value)
+describe("WeatherDetail (Story 6.2)", () => {
+  it("renders Actuel (condition + temp/humidité/batterie/tendance) and the history chart", async () => {
+    renderPage();
+    expect(screen.getByText("Ensoleillé")).toBeInTheDocument();
+    expect(screen.getByText(/13\.2\s*°C/)).toBeInTheDocument();
+    expect(screen.getByText(/↓/)).toBeInTheDocument();
+    expect(screen.getByText(/81\s*%/)).toBeInTheDocument(); // humidity (icon + value)
     // Chart is lazy-loaded (Recharts on the route) — await its mount.
     expect(
-      await screen.findByRole('img', { name: /Historique de la température/i }),
-    ).toBeInTheDocument()
-  })
+      await screen.findByRole("img", { name: /Historique de la température/i }),
+    ).toBeInTheDocument();
+  });
 
-  it('renders daily and hourly forecasts from the weather entity', () => {
-    renderPage()
-    expect(screen.getByText('Prévisions 7 jours')).toBeInTheDocument()
-    expect(screen.getByText('Prévisions horaires')).toBeInTheDocument()
+  it("renders daily and hourly forecasts from the weather entity", () => {
+    renderPage();
+    expect(screen.getByText("Prévisions 7 jours")).toBeInTheDocument();
+    expect(screen.getByText("Prévisions horaires")).toBeInTheDocument();
     // Daily high/low for the first day.
-    expect(screen.getByText(/24°/)).toBeInTheDocument()
-    expect(screen.getByText(/14°/)).toBeInTheDocument()
+    expect(screen.getByText(/24°/)).toBeInTheDocument();
+    expect(screen.getByText(/14°/)).toBeInTheDocument();
     // Hourly precipitation probability.
-    expect(screen.getByText('30%')).toBeInTheDocument()
-  })
+    expect(screen.getByText("30%")).toBeInTheDocument();
+  });
 
   it('falls back to "à venir" seams when no weather entity is mapped', () => {
     renderPage({
       ...weatherConfig(),
       conditionEntityId: undefined,
       forecastEntityId: undefined,
-    })
-    expect(screen.getAllByText('À venir')).toHaveLength(2)
-    expect(screen.queryByText('Ensoleillé')).toBeNull()
-  })
+    });
+    expect(screen.getAllByText("À venir")).toHaveLength(2);
+    expect(screen.queryByText("Ensoleillé")).toBeNull();
+  });
 
-  it('back link navigates home', () => {
-    renderPage()
-    fireEvent.click(screen.getByRole('button', { name: /Accueil/i }))
-    expect(screen.getByText('home-page')).toBeInTheDocument()
-  })
+  it("back link navigates home", () => {
+    renderPage();
+    fireEvent.click(screen.getByRole("button", { name: /Accueil/i }));
+    expect(screen.getByText("home-page")).toBeInTheDocument();
+  });
 
   // Regression (code review 2026-07-17, P1): @hakit's useWeather re-throws a
   // forecast-subscription error during render and there is no other ErrorBoundary
   // in the app — without the tile boundary this blanks the whole kiosk (AD-6).
   it('degrades each forecast tile to "Prévisions indisponibles" when useWeather throws (no blank page)', () => {
-    const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
-    state.throwForecast = true
-    renderPage()
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+    state.throwForecast = true;
+    renderPage();
     // Both tiles fall back independently; the rest of the page still renders.
-    expect(screen.getAllByText('Prévisions indisponibles')).toHaveLength(2)
-    expect(screen.getByText(/13\.2\s*°C/)).toBeInTheDocument()
-    spy.mockRestore()
-  })
+    expect(screen.getAllByText("Prévisions indisponibles")).toHaveLength(2);
+    expect(screen.getByText(/13\.2\s*°C/)).toBeInTheDocument();
+    spy.mockRestore();
+  });
 
   // Regression (P2): a forecast row missing `temperature` must read "—", not "NaN°".
   it('renders "—" (never "NaN") for a forecast row missing temperature', () => {
-    state.partialForecast = true
-    renderPage()
-    expect(screen.queryByText(/NaN/)).toBeNull()
-    expect(screen.getByText(/12°/)).toBeInTheDocument() // templow still shown
-  })
+    state.partialForecast = true;
+    renderPage();
+    expect(screen.queryByText(/NaN/)).toBeNull();
+    expect(screen.getByText(/12°/)).toBeInTheDocument(); // templow still shown
+  });
 
   // Regression (P3, AC2 "obsolescence par champ"): a stale humidity is greyed
   // independently while a fresh temperature is not.
-  it('applies per-field staleness — stale humidity greyed, fresh temp not', () => {
-    state.humidity = 'unavailable'
-    renderPage()
-    expect(screen.getByText(/—\s*%/)).toHaveClass('text-stale-text')
-    expect(screen.getByText(/13\.2\s*°C/)).toHaveClass('text-text')
-  })
-})
+  it("applies per-field staleness — stale humidity greyed, fresh temp not", () => {
+    state.humidity = "unavailable";
+    renderPage();
+    expect(screen.getByText(/—\s*%/)).toHaveClass("text-stale-text");
+    expect(screen.getByText(/13\.2\s*°C/)).toHaveClass("text-text");
+  });
+});

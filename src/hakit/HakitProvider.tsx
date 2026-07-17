@@ -1,6 +1,6 @@
-import type { ReactNode } from 'react'
-import { HassConnect } from '@hakit/core'
-import { hassUrl, hassToken } from './config'
+import type { ReactNode } from "react";
+import { HassConnect } from "@hakit/core";
+import { hassUrl, hassToken } from "./config";
 
 /**
  * The single Home Assistant connection seam (AD-2).
@@ -20,14 +20,14 @@ export function HakitProvider({
   children,
   loading,
 }: {
-  children: ReactNode
+  children: ReactNode;
   /** Rendered while HA is connecting/unauthenticated — pass the shell so the
    *  kiosk is never blank behind the connection gate (AD-6 / NFR4). */
-  loading?: ReactNode
+  loading?: ReactNode;
 }) {
   return (
     <HassConnect hassUrl={hassUrl} hassToken={hassToken} loading={loading}>
       {children}
     </HassConnect>
-  )
+  );
 }

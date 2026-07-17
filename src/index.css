@@ -1,4 +1,4 @@
-@import 'tailwindcss';
+@import "tailwindcss";
 
 /*
  * Glass Gradient design system — tokens (Story 1.2, AD styling convention).
@@ -95,28 +95,28 @@
  * from it with color-mix. Adding a domain = one line here (no dynamic Tailwind
  * class names, which the compiler cannot see).
  */
-.device-tile[data-domain='lights'] {
+.device-tile[data-domain="lights"] {
   --tile-accent: var(--color-accent-lights);
 }
-.device-tile[data-domain='shutters'] {
+.device-tile[data-domain="shutters"] {
   --tile-accent: var(--color-accent-shutters);
 }
-.device-tile[data-domain='climate'] {
+.device-tile[data-domain="climate"] {
   --tile-accent: var(--color-accent-climate);
 }
-.device-tile[data-domain='vacuum'] {
+.device-tile[data-domain="vacuum"] {
   --tile-accent: var(--color-accent-vacuum);
 }
-.device-tile[data-domain='security'] {
+.device-tile[data-domain="security"] {
   --tile-accent: var(--color-security-ok);
 }
 
-.device-tile[data-state='on'] {
+.device-tile[data-state="on"] {
   background-color: color-mix(in srgb, var(--tile-accent) 16%, transparent);
   border-color: color-mix(in srgb, var(--tile-accent) 45%, transparent);
   box-shadow: 0 0 20px color-mix(in srgb, var(--tile-accent) 15%, transparent);
 }
-.device-tile[data-state='on'] .device-tile__state {
+.device-tile[data-state="on"] .device-tile__state {
   color: var(--tile-accent);
 }
 
@@ -127,7 +127,7 @@
  * ones last — so utility-based stale colors silently lose. Unlayered CSS beats
  * @layer utilities deterministically, matching the on-state mechanism.
  */
-.device-tile[data-state='stale'] {
+.device-tile[data-state="stale"] {
   border-style: dashed;
   border-color: var(--color-stale);
   color: var(--color-stale-text);

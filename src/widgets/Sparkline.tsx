@@ -1,4 +1,4 @@
-import { computeSparkline } from './sparkline-scale'
+import { computeSparkline } from "./sparkline-scale";
 
 /**
  * Tiny temperature sparkline (Ambiance tiles). Hand-rolled inline SVG — no
@@ -12,16 +12,21 @@ export function Sparkline({
   width = 96,
   height = 32,
 }: {
-  values: number[]
-  threshold: number
-  width?: number
-  height?: number
+  values: number[];
+  threshold: number;
+  width?: number;
+  height?: number;
 }) {
-  const { points, thresholdY } = computeSparkline(values, threshold, width, height)
-  if (points.length < 2) return null
+  const { points, thresholdY } = computeSparkline(
+    values,
+    threshold,
+    width,
+    height,
+  );
+  if (points.length < 2) return null;
 
   const d =
-    'M' + points.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(' L')
+    "M" + points.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(" L");
 
   return (
     <svg
@@ -50,5 +55,5 @@ export function Sparkline({
         strokeWidth={1.5}
       />
     </svg>
-  )
+  );
 }

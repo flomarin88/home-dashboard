@@ -34,19 +34,19 @@ On push to `master`, after the gates: build for the www base, join the tailnet,
 
 ### GitHub secrets to set (repo → Settings → Secrets → Actions)
 
-| Secret | Value |
-|---|---|
-| `TS_AUTHKEY` | A **reusable, ephemeral** Tailscale auth key (admin console → Settings → Keys). |
-| `PI_SSH_KEY` | Private half of an SSH **deploy key** (`ssh-keygen -t ed25519 -f deploy`). |
-| `PI_HOST` | The Pi's Tailscale name or `100.x.y.z` IP. |
-| `PI_USER` | SSH user that can write `www/` (e.g. `root` on the HAOS SSH add-on). |
-| `PI_WWW_PATH` | `/config/www/home-dashboard` (or wherever HA's `www/` lives). |
+| Secret        | Value                                                                           |
+| ------------- | ------------------------------------------------------------------------------- |
+| `TS_AUTHKEY`  | A **reusable, ephemeral** Tailscale auth key (admin console → Settings → Keys). |
+| `PI_SSH_KEY`  | Private half of an SSH **deploy key** (`ssh-keygen -t ed25519 -f deploy`).      |
+| `PI_HOST`     | The Pi's Tailscale name or `100.x.y.z` IP.                                      |
+| `PI_USER`     | SSH user that can write `www/` (e.g. `root` on the HAOS SSH add-on).            |
+| `PI_WWW_PATH` | `/config/www/home-dashboard` (or wherever HA's `www/` lives).                   |
 
 ### Pi prerequisites (one-time)
 
 1. **Tailscale** installed and up on the Pi (HAOS: the Tailscale add-on; Pi OS:
    `tailscale up`).
-2. **SSH** reachable (HAOS: the *Advanced SSH & Web Terminal* add-on; Pi OS:
+2. **SSH** reachable (HAOS: the _Advanced SSH & Web Terminal_ add-on; Pi OS:
    `sshd`). Add the deploy key's **public** half to the user's
    `~/.ssh/authorized_keys`.
 3. `config/www/` exists and is writable by `PI_USER`. Create

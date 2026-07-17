@@ -1,14 +1,10 @@
-import type { ReactNode } from 'react'
-import { OfflinePill } from './OfflinePill'
+import type { ReactNode } from "react";
+import { OfflinePill } from "./OfflinePill";
 
 export type DeviceDomain =
-  | 'lights'
-  | 'shutters'
-  | 'climate'
-  | 'vacuum'
-  | 'security'
+  "lights" | "shutters" | "climate" | "vacuum" | "security";
 
-export type DeviceTileState = 'default' | 'on' | 'stale'
+export type DeviceTileState = "default" | "on" | "stale";
 
 /**
  * DeviceTile — the base device control tile (Story 1.2, UX-DR2), 4 states:
@@ -30,44 +26,42 @@ export function DeviceTile({
   domain,
   label,
   value,
-  state = 'default',
+  state = "default",
   kid = false,
   icon,
   onPress,
 }: {
-  domain: DeviceDomain
-  label: string
+  domain: DeviceDomain;
+  label: string;
   /** State/value text (e.g. "Allumé", "72 %"). Carries state, not colour alone. */
-  value?: ReactNode
-  state?: DeviceTileState
-  kid?: boolean
-  icon?: ReactNode
-  onPress?: () => void
+  value?: ReactNode;
+  state?: DeviceTileState;
+  kid?: boolean;
+  icon?: ReactNode;
+  onPress?: () => void;
 }) {
-  const stale = state === 'stale'
-  const interactive = Boolean(onPress)
+  const stale = state === "stale";
+  const interactive = Boolean(onPress);
 
   // Per-state visuals (on tint/glow, stale dashed border + muted colors) are
   // driven by unlayered `.device-tile[data-state='…']` CSS, which wins the
   // cascade deterministically — do NOT add state color utilities here, they
   // conflict with the base ones and lose on source order.
   const classes = [
-    'device-tile flex flex-col justify-between gap-2 rounded-md border px-4 py-3 text-left',
-    'bg-tile-fill border-tile-border text-text transition-shadow',
-    kid ? 'min-h-tile-h-kid' : 'min-h-tile-h',
-    interactive ? 'cursor-pointer' : '',
+    "device-tile flex flex-col justify-between gap-2 rounded-md border px-4 py-3 text-left",
+    "bg-tile-fill border-tile-border text-text transition-shadow",
+    kid ? "min-h-tile-h-kid" : "min-h-tile-h",
+    interactive ? "cursor-pointer" : "",
   ]
     .filter(Boolean)
-    .join(' ')
+    .join(" ");
 
   const body = (
     <>
       <div className="flex items-center gap-2">
         {icon}
         <span
-          className={
-            kid ? 'text-title font-bold' : 'text-label font-semibold'
-          }
+          className={kid ? "text-title font-bold" : "text-label font-semibold"}
         >
           {label}
         </span>
@@ -81,11 +75,11 @@ export function DeviceTile({
         </div>
       ) : (
         <span className="device-tile__state text-meta tabular-nums text-text-muted">
-          {value ?? '—'}
+          {value ?? "—"}
         </span>
       )}
     </>
-  )
+  );
 
   if (interactive) {
     return (
@@ -98,12 +92,12 @@ export function DeviceTile({
       >
         {body}
       </button>
-    )
+    );
   }
 
   return (
     <div data-domain={domain} data-state={state} className={classes}>
       {body}
     </div>
-  )
+  );
 }

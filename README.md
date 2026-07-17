@@ -23,12 +23,14 @@ React 19 · Vite · TypeScript · Tailwind CSS v4 · `@hakit/core` + `@hakit/com
    cp .env.example .env.local
    ```
 3. In Home Assistant, create a **long-lived access token**
-   (profile → *Long-lived access tokens* → *Create token*), then fill
+   (profile → _Long-lived access tokens_ → _Create token_), then fill
    `.env.local`:
+
    ```
    VITE_HA_URL=http://homeassistant.local:8123
    VITE_HA_TOKEN=<your-long-lived-token>
    ```
+
    `.env.local` is never committed and never bundled into `dist/` (AD-8).
 
    > Dev CORS: the Vite dev server (`localhost:5173`) needs

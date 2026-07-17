@@ -1,12 +1,12 @@
-import { Component, type ReactNode } from 'react'
+import { Component, type ReactNode } from "react";
 
 interface Props {
-  readonly children: ReactNode
-  readonly fallback: ReactNode
+  readonly children: ReactNode;
+  readonly fallback: ReactNode;
 }
 
 interface State {
-  readonly hasError: boolean
+  readonly hasError: boolean;
 }
 
 /**
@@ -22,13 +22,13 @@ interface State {
  * boundary (`hasError: false`) and the subscription is retried.
  */
 export class ErrorBoundary extends Component<Props, State> {
-  state: State = { hasError: false }
+  state: State = { hasError: false };
 
   static getDerivedStateFromError(): State {
-    return { hasError: true }
+    return { hasError: true };
   }
 
   render(): ReactNode {
-    return this.state.hasError ? this.props.fallback : this.props.children
+    return this.state.hasError ? this.props.fallback : this.props.children;
   }
 }

@@ -10,21 +10,21 @@ export function isStale(
   return (
     !connected ||
     state == null ||
-    state === 'unavailable' ||
-    state === 'unknown'
-  )
+    state === "unavailable" ||
+    state === "unknown"
+  );
 }
 
-const SINCE_FMT = new Intl.DateTimeFormat('fr-FR', {
-  hour: '2-digit',
-  minute: '2-digit',
+const SINCE_FMT = new Intl.DateTimeFormat("fr-FR", {
+  hour: "2-digit",
+  minute: "2-digit",
   hour12: false,
-})
+});
 
 /** Format a last-changed timestamp as "HH:MM"; '' for missing/invalid input. */
 export function formatSince(iso: string | number | null | undefined): string {
-  if (iso == null) return ''
-  const d = new Date(iso)
-  if (Number.isNaN(d.getTime())) return ''
-  return SINCE_FMT.format(d)
+  if (iso == null) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  return SINCE_FMT.format(d);
 }

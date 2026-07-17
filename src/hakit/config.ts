@@ -13,10 +13,10 @@
  */
 
 /** HA base URL, e.g. `http://homeassistant.local:8123`. */
-export const hassUrl: string = import.meta.env.VITE_HA_URL ?? ''
+export const hassUrl: string = import.meta.env.VITE_HA_URL ?? "";
 
 /** HA long-lived access token. Optional under the HA-session variant. */
-export const hassToken: string | undefined = import.meta.env.VITE_HA_TOKEN
+export const hassToken: string | undefined = import.meta.env.VITE_HA_TOKEN;
 
 /**
  * True when the config needed to attempt a token-authenticated connection is
@@ -26,4 +26,4 @@ export const hassToken: string | undefined = import.meta.env.VITE_HA_TOKEN
  * keyboard-less kiosk. When the session variant lands, this check will relax.
  */
 export const isConfigured: boolean =
-  hassUrl.length > 0 && (hassToken?.length ?? 0) > 0
+  hassUrl.length > 0 && (hassToken?.length ?? 0) > 0;

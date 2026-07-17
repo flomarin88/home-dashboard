@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { useUndoStore, undoCountdown } from '../state/undo'
+import { useEffect, useState } from "react";
+import { useUndoStore, undoCountdown } from "../state/undo";
 
 /**
  * UndoToast (UX-DR9, NFR6) — the safety-net toast for high-impact actions.
@@ -16,30 +16,33 @@ import { useUndoStore, undoCountdown } from '../state/undo'
  * provider) is what talks to HA.
  */
 export function UndoToast() {
-  const current = useUndoStore((s) => s.current)
-  const dismiss = useUndoStore((s) => s.dismiss)
-  const runUndo = useUndoStore((s) => s.runUndo)
-  const [now, setNow] = useState(() => Date.now())
+  const current = useUndoStore((s) => s.current);
+  const dismiss = useUndoStore((s) => s.dismiss);
+  const runUndo = useUndoStore((s) => s.runUndo);
+  const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
-    if (!current) return
-    setNow(Date.now())
-    const { id, expiresAt } = current
-    const tick = setInterval(() => setNow(Date.now()), 100)
-    const auto = setTimeout(() => dismiss(id), Math.max(0, expiresAt - Date.now()))
+    if (!current) return;
+    setNow(Date.now());
+    const { id, expiresAt } = current;
+    const tick = setInterval(() => setNow(Date.now()), 100);
+    const auto = setTimeout(
+      () => dismiss(id),
+      Math.max(0, expiresAt - Date.now()),
+    );
     return () => {
-      clearInterval(tick)
-      clearTimeout(auto)
-    }
-  }, [current, dismiss])
+      clearInterval(tick);
+      clearTimeout(auto);
+    };
+  }, [current, dismiss]);
 
-  if (!current) return null
+  if (!current) return null;
 
   const { fraction, secondsLeft } = undoCountdown(
     current.offeredAt,
     current.expiresAt,
     now,
-  )
+  );
 
   return (
     <div
@@ -48,7 +51,9 @@ export function UndoToast() {
       aria-live="polite"
     >
       <div className="flex items-center gap-4 rounded-lg border border-card-border bg-card-fill px-5 py-3 shadow-card backdrop-blur-glass">
-        <span className="text-label font-semibold text-text">{current.label}</span>
+        <span className="text-label font-semibold text-text">
+          {current.label}
+        </span>
 
         {/* Visible countdown (bar) so the window is legible (UX-DR9) */}
         <div
@@ -80,7 +85,7 @@ export function UndoToast() {
         </button>
       </div>
     </div>
-  )
+  );
 }
 
 function UndoIcon() {
@@ -99,5 +104,5 @@ function UndoIcon() {
       <path d="M9 14 4 9l5-5" />
       <path d="M4 9h11a5 5 0 0 1 0 10h-1" />
     </svg>
-  )
+  );
 }

@@ -1,8 +1,8 @@
-import { RoomSensorCard } from '../widgets/RoomSensorCard'
-import { LightTile } from '../widgets/LightTile'
-import { VacuumTile } from '../widgets/VacuumTile'
-import { listRooms, lights, vacuum } from '../entities'
-import { isConfigured } from '../hakit'
+import { RoomSensorCard } from "../widgets/RoomSensorCard";
+import { LightTile } from "../widgets/LightTile";
+import { VacuumTile } from "../widgets/VacuumTile";
+import { listRooms, lights, vacuum } from "../entities";
+import { isConfigured } from "../hakit";
 
 /**
  * Home — the composed landscape kiosk tiles (Story 1.3, UX-DR11 / AD-10).
@@ -15,10 +15,12 @@ import { isConfigured } from '../hakit'
  */
 export function Home() {
   if (!isConfigured) {
-    return <p className="text-meta text-text-muted">Home Assistant non configuré.</p>
+    return (
+      <p className="text-meta text-text-muted">Home Assistant non configuré.</p>
+    );
   }
 
-  const vacuumEntry = vacuum()
+  const vacuumEntry = vacuum();
   return (
     <div className="flex flex-col gap-grid-gap">
       {/* Ambiance — 4 room sensor tiles */}
@@ -47,5 +49,5 @@ export function Home() {
         </div>
       ) : null}
     </div>
-  )
+  );
 }

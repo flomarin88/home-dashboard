@@ -6,5 +6,5 @@
  * HA anywhere else. The single sanctioned exception is the future camera media
  * helper (`src/media/`, FR8).
  */
-export { HakitProvider } from './HakitProvider'
-export { hassUrl, hassToken, isConfigured } from './config'
+export { HakitProvider } from "./HakitProvider";
+export { hassUrl, hassToken, isConfigured } from "./config";

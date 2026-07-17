@@ -1,18 +1,21 @@
-import type { ReactNode } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { useEntity, useService } from '@hakit/core'
-import type { EntityName } from '@hakit/core'
-import { isConfigured } from '../hakit'
-import { vacuum, vacuumDetail } from '../entities'
-import type { EntityEntry, VacuumDetail as VacuumDetailConfig } from '../entities'
-import { useOptimisticControl } from '../hakit/useOptimisticControl'
-import { vacuumModel } from '../state/control-model'
+import type { ReactNode } from "react";
+import { useNavigate } from "react-router-dom";
+import { useEntity, useService } from "@hakit/core";
+import type { EntityName } from "@hakit/core";
+import { isConfigured } from "../hakit";
+import { vacuum, vacuumDetail } from "../entities";
+import type {
+  EntityEntry,
+  VacuumDetail as VacuumDetailConfig,
+} from "../entities";
+import { useOptimisticControl } from "../hakit/useOptimisticControl";
+import { vacuumModel } from "../state/control-model";
 import {
   vacuumStatusLabel,
   parseBattery,
   batteryColorClass,
   consumableLabel,
-} from '../widgets/vacuum-status'
+} from "../widgets/vacuum-status";
 
 /**
  * VacuumDetail — deep page for the Roborock (Story 5.3, AD-10). The rich data
@@ -25,54 +28,55 @@ import {
  * fits the 1024×768 kiosk viewport with NO scroll (memory: target-device-and-layout).
  */
 export function VacuumDetail() {
-  const entry = vacuum()
-  const detail = vacuumDetail()
+  const entry = vacuum();
+  const detail = vacuumDetail();
   if (!isConfigured || !entry || !detail) {
     return (
       <div className="flex h-full flex-col gap-2">
         <BackLink />
         <p className="text-meta text-text-muted">Aspirateur non configuré.</p>
       </div>
-    )
+    );
   }
-  return <VacuumDetailContent entry={entry} detail={detail} />
+  return <VacuumDetailContent entry={entry} detail={detail} />;
 }
 
 export function VacuumDetailContent({
   entry,
   detail,
 }: {
-  entry: EntityEntry
-  detail: VacuumDetailConfig
+  entry: EntityEntry;
+  detail: VacuumDetailConfig;
 }) {
-  const id = entry.entityId as EntityName
-  const { displayState, send, isStale } = useOptimisticControl(id, vacuumModel)
-  const buttonSvc = useService('button')
+  const id = entry.entityId as EntityName;
+  const { displayState, send, isStale } = useOptimisticControl(id, vacuumModel);
+  const buttonSvc = useService("button");
 
   const battery = parseBattery(
     useEntity((entry.batteryEntityId ?? entry.entityId) as EntityName, {
       returnNullIfNotFound: true,
     })?.state,
-  )
+  );
   const mapEntity = useEntity(detail.mapEntityId as EntityName, {
     returnNullIfNotFound: true,
-  })
+  });
   // entity_picture carries a live HA token — read at runtime, never stored (AD-8).
-  const mapUrl = (mapEntity?.attributes as { entity_picture?: string } | undefined)
-    ?.entity_picture
+  const mapUrl = (
+    mapEntity?.attributes as { entity_picture?: string } | undefined
+  )?.entity_picture;
   const charging = useEntity(detail.chargingEntityId as EntityName, {
     returnNullIfNotFound: true,
-  })?.state
+  })?.state;
 
   const launch = (buttonEntityId: string) => {
-    buttonSvc.press({ target: buttonEntityId })
-    send('cleaning') // optimistic feedback on the vacuum
-  }
+    buttonSvc.press({ target: buttonEntityId });
+    send("cleaning"); // optimistic feedback on the vacuum
+  };
 
-  const cleaning = displayState === 'cleaning'
-  const docked = displayState === 'docked'
+  const cleaning = displayState === "cleaning";
+  const docked = displayState === "docked";
   const actionClass =
-    'inline-flex min-h-[48px] items-center justify-center rounded-sm border border-tile-border bg-tile-fill px-4 text-label font-semibold text-text disabled:opacity-50'
+    "inline-flex min-h-[48px] items-center justify-center rounded-sm border border-tile-border bg-tile-fill px-4 text-label font-semibold text-text disabled:opacity-50";
 
   return (
     <div className="flex h-full flex-col gap-grid-gap overflow-hidden">
@@ -113,17 +117,17 @@ export function VacuumDetailContent({
           <Tile>
             <span className="text-meta text-text">
               {vacuumStatusLabel(displayState)}
-              {' · '}
+              {" · "}
               <span className={`tabular-nums ${batteryColorClass(battery)}`}>
-                {battery ?? '—'} %
+                {battery ?? "—"} %
               </span>
-              {charging === 'on' ? ' · En charge' : ''}
+              {charging === "on" ? " · En charge" : ""}
             </span>
             <div className="flex gap-tile-gap">
               <button
                 type="button"
                 disabled={isStale || !cleaning}
-                onClick={() => send('idle')}
+                onClick={() => send("idle")}
                 className={`flex-1 ${actionClass}`}
               >
                 Arrêter
@@ -131,7 +135,7 @@ export function VacuumDetailContent({
               <button
                 type="button"
                 disabled={isStale || docked}
-                onClick={() => send('docked')}
+                onClick={() => send("docked")}
                 className={`flex-1 ${actionClass}`}
               >
                 Retour base
@@ -162,7 +166,9 @@ export function VacuumDetailContent({
                 label={a.label}
                 entityId={a.entityId}
                 format={
-                  a.entityId.startsWith('binary_sensor') ? formatBinary : formatError
+                  a.entityId.startsWith("binary_sensor")
+                    ? formatBinary
+                    : formatError
                 }
               />
             ))}
@@ -170,16 +176,16 @@ export function VacuumDetailContent({
         </div>
       </div>
     </div>
-  )
+  );
 }
 
 /** A frosted tile container (no titled section chrome). */
 function Tile({
   children,
-  className = '',
+  className = "",
 }: {
-  children: ReactNode
-  className?: string
+  children: ReactNode;
+  className?: string;
 }) {
   return (
     <div
@@ -187,7 +193,7 @@ function Tile({
     >
       {children}
     </div>
-  )
+  );
 }
 
 /** One label → live value row; unavailable/unknown → "—" (never blank, AD-6). */
@@ -196,48 +202,50 @@ function Field({
   entityId,
   format,
 }: {
-  label: string
-  entityId: string
-  format?: (state: string) => string
+  label: string;
+  entityId: string;
+  format?: (state: string) => string;
 }) {
-  const entity = useEntity(entityId as EntityName, { returnNullIfNotFound: true })
-  const raw = entity?.state
-  const stale = raw == null || raw === 'unavailable' || raw === 'unknown'
-  const unit = entity?.attributes?.unit_of_measurement
+  const entity = useEntity(entityId as EntityName, {
+    returnNullIfNotFound: true,
+  });
+  const raw = entity?.state;
+  const stale = raw == null || raw === "unavailable" || raw === "unknown";
+  const unit = entity?.attributes?.unit_of_measurement;
   const value = stale
-    ? '—'
+    ? "—"
     : format
       ? format(raw)
       : unit
         ? `${raw} ${unit}`
-        : raw
+        : raw;
 
   return (
     <div className="flex items-center justify-between gap-2">
       <span className="text-meta text-text-muted">{label}</span>
       <span className="text-meta tabular-nums text-text">{value}</span>
     </div>
-  )
+  );
 }
 
 function formatBinary(state: string): string {
-  return state === 'on' ? 'Oui' : state === 'off' ? 'Non' : state
+  return state === "on" ? "Oui" : state === "off" ? "Non" : state;
 }
 
 function formatError(state: string): string {
-  const s = state.toLowerCase()
-  return s === 'none' || s === '' ? 'Aucune' : state
+  const s = state.toLowerCase();
+  return s === "none" || s === "" ? "Aucune" : state;
 }
 
 function BackLink() {
-  const navigate = useNavigate()
+  const navigate = useNavigate();
   return (
     <button
       type="button"
-      onClick={() => navigate('/')}
+      onClick={() => navigate("/")}
       className="inline-flex min-h-[44px] w-fit items-center gap-1 text-label font-semibold text-text-muted"
     >
       ‹ Accueil
     </button>
-  )
+  );
 }

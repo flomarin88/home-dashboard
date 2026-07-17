@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import type { ReactNode } from "react";
 
 /**
  * SectionCard — frosted translucent section container (Story 1.2, UX-DR2).
@@ -10,12 +10,12 @@ import type { ReactNode } from 'react'
 export function SectionCard({
   title,
   children,
-  className = '',
+  className = "",
 }: {
-  title: string
+  title: string;
   /** Optional — a zone can render as an empty titled card until its feature lands. */
-  children?: ReactNode
-  className?: string
+  children?: ReactNode;
+  className?: string;
 }) {
   return (
     <section
@@ -26,5 +26,5 @@ export function SectionCard({
       </h2>
       {children}
     </section>
-  )
+  );
 }

@@ -1,75 +1,75 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, fireEvent, act } from '@testing-library/react'
-import type { EntityEntry } from '../entities'
-import { usePendingStore } from '../state/pending'
-import { LightTile } from './LightTile'
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { render, screen, fireEvent, act } from "@testing-library/react";
+import type { EntityEntry } from "../entities";
+import { usePendingStore } from "../state/pending";
+import { LightTile } from "./LightTile";
 
 const hass = vi.hoisted(() => ({
-  state: 'off' as string,
-  connectionStatus: 'connected' as string,
+  state: "off" as string,
+  connectionStatus: "connected" as string,
   turnOn: vi.fn(),
   turnOff: vi.fn(),
-}))
+}));
 
-vi.mock('@hakit/core', () => ({
+vi.mock("@hakit/core", () => ({
   useEntity: () => ({
     state: hass.state,
-    last_changed: '2026-07-15T14:00:00Z',
+    last_changed: "2026-07-15T14:00:00Z",
     attributes: {},
     service: { turnOn: hass.turnOn, turnOff: hass.turnOff },
   }),
   useHass: (selector: (s: { connectionStatus: string }) => unknown) =>
     selector({ connectionStatus: hass.connectionStatus }),
-}))
+}));
 
 const ENTRY: EntityEntry = {
-  entityId: 'light.salon',
-  room: 'salon',
-  domain: 'light',
-  service: 'light.toggle',
-}
+  entityId: "light.salon",
+  room: "salon",
+  domain: "light",
+  service: "light.toggle",
+};
 
-describe('LightTile (Story 2.1 vertical slice)', () => {
+describe("LightTile (Story 2.1 vertical slice)", () => {
   beforeEach(() => {
-    usePendingStore.setState({ byId: {} })
-    hass.state = 'off'
-    hass.connectionStatus = 'connected'
-    hass.turnOn.mockClear()
-    hass.turnOff.mockClear()
-  })
+    usePendingStore.setState({ byId: {} });
+    hass.state = "off";
+    hass.connectionStatus = "connected";
+    hass.turnOn.mockClear();
+    hass.turnOff.mockClear();
+  });
 
   afterEach(() => {
-    vi.useRealTimers()
-  })
+    vi.useRealTimers();
+  });
 
-  it('shows off state, then flips optimistically to on and calls the HA service', () => {
-    render(<LightTile entry={ENTRY} />)
-    expect(screen.getByText('Éteint')).toBeInTheDocument()
+  it("shows off state, then flips optimistically to on and calls the HA service", () => {
+    render(<LightTile entry={ENTRY} />);
+    expect(screen.getByText("Éteint")).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button'))
+    fireEvent.click(screen.getByRole("button"));
 
-    expect(screen.getByText('Allumé')).toBeInTheDocument() // optimistic, pre-echo
-    expect(hass.turnOn).toHaveBeenCalledOnce()
-  })
+    expect(screen.getByText("Allumé")).toBeInTheDocument(); // optimistic, pre-echo
+    expect(hass.turnOn).toHaveBeenCalledOnce();
+  });
 
   it('offline: renders a non-interactive "Hors ligne" tile (AD-6)', () => {
-    hass.connectionStatus = 'disconnected'
-    render(<LightTile entry={ENTRY} />)
+    hass.connectionStatus = "disconnected";
+    render(<LightTile entry={ENTRY} />);
 
-    expect(screen.getByText(/hors ligne/i)).toBeInTheDocument()
-    expect(screen.queryByRole('button')).toBeNull() // cannot command an offline entity
-    expect(hass.turnOn).not.toHaveBeenCalled()
-  })
+    expect(screen.getByText(/hors ligne/i)).toBeInTheDocument();
+    expect(screen.queryByRole("button")).toBeNull(); // cannot command an offline entity
+    expect(hass.turnOn).not.toHaveBeenCalled();
+  });
 
   it('surfaces "Échec" when a command times out instead of snapping back silently (Story 2.2)', () => {
-    vi.useFakeTimers()
-    render(<LightTile entry={ENTRY} />)
-    fireEvent.click(screen.getByRole('button')) // send('on'); no HA echo follows
+    vi.useFakeTimers();
+    render(<LightTile entry={ENTRY} />);
+    fireEvent.click(screen.getByRole("button")); // send('on'); no HA echo follows
 
     act(() => {
-      vi.advanceTimersByTime(6000) // past the light control timeout (5s)
-    })
+      vi.advanceTimersByTime(6000); // past the light control timeout (5s)
+    });
 
-    expect(screen.getByText('Échec')).toBeInTheDocument()
-  })
-})
+    expect(screen.getByText("Échec")).toBeInTheDocument();
+  });
+});

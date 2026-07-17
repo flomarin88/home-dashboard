@@ -7,37 +7,37 @@ import {
   CartesianGrid,
   Tooltip,
   ReferenceLine,
-} from 'recharts'
+} from "recharts";
 
 export interface HistoryPoint {
   /** epoch ms */
-  readonly t: number
-  readonly value: number
+  readonly t: number;
+  readonly value: number;
 }
 
 export interface SensorHistoryChartProps {
-  readonly series: HistoryPoint[]
+  readonly series: HistoryPoint[];
   /** CSS colour for the line (a theme token var, e.g. var(--color-accent-climate)). */
-  readonly color: string
+  readonly color: string;
   /** Accessible label, e.g. "Historique de la température sur 24 heures". */
-  readonly ariaLabel: string
+  readonly ariaLabel: string;
   /** Y-axis tick suffix (e.g. "°" for temperature, "" for CO₂). */
-  readonly tickSuffix?: string
+  readonly tickSuffix?: string;
   /** Unit shown in the tooltip (e.g. "°C", "ppm", "%"). */
-  readonly unit: string
+  readonly unit: string;
   /** Decimals for the tooltip value. */
-  readonly decimals?: number
+  readonly decimals?: number;
   /**
    * Force Y-axis ticks (and gridlines) at this step — e.g. `1` for whole-degree
    * temperature. Omit for auto ticks (CO₂/humidity, where a fixed step is
    * nonsensical). Ignored if it would produce too many lines.
    */
-  readonly tickStep?: number
+  readonly tickStep?: number;
   /**
    * Horizontal reference lines (e.g. 26° red / 20° blue on temperature). Only
    * shown when within the visible Y range (`ifOverflow="hidden"`).
    */
-  readonly referenceLines?: readonly { y: number; color: string }[]
+  readonly referenceLines?: readonly { y: number; color: string }[];
 }
 
 /**
@@ -53,17 +53,17 @@ export default function SensorHistoryChart({
   series,
   color,
   ariaLabel,
-  tickSuffix = '',
+  tickSuffix = "",
   unit,
   decimals = 1,
   tickStep,
   referenceLines,
 }: SensorHistoryChartProps) {
   if (series.length < 2) {
-    return <span className="text-meta text-text-muted">Pas d'historique</span>
+    return <span className="text-meta text-text-muted">Pas d'historique</span>;
   }
 
-  const yTicks = tickStep ? stepTicks(series, tickStep) : undefined
+  const yTicks = tickStep ? stepTicks(series, tickStep) : undefined;
 
   return (
     <div
@@ -74,7 +74,10 @@ export default function SensorHistoryChart({
       aria-label={ariaLabel}
     >
       <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={series} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
+        <LineChart
+          data={series}
+          margin={{ top: 8, right: 8, bottom: 0, left: 0 }}
+        >
           <CartesianGrid
             vertical={false}
             strokeDasharray="4 4"
@@ -85,36 +88,41 @@ export default function SensorHistoryChart({
             dataKey="t"
             type="number"
             scale="time"
-            domain={['dataMin', 'dataMax']}
+            domain={["dataMin", "dataMax"]}
             tickFormatter={hourTick}
             minTickGap={44}
             tickLine={false}
             stroke="var(--color-text-muted)"
-            tick={{ fill: 'var(--color-text-muted)', fontSize: 10 }}
+            tick={{ fill: "var(--color-text-muted)", fontSize: 10 }}
           />
           <YAxis
             dataKey="value"
             width={44}
-            domain={yTicks ? [yTicks[0], yTicks[yTicks.length - 1]] : ['auto', 'auto']}
+            domain={
+              yTicks ? [yTicks[0], yTicks[yTicks.length - 1]] : ["auto", "auto"]
+            }
             ticks={yTicks}
             allowDecimals={!yTicks}
             tickFormatter={(v: number) => `${Math.round(v)}${tickSuffix}`}
             tickLine={false}
             stroke="var(--color-text-muted)"
-            tick={{ fill: 'var(--color-text-muted)', fontSize: 10 }}
+            tick={{ fill: "var(--color-text-muted)", fontSize: 10 }}
           />
           <Tooltip
             isAnimationActive={false}
             labelFormatter={(t) => fullTick(Number(t))}
-            formatter={(v) => [`${Number(v).toFixed(decimals)} ${unit}`, 'Valeur']}
+            formatter={(v) => [
+              `${Number(v).toFixed(decimals)} ${unit}`,
+              "Valeur",
+            ]}
             contentStyle={{
-              background: 'var(--color-card-fill)',
-              border: '1px solid var(--color-card-border)',
+              background: "var(--color-card-fill)",
+              border: "1px solid var(--color-card-border)",
               borderRadius: 8,
-              color: 'var(--color-text)',
-              backdropFilter: 'blur(8px)',
+              color: "var(--color-text)",
+              backdropFilter: "blur(8px)",
             }}
-            labelStyle={{ color: 'var(--color-text-muted)' }}
+            labelStyle={{ color: "var(--color-text-muted)" }}
           />
           {referenceLines?.map((r) => (
             <ReferenceLine
@@ -138,38 +146,38 @@ export default function SensorHistoryChart({
         </LineChart>
       </ResponsiveContainer>
     </div>
-  )
+  );
 }
 
-const HOUR_FMT = new Intl.DateTimeFormat('fr-FR', {
-  hour: '2-digit',
-  minute: '2-digit',
+const HOUR_FMT = new Intl.DateTimeFormat("fr-FR", {
+  hour: "2-digit",
+  minute: "2-digit",
   hour12: false,
-})
-const FULL_FMT = new Intl.DateTimeFormat('fr-FR', {
-  weekday: 'short',
-  hour: '2-digit',
-  minute: '2-digit',
+});
+const FULL_FMT = new Intl.DateTimeFormat("fr-FR", {
+  weekday: "short",
+  hour: "2-digit",
+  minute: "2-digit",
   hour12: false,
-})
+});
 
 function hourTick(t: number): string {
-  return HOUR_FMT.format(new Date(t))
+  return HOUR_FMT.format(new Date(t));
 }
 function fullTick(t: number): string {
-  return FULL_FMT.format(new Date(t))
+  return FULL_FMT.format(new Date(t));
 }
 
 /** Ticks at every `step` spanning the series' rounded range; undefined if it
  *  would produce too many gridlines (safety for large-range measures). */
 function stepTicks(series: HistoryPoint[], step: number): number[] | undefined {
-  const values = series.map((s) => s.value)
-  const lo = Math.floor(Math.min(...values) / step) * step
-  const hi = Math.ceil(Math.max(...values) / step) * step
-  const ticks: number[] = []
+  const values = series.map((s) => s.value);
+  const lo = Math.floor(Math.min(...values) / step) * step;
+  const hi = Math.ceil(Math.max(...values) / step) * step;
+  const ticks: number[] = [];
   for (let v = lo; v <= hi + step * 1e-6; v += step) {
-    ticks.push(Math.round(v * 100) / 100)
-    if (ticks.length > 24) return undefined
+    ticks.push(Math.round(v * 100) / 100);
+    if (ticks.length > 24) return undefined;
   }
-  return ticks
+  return ticks;
 }

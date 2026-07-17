@@ -16,5 +16,5 @@ export function OfflineIcon() {
       <path d="M5 12.5a10 10 0 0 1 4-2.4M12 5c2.5 0 4.9.9 6.8 2.5" />
       <path d="M8.5 16a5 5 0 0 1 5-1.3" />
     </svg>
-  )
+  );
 }

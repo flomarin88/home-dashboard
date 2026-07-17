@@ -1,4 +1,4 @@
-import { Clock } from './Clock'
+import { Clock } from "./Clock";
 
 /**
  * TopBar — persistent kiosk chrome (heure · Armer/Désarmer · entrée Caméras).
@@ -36,7 +36,7 @@ export function TopBar() {
         </button>
       </div>
     </header>
-  )
+  );
 }
 
 function LockOpenIcon() {
@@ -55,7 +55,7 @@ function LockOpenIcon() {
       <rect x="3" y="11" width="18" height="10" rx="2" />
       <path d="M7 11V7a5 5 0 0 1 9.9-1" />
     </svg>
-  )
+  );
 }
 
 function ChevronRightIcon() {
@@ -73,5 +73,5 @@ function ChevronRightIcon() {
     >
       <path d="m9 6 6 6-6 6" />
     </svg>
-  )
+  );
 }

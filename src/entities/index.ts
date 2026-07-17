@@ -4,5 +4,5 @@
  * anywhere else. This is static config (which entity), NOT entity state — live
  * state is read via `@hakit` hooks in widgets (AD-3).
  */
-export * from './rooms'
-export * from './mapping'
+export * from "./rooms";
+export * from "./mapping";

@@ -7,7 +7,8 @@ Opened from the Epic 1 retrospective (`_bmad-output/implementation-artifacts/epi
 
 ---
 
-## TD-1 — Shell remounts on HA (re)connect  ·  ✅ PAID (Story 2.1)
+## TD-1 — Shell remounts on HA (re)connect · ✅ PAID (Story 2.1)
+
 _Source: Story 1.3 code-review finding #2. Resolved: Story 2.1 (2026-07-15)._
 
 - **What:** `App` passed `<Home/>` as both `HassConnect`'s `loading` fallback **and**
@@ -25,7 +26,8 @@ _Source: Story 1.3 code-review finding #2. Resolved: Story 2.1 (2026-07-15)._
 - **Follow-up (minor):** `TopBar` is now persistent across routes (also shows on the
   `RoomDetail` stub). Fine for the kiosk; revisit when Epic 5 designs RoomDetail.
 
-## TD-2 — Test files are not type-checked  ·  severity: low
+## TD-2 — Test files are not type-checked · severity: low
+
 _Source: Story 1.3 code-review finding #5._
 
 - **What:** `tsconfig.app.json` excludes `*.test.*` from `tsc -b`, and Vitest transpiles
@@ -35,7 +37,8 @@ _Source: Story 1.3 code-review finding #5._
 - **Payback trigger:** when a test type-error slips through, or when test complexity grows.
   Options: `vitest --typecheck`, or a test-scoped tsconfig added to the build graph.
 
-## TD-3 — Foundation unverified on real HA  ·  severity: medium (verification, not code)
+## TD-3 — Foundation unverified on real HA · severity: medium (verification, not code)
+
 _Source: Epic 1 retrospective._
 
 - **What:** Epic 1 stories were accepted with **live/device proof pending** (owner away
@@ -46,7 +49,8 @@ _Source: Epic 1 retrospective._
 - **Payback trigger:** once Tailscale + the deploy secrets are set — run the E2E proof
   (all four rooms live + refresh, offline degradation, warm PWA start, tap→room stub).
 
-## TD-4 — Top-bar HA widgets are hand-placed `fixed` siblings  ·  severity: low
+## TD-4 — Top-bar HA widgets are hand-placed `fixed` siblings · severity: low
+
 _Source: Story 6.2 (2026-07-16). Recurring since 6.1._
 
 - **What:** HA-backed top-bar elements (`BinTile` 6.1, `TopBarWeather` 6.2) can't live in

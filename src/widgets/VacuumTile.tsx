@@ -1,15 +1,15 @@
-import { useNavigate } from 'react-router-dom'
-import { useEntity, useService } from '@hakit/core'
-import type { EntityName } from '@hakit/core'
-import type { EntityEntry } from '../entities'
-import { useOptimisticControl } from '../hakit/useOptimisticControl'
-import { vacuumModel } from '../state/control-model'
-import { OfflinePill } from '../ui/OfflinePill'
+import { useNavigate } from "react-router-dom";
+import { useEntity, useService } from "@hakit/core";
+import type { EntityName } from "@hakit/core";
+import type { EntityEntry } from "../entities";
+import { useOptimisticControl } from "../hakit/useOptimisticControl";
+import { vacuumModel } from "../state/control-model";
+import { OfflinePill } from "../ui/OfflinePill";
 import {
   vacuumStatusLabel,
   parseBattery,
   batteryColorClass,
-} from './vacuum-status'
+} from "./vacuum-status";
 
 /**
  * VacuumTile (FR10, UX-DR17) — the Roborock control cluster: status (icon +
@@ -26,22 +26,22 @@ import {
  * Offline → non-interactive "Hors ligne" (AD-6); a timed-out command → "Échec".
  */
 export function VacuumTile({ entry }: { entry: EntityEntry }) {
-  const id = entry.entityId as EntityName
+  const id = entry.entityId as EntityName;
   // Fall back to the vacuum id so the hooks are always called with a valid name;
   // battery then simply reads as "—" and the start button press is skipped.
-  const batteryId = (entry.batteryEntityId ?? entry.entityId) as EntityName
-  const batterySensor = useEntity(batteryId, { returnNullIfNotFound: true })
-  const buttonSvc = useService('button')
-  const navigate = useNavigate()
+  const batteryId = (entry.batteryEntityId ?? entry.entityId) as EntityName;
+  const batterySensor = useEntity(batteryId, { returnNullIfNotFound: true });
+  const buttonSvc = useService("button");
+  const navigate = useNavigate();
   const { displayState, send, isStale, failed } = useOptimisticControl(
     id,
     vacuumModel,
-  )
+  );
 
-  const battery = parseBattery(batterySensor?.state)
+  const battery = parseBattery(batterySensor?.state);
   // Tapping the info area opens the detail page (Story 5.3); the action buttons
   // are siblings (not nested), so pressing them never navigates.
-  const openDetail = () => navigate('/aspirateur')
+  const openDetail = () => navigate("/aspirateur");
 
   if (isStale) {
     return (
@@ -58,19 +58,19 @@ export function VacuumTile({ entry }: { entry: EntityEntry }) {
           <OfflinePill />
         </button>
       </div>
-    )
+    );
   }
 
-  const state = displayState ?? ''
-  const cleaning = state === 'cleaning'
-  const docked = state === 'docked'
+  const state = displayState ?? "";
+  const cleaning = state === "cleaning";
+  const docked = state === "docked";
 
   const start = () => {
     if (entry.startButtonEntityId) {
-      buttonSvc.press({ target: entry.startButtonEntityId })
+      buttonSvc.press({ target: entry.startButtonEntityId });
     }
-    send('cleaning') // optimistic display + convergence on the vacuum entity
-  }
+    send("cleaning"); // optimistic display + convergence on the vacuum entity
+  };
 
   return (
     <div
@@ -87,13 +87,13 @@ export function VacuumTile({ entry }: { entry: EntityEntry }) {
         <div className="flex items-center justify-between gap-2">
           <span className="flex items-center gap-1.5 text-meta text-text">
             <StatusIcon state={state} />
-            {failed ? 'Échec' : vacuumStatusLabel(displayState)}
+            {failed ? "Échec" : vacuumStatusLabel(displayState)}
           </span>
           <span
             className={`flex items-center gap-1 text-meta tabular-nums ${batteryColorClass(battery)}`}
           >
             <BatteryIcon charging={docked} />
-            {battery ?? '—'} %
+            {battery ?? "—"} %
           </span>
         </div>
       </button>
@@ -101,15 +101,15 @@ export function VacuumTile({ entry }: { entry: EntityEntry }) {
       <div className="flex gap-tile-gap">
         <button
           type="button"
-          onClick={() => (cleaning ? send('idle') : start())}
+          onClick={() => (cleaning ? send("idle") : start())}
           className="inline-flex min-h-[48px] flex-1 items-center justify-center rounded-sm border border-accent-vacuum/50 bg-accent-vacuum/15 px-4 text-label font-semibold text-text"
         >
-          {cleaning ? 'Arrêter' : 'Lancer'}
+          {cleaning ? "Arrêter" : "Lancer"}
         </button>
         {!docked ? (
           <button
             type="button"
-            onClick={() => send('docked')}
+            onClick={() => send("docked")}
             className="inline-flex min-h-[48px] items-center justify-center rounded-sm border border-tile-border bg-tile-fill px-4 text-label font-semibold text-text"
           >
             Retour base
@@ -117,7 +117,7 @@ export function VacuumTile({ entry }: { entry: EntityEntry }) {
         ) : null}
       </div>
     </div>
-  )
+  );
 }
 
 function Header() {
@@ -126,20 +126,20 @@ function Header() {
       <VacuumIcon />
       <span className="text-label font-semibold text-text">Aspirateur</span>
     </div>
-  )
+  );
 }
 
 const svgProps = {
   width: 16,
   height: 16,
-  viewBox: '0 0 24 24',
-  fill: 'none',
-  stroke: 'currentColor',
+  viewBox: "0 0 24 24",
+  fill: "none",
+  stroke: "currentColor",
   strokeWidth: 2,
-  strokeLinecap: 'round' as const,
-  strokeLinejoin: 'round' as const,
-  'aria-hidden': true,
-}
+  strokeLinecap: "round" as const,
+  strokeLinejoin: "round" as const,
+  "aria-hidden": true,
+};
 
 function VacuumIcon() {
   return (
@@ -147,40 +147,40 @@ function VacuumIcon() {
       <circle cx="12" cy="12" r="9" />
       <circle cx="12" cy="12" r="3" />
     </svg>
-  )
+  );
 }
 
 /** Status glyph by state — reinforces the label (state never by colour alone). */
 function StatusIcon({ state }: { state: string }) {
-  if (state === 'cleaning') {
+  if (state === "cleaning") {
     return (
       <svg {...svgProps} className="text-accent-vacuum">
         <path d="M5 3v4M3 5h4M6 17v4M4 19h4M13 3l4 4-9 9-4-4z" />
       </svg>
-    )
+    );
   }
-  if (state === 'returning') {
+  if (state === "returning") {
     return (
       <svg {...svgProps} className="text-accent-vacuum">
         <path d="M9 14 4 9l5-5" />
         <path d="M4 9h11a5 5 0 0 1 0 10h-1" />
       </svg>
-    )
+    );
   }
-  if (state === 'paused') {
+  if (state === "paused") {
     return (
       <svg {...svgProps} className="text-text-muted">
         <line x1="9" y1="5" x2="9" y2="19" />
         <line x1="15" y1="5" x2="15" y2="19" />
       </svg>
-    )
+    );
   }
   // docked / idle / other → charging plug
   return (
     <svg {...svgProps} className="text-security-ok">
       <path d="M13 2 3 14h7l-1 8 10-12h-7z" />
     </svg>
-  )
+  );
 }
 
 /** Battery glyph; colour comes from the parent's batteryColorClass. */
@@ -191,5 +191,5 @@ function BatteryIcon({ charging }: { charging: boolean }) {
       <line x1="20" y1="10" x2="20" y2="14" />
       {charging ? <path d="M11 9l-2 4h3l-2 4" /> : null}
     </svg>
-  )
+  );
 }

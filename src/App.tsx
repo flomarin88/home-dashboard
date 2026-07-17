@@ -1,14 +1,14 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
-import { HakitProvider, isConfigured } from './hakit'
-import { TopBar } from './ui/TopBar'
-import { UndoToast } from './ui/UndoToast'
-import { BinTile } from './widgets/BinTile'
-import { TopBarWeather } from './widgets/TopBarWeather'
-import { Skeleton } from './ui/Skeleton'
-import { Home } from './pages/Home'
-import { RoomDetail } from './pages/RoomDetail'
-import { VacuumDetail } from './pages/VacuumDetail'
-import { WeatherDetail } from './pages/WeatherDetail'
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { HakitProvider, isConfigured } from "./hakit";
+import { TopBar } from "./ui/TopBar";
+import { UndoToast } from "./ui/UndoToast";
+import { BinTile } from "./widgets/BinTile";
+import { TopBarWeather } from "./widgets/TopBarWeather";
+import { Skeleton } from "./ui/Skeleton";
+import { Home } from "./pages/Home";
+import { RoomDetail } from "./pages/RoomDetail";
+import { VacuumDetail } from "./pages/VacuumDetail";
+import { WeatherDetail } from "./pages/WeatherDetail";
 
 function AppRoutes() {
   return (
@@ -18,7 +18,7 @@ function AppRoutes() {
       <Route path="/aspirateur" element={<VacuumDetail />} />
       <Route path="/meteo" element={<WeatherDetail />} />
     </Routes>
-  )
+  );
 }
 
 /**
@@ -41,7 +41,7 @@ function ConnectingZones() {
         ))}
       </div>
     </div>
-  )
+  );
 }
 
 /**
@@ -85,19 +85,19 @@ function KioskShell() {
           is what reaches HA. */}
       <UndoToast />
     </main>
-  )
+  );
 }
 
 // Serve-path aware: matches Vite's base so routes work under a subpath deploy
 // (e.g. /local/home-dashboard/) as well as at root.
-const basename = import.meta.env.BASE_URL.replace(/\/$/, '')
+const basename = import.meta.env.BASE_URL.replace(/\/$/, "");
 
 function App() {
   return (
     <BrowserRouter basename={basename}>
       <KioskShell />
     </BrowserRouter>
-  )
+  );
 }
 
-export default App
+export default App;

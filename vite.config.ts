@@ -1,15 +1,15 @@
-import { defineConfig, loadEnv } from 'vite'
-import react from '@vitejs/plugin-react'
-import tailwindcss from '@tailwindcss/vite'
-import { VitePWA } from 'vite-plugin-pwa'
+import { defineConfig, loadEnv } from "vite";
+import react from "@vitejs/plugin-react";
+import tailwindcss from "@tailwindcss/vite";
+import { VitePWA } from "vite-plugin-pwa";
 
 // Deploy base path. Default '/' keeps dev (localhost) and a root/add-on deploy
 // simple. For the HA `www/` deploy the CI sets DEPLOY_BASE=/local/home-dashboard/
 // (served at http://ha:8123/local/home-dashboard/). Always normalised with a
 // leading + trailing slash.
-const rawBase = process.env.DEPLOY_BASE || '/'
-const base = `/${rawBase.replace(/^\/+|\/+$/g, '')}/`.replace('//', '/')
-const isRoot = base === '/'
+const rawBase = process.env.DEPLOY_BASE || "/";
+const base = `/${rawBase.replace(/^\/+|\/+$/g, "")}/`.replace("//", "/");
+const isRoot = base === "/";
 
 // Static build (AD-9): `vite build` emits a self-contained bundle to dist/,
 // meant to be served same-origin from Home Assistant (add-on / ingress / www).
@@ -22,14 +22,14 @@ export default defineConfig(({ command, mode }) => {
   // readable static build. The token is a dev-server convenience only; the
   // shippable build must rely on the HA session (same-origin). Fail loudly
   // rather than silently baking a secret into dist/.
-  if (command === 'build') {
-    const env = loadEnv(mode, process.cwd(), 'VITE_HA_TOKEN')
+  if (command === "build") {
+    const env = loadEnv(mode, process.cwd(), "VITE_HA_TOKEN");
     if (env.VITE_HA_TOKEN) {
       throw new Error(
-        'AD-8: VITE_HA_TOKEN is set for a production build and would be inlined ' +
-          'into dist/. Unset it and rely on the HA session (same-origin), or ' +
-          'build in an environment without the token.',
-      )
+        "AD-8: VITE_HA_TOKEN is set for a production build and would be inlined " +
+          "into dist/. Unset it and rely on the HA session (same-origin), or " +
+          "build in an environment without the token.",
+      );
     }
   }
 
@@ -42,16 +42,16 @@ export default defineConfig(({ command, mode }) => {
       // static shell for a near-instant warm start. HA entity data is NEVER
       // cached — it stays live over the WebSocket.
       VitePWA({
-        registerType: 'autoUpdate',
-        includeAssets: ['icon.svg', 'favicon.svg'],
+        registerType: "autoUpdate",
+        includeAssets: ["icon.svg", "favicon.svg"],
         workbox: {
           // App-shell allowlist (AD-9): precache ONLY what first paint needs.
           // Lazy chunks (e.g. @hakit's ~60 i18n locale bundles) load on demand.
           globPatterns: [
-            'index.html',
-            'registerSW.js',
-            'assets/index-*.{js,css}',
-            '**/*.{svg,webmanifest,woff,woff2}',
+            "index.html",
+            "registerSW.js",
+            "assets/index-*.{js,css}",
+            "**/*.{svg,webmanifest,woff,woff2}",
           ],
           navigateFallback: `${base}index.html`,
           // Only needed for a root/add-on deploy where the SW scope is '/' and
@@ -63,27 +63,27 @@ export default defineConfig(({ command, mode }) => {
         },
         devOptions: { enabled: false },
         manifest: {
-          name: 'Home Dashboard',
-          short_name: 'Maison',
-          description: 'Tableau de bord domotique — cuisine',
-          lang: 'fr',
-          dir: 'ltr',
+          name: "Home Dashboard",
+          short_name: "Maison",
+          description: "Tableau de bord domotique — cuisine",
+          lang: "fr",
+          dir: "ltr",
           start_url: base,
           scope: base,
-          display: 'fullscreen',
-          orientation: 'landscape',
-          background_color: '#1a1140',
-          theme_color: '#1a1140',
+          display: "fullscreen",
+          orientation: "landscape",
+          background_color: "#1a1140",
+          theme_color: "#1a1140",
           icons: [
             {
-              src: 'icon.svg',
-              sizes: 'any',
-              type: 'image/svg+xml',
-              purpose: 'any maskable',
+              src: "icon.svg",
+              sizes: "any",
+              type: "image/svg+xml",
+              purpose: "any maskable",
             },
           ],
         },
       }),
     ],
-  }
-})
+  };
+});

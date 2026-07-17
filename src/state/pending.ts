@@ -1,4 +1,4 @@
-import { create } from 'zustand'
+import { create } from "zustand";
 
 /**
  * The single "pending" layer for in-flight control intents (AD-11).
@@ -15,24 +15,24 @@ import { create } from 'zustand'
  */
 export interface PendingEntry {
   /** Domain-specific desired state (e.g. 'on' | 'off' for a light). */
-  readonly target: unknown
+  readonly target: unknown;
   /** Epoch ms the intent was sent — also the last-command-wins tiebreaker. */
-  readonly sentAt: number
+  readonly sentAt: number;
   /** Epoch ms after which the intent is considered timed-out (bounded). */
-  readonly expiresAt: number
+  readonly expiresAt: number;
 }
 
 interface PendingState {
-  readonly byId: Readonly<Record<string, PendingEntry>>
+  readonly byId: Readonly<Record<string, PendingEntry>>;
   /** Record (or overwrite — last-command-wins) the in-flight intent for `entityId`. */
   setPending: (
     entityId: string,
     target: unknown,
     timeoutMs: number,
     now?: number,
-  ) => void
+  ) => void;
   /** Resolve/drop the in-flight intent for `entityId`. */
-  clearPending: (entityId: string) => void
+  clearPending: (entityId: string) => void;
 }
 
 export const usePendingStore = create<PendingState>((set) => ({
@@ -46,9 +46,9 @@ export const usePendingStore = create<PendingState>((set) => ({
     })),
   clearPending: (entityId) =>
     set((state) => {
-      if (!(entityId in state.byId)) return state
-      const byId = { ...state.byId }
-      delete byId[entityId]
-      return { byId }
+      if (!(entityId in state.byId)) return state;
+      const byId = { ...state.byId };
+      delete byId[entityId];
+      return { byId };
     }),
-}))
+}));

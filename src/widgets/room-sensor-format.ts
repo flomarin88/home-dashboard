@@ -1,4 +1,4 @@
-import { CO2_WARN_PPM, CO2_ALERT_PPM } from '../config'
+import { CO2_WARN_PPM, CO2_ALERT_PPM } from "../config";
 
 /**
  * Format a raw HA sensor state into a display string.
@@ -10,10 +10,10 @@ export function formatSensorValue(
   state: string | number | null | undefined,
   decimals: number,
 ): string {
-  if (state === null || state === undefined || state === '') return '—'
-  const n = Number(state)
-  if (!Number.isFinite(n)) return '—'
-  return n.toFixed(decimals)
+  if (state === null || state === undefined || state === "") return "—";
+  const n = Number(state);
+  if (!Number.isFinite(n)) return "—";
+  return n.toFixed(decimals);
 }
 
 /**
@@ -23,10 +23,15 @@ export function formatSensorValue(
 export function co2ColorClass(
   state: string | number | null | undefined,
 ): string {
-  const n = Number(state)
-  if (state === null || state === undefined || state === '' || !Number.isFinite(n))
-    return 'text-text'
-  if (n < CO2_WARN_PPM) return 'text-security-ok'
-  if (n < CO2_ALERT_PPM) return 'text-accent-lights'
-  return 'text-security-alert'
+  const n = Number(state);
+  if (
+    state === null ||
+    state === undefined ||
+    state === "" ||
+    !Number.isFinite(n)
+  )
+    return "text-text";
+  if (n < CO2_WARN_PPM) return "text-security-ok";
+  if (n < CO2_ALERT_PPM) return "text-accent-lights";
+  return "text-security-alert";
 }
