@@ -1,24 +1,49 @@
-import { describe, it, expect } from 'vitest'
-import { binView, haDateTime } from './bin-state'
+import { describe, it, expect } from "vitest";
+import { binView } from "./bin-state";
 
-describe('binView', () => {
-  it('maps active windows', () => {
-    expect(binView('jaune')).toEqual({ color: 'jaune', active: true, bin: 'jaune' })
-    expect(binView('noire')).toEqual({ color: 'noire', active: true, bin: 'noire' })
-  })
-  it('maps oubli to red, not active, but keeps the bin', () => {
-    expect(binView('oubli_jaune')).toEqual({ color: 'rouge', active: false, bin: 'jaune' })
-    expect(binView('oubli_noire')).toEqual({ color: 'rouge', active: false, bin: 'noire' })
-  })
-  it('maps aucune / unknown / null to idle', () => {
-    expect(binView('aucune')).toEqual({ color: 'idle', active: false, bin: null })
-    expect(binView('unavailable')).toEqual({ color: 'idle', active: false, bin: null })
-    expect(binView(null)).toEqual({ color: 'idle', active: false, bin: null })
-  })
-})
-
-describe('haDateTime', () => {
-  it('formats a Date as HA input_datetime (YYYY-MM-DD HH:mm:ss)', () => {
-    expect(haDateTime(new Date(2026, 6, 16, 19, 5, 3))).toBe('2026-07-16 19:05:03')
-  })
-})
+describe("binView", () => {
+  it("maps active windows (a_sortir)", () => {
+    expect(binView("jaune_a_sortir")).toEqual({
+      bin: "jaune",
+      color: "jaune",
+      phase: "a_sortir",
+    });
+    expect(binView("noire_a_sortir")).toEqual({
+      bin: "noire",
+      color: "noire",
+      phase: "a_sortir",
+    });
+  });
+  it("maps sortie (done confirmation, keeps the bin colour)", () => {
+    expect(binView("jaune_sortie")).toEqual({
+      bin: "jaune",
+      color: "jaune",
+      phase: "sortie",
+    });
+    expect(binView("noire_sortie")).toEqual({
+      bin: "noire",
+      color: "noire",
+      phase: "sortie",
+    });
+  });
+  it("maps oubli (bin colour kept)", () => {
+    expect(binView("jaune_oubli")).toEqual({
+      bin: "jaune",
+      color: "jaune",
+      phase: "oubli",
+    });
+    expect(binView("noire_oubli")).toEqual({
+      bin: "noire",
+      color: "noire",
+      phase: "oubli",
+    });
+  });
+  it("maps aucune / oubli_ack / unknown / null to hidden (phase null)", () => {
+    const hidden = { bin: null, color: "idle", phase: null };
+    expect(binView("aucune")).toEqual(hidden);
+    expect(binView("jaune_oubli_ack")).toEqual(hidden);
+    expect(binView("noire_oubli_ack")).toEqual(hidden);
+    expect(binView("unavailable")).toEqual(hidden);
+    expect(binView(null)).toEqual(hidden);
+  });
+});

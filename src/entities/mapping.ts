@@ -1,4 +1,4 @@
-import type { RoomId } from './rooms'
+import type { RoomId } from "./rooms";
 
 /**
  * The entity mapping — the single integration contract (AD-7). Each entry ties
@@ -11,37 +11,32 @@ import type { RoomId } from './rooms'
  * read the live state via `@hakit` hooks. Consumers cast `entityId` to
  * `@hakit`'s `EntityName` at the `useEntity` boundary.
  */
-export type Measure = 'temperature' | 'co2' | 'humidity' | 'noise'
+export type Measure = "temperature" | "co2" | "humidity" | "noise";
 
 export type EntityDomain =
-  | 'sensor'
-  | 'light'
-  | 'cover'
-  | 'climate'
-  | 'vacuum'
-  | 'alarm_control_panel'
+  "sensor" | "light" | "cover" | "climate" | "vacuum" | "alarm_control_panel";
 
 export interface EntityEntry {
   /** Real HA entity_id — the integration contract. */
-  readonly entityId: string
-  readonly room: RoomId
-  readonly domain: EntityDomain
+  readonly entityId: string;
+  readonly room: RoomId;
+  readonly domain: EntityDomain;
   /** HA service for control (e.g. 'light.toggle'); null for read-only. */
-  readonly service: string | null
+  readonly service: string | null;
   /** Set for sensor entities. */
-  readonly measure?: Measure
+  readonly measure?: Measure;
   /** True while `entityId` is a placeholder awaiting Florian's real HA id. */
-  readonly placeholder?: boolean
+  readonly placeholder?: boolean;
   /** Vacuum-only: battery is a SEPARATE sensor entity (HA removed `battery_level`
    *  from vacuum entities), read for display. */
-  readonly batteryEntityId?: string
+  readonly batteryEntityId?: string;
   /** Vacuum-only: "Lancer" runs a routine via a `button` entity (e.g. the
    *  "Quotidien" program), not `vacuum.start`. */
-  readonly startButtonEntityId?: string
+  readonly startButtonEntityId?: string;
 }
 
 /** Well-formed HA entity_id: `<domain>.<object_id>`. */
-const ENTITY_ID_RE = /^[a-z_]+\.[a-z0-9_]+$/
+const ENTITY_ID_RE = /^[a-z_]+\.[a-z0-9_]+$/;
 
 /**
  * Netatmo sensors — 4 rooms × { temperature, CO₂, humidity } (Story 1.5).
@@ -54,23 +49,101 @@ const ENTITY_ID_RE = /^[a-z_]+\.[a-z0-9_]+$/
  */
 const SENSORS: readonly EntityEntry[] = [
   // Salon — main indoor station
-  { entityId: 'sensor.interieur_temperature', room: 'salon', domain: 'sensor', service: null, measure: 'temperature' },
-  { entityId: 'sensor.interieur_dioxyde_de_carbone', room: 'salon', domain: 'sensor', service: null, measure: 'co2' },
-  { entityId: 'sensor.interieur_humidite', room: 'salon', domain: 'sensor', service: null, measure: 'humidity' },
-  { entityId: 'sensor.interieur_noise', room: 'salon', domain: 'sensor', service: null, measure: 'noise' },
+  {
+    entityId: "sensor.interieur_temperature",
+    room: "salon",
+    domain: "sensor",
+    service: null,
+    measure: "temperature",
+  },
+  {
+    entityId: "sensor.interieur_dioxyde_de_carbone",
+    room: "salon",
+    domain: "sensor",
+    service: null,
+    measure: "co2",
+  },
+  {
+    entityId: "sensor.interieur_humidite",
+    room: "salon",
+    domain: "sensor",
+    service: null,
+    measure: "humidity",
+  },
+  {
+    entityId: "sensor.interieur_noise",
+    room: "salon",
+    domain: "sensor",
+    service: null,
+    measure: "noise",
+  },
   // Chambre Parents
-  { entityId: 'sensor.interieur_thermometre_parents_temperature', room: 'chambre_parents', domain: 'sensor', service: null, measure: 'temperature' },
-  { entityId: 'sensor.interieur_thermometre_parents_dioxyde_de_carbone', room: 'chambre_parents', domain: 'sensor', service: null, measure: 'co2' },
-  { entityId: 'sensor.interieur_thermometre_parents_humidite', room: 'chambre_parents', domain: 'sensor', service: null, measure: 'humidity' },
+  {
+    entityId: "sensor.interieur_thermometre_parents_temperature",
+    room: "chambre_parents",
+    domain: "sensor",
+    service: null,
+    measure: "temperature",
+  },
+  {
+    entityId: "sensor.interieur_thermometre_parents_dioxyde_de_carbone",
+    room: "chambre_parents",
+    domain: "sensor",
+    service: null,
+    measure: "co2",
+  },
+  {
+    entityId: "sensor.interieur_thermometre_parents_humidite",
+    room: "chambre_parents",
+    domain: "sensor",
+    service: null,
+    measure: "humidity",
+  },
   // Nathan
-  { entityId: 'sensor.interieur_thermometre_nathan_temperature', room: 'nathan', domain: 'sensor', service: null, measure: 'temperature' },
-  { entityId: 'sensor.interieur_thermometre_nathan_dioxyde_de_carbone', room: 'nathan', domain: 'sensor', service: null, measure: 'co2' },
-  { entityId: 'sensor.interieur_thermometre_nathan_humidite', room: 'nathan', domain: 'sensor', service: null, measure: 'humidity' },
+  {
+    entityId: "sensor.interieur_thermometre_nathan_temperature",
+    room: "nathan",
+    domain: "sensor",
+    service: null,
+    measure: "temperature",
+  },
+  {
+    entityId: "sensor.interieur_thermometre_nathan_dioxyde_de_carbone",
+    room: "nathan",
+    domain: "sensor",
+    service: null,
+    measure: "co2",
+  },
+  {
+    entityId: "sensor.interieur_thermometre_nathan_humidite",
+    room: "nathan",
+    domain: "sensor",
+    service: null,
+    measure: "humidity",
+  },
   // Gaspard
-  { entityId: 'sensor.interieur_thermometre_gaspard_temperature', room: 'gaspard', domain: 'sensor', service: null, measure: 'temperature' },
-  { entityId: 'sensor.interieur_thermometre_gaspard_dioxyde_de_carbone', room: 'gaspard', domain: 'sensor', service: null, measure: 'co2' },
-  { entityId: 'sensor.interieur_thermometre_gaspard_humidite', room: 'gaspard', domain: 'sensor', service: null, measure: 'humidity' },
-]
+  {
+    entityId: "sensor.interieur_thermometre_gaspard_temperature",
+    room: "gaspard",
+    domain: "sensor",
+    service: null,
+    measure: "temperature",
+  },
+  {
+    entityId: "sensor.interieur_thermometre_gaspard_dioxyde_de_carbone",
+    room: "gaspard",
+    domain: "sensor",
+    service: null,
+    measure: "co2",
+  },
+  {
+    entityId: "sensor.interieur_thermometre_gaspard_humidite",
+    room: "gaspard",
+    domain: "sensor",
+    service: null,
+    measure: "humidity",
+  },
+];
 
 /**
  * Lights (FR2) — Story 2.1 wires the first tile (vertical slice); Story 2.3
@@ -79,8 +152,14 @@ const SENSORS: readonly EntityEntry[] = [
  * (assertNoPlaceholders flags it until then, on purpose).
  */
 const LIGHTS: readonly EntityEntry[] = [
-  { entityId: 'light.salon', room: 'salon', domain: 'light', service: 'light.toggle', placeholder: true },
-]
+  {
+    entityId: "light.salon",
+    room: "salon",
+    domain: "light",
+    service: "light.toggle",
+    placeholder: true,
+  },
+];
 
 /**
  * Vacuum (FR10) — Roborock, Story 2.7. REAL entity_id (Florian's HA, 2026-07-16).
@@ -89,40 +168,44 @@ const LIGHTS: readonly EntityEntry[] = [
  */
 const VACUUM: readonly EntityEntry[] = [
   {
-    entityId: 'vacuum.roborock_s8',
-    room: 'salon',
-    domain: 'vacuum',
-    service: 'vacuum.start',
+    entityId: "vacuum.roborock_s8",
+    room: "salon",
+    domain: "vacuum",
+    service: "vacuum.start",
     // Battery moved to its own sensor in modern HA; "Lancer" runs the "Quotidien"
     // routine via a button entity. (Confirm both ids against HA if the tile shows
     // "—" / no-op — one-line fix here.)
-    batteryEntityId: 'sensor.roborock_s8_batterie',
-    startButtonEntityId: 'button.salon_roborock_s8_quotidien',
+    batteryEntityId: "sensor.roborock_s8_batterie",
+    startButtonEntityId: "button.salon_roborock_s8_quotidien",
   },
-]
+];
 
 /** All mapped entities. Feature stories append their entities here (AD-7). */
-export const ENTITIES: readonly EntityEntry[] = [...SENSORS, ...LIGHTS, ...VACUUM]
+export const ENTITIES: readonly EntityEntry[] = [
+  ...SENSORS,
+  ...LIGHTS,
+  ...VACUUM,
+];
 
 /** The Netatmo measures for a room (temperature, CO₂, humidity). */
 export function roomSensors(room: RoomId): EntityEntry[] {
-  return ENTITIES.filter((e) => e.room === room && e.domain === 'sensor')
+  return ENTITIES.filter((e) => e.room === room && e.domain === "sensor");
 }
 
 /** All mapped lights (FR2). Feature stories append to LIGHTS above (AD-7). */
 export function lights(): EntityEntry[] {
-  return ENTITIES.filter((e) => e.domain === 'light')
+  return ENTITIES.filter((e) => e.domain === "light");
 }
 
 /** The mapped vacuum entity (FR10), or undefined if none. */
 export function vacuum(): EntityEntry | undefined {
-  return ENTITIES.find((e) => e.domain === 'vacuum')
+  return ENTITIES.find((e) => e.domain === "vacuum");
 }
 
 /** A labelled reference to a secondary HA entity used on the vacuum detail page. */
 export interface LabelledEntity {
-  readonly label: string
-  readonly entityId: string
+  readonly label: string;
+  readonly entityId: string;
 }
 
 /**
@@ -133,48 +216,72 @@ export interface LabelledEntity {
  */
 export interface VacuumDetail {
   /** HA `image` entity — its `entity_picture` (with a live token) is read at runtime. */
-  readonly mapEntityId: string
+  readonly mapEntityId: string;
   /** binary_sensor: charging at the dock. */
-  readonly chargingEntityId: string
+  readonly chargingEntityId: string;
   /** Launchable routines (`button` entities). */
-  readonly programs: readonly LabelledEntity[]
+  readonly programs: readonly LabelledEntity[];
   /** In-progress cleaning fields. */
-  readonly cleaning: readonly LabelledEntity[]
+  readonly cleaning: readonly LabelledEntity[];
   /** Consumable time-left sensors (seconds; ≤0 → "à remplacer"). */
-  readonly consumables: readonly LabelledEntity[]
+  readonly consumables: readonly LabelledEntity[];
   /** Alerts (error sensor + binary_sensors). */
-  readonly alerts: readonly LabelledEntity[]
+  readonly alerts: readonly LabelledEntity[];
 }
 
 const VACUUM_DETAIL: VacuumDetail = {
-  mapEntityId: 'image.salon_roborock_s8_map_0',
-  chargingEntityId: 'binary_sensor.salon_roborock_s8_en_charge',
+  mapEntityId: "image.salon_roborock_s8_map_0",
+  chargingEntityId: "binary_sensor.salon_roborock_s8_en_charge",
   programs: [
-    { label: 'Quotidien', entityId: 'button.salon_roborock_s8_quotidien' },
-    { label: 'Après les repas', entityId: 'button.salon_roborock_s8_apres_les_repas' },
+    { label: "Quotidien", entityId: "button.salon_roborock_s8_quotidien" },
+    {
+      label: "Après les repas",
+      entityId: "button.salon_roborock_s8_apres_les_repas",
+    },
   ],
   cleaning: [
-    { label: 'Surface', entityId: 'sensor.roborock_s8_surface_de_nettoyage' },
-    { label: 'Durée', entityId: 'sensor.roborock_s8_duree_de_nettoyage' },
-    { label: 'Pièce actuelle', entityId: 'sensor.salon_roborock_s8_piece_actuelle' },
+    { label: "Surface", entityId: "sensor.roborock_s8_surface_de_nettoyage" },
+    { label: "Durée", entityId: "sensor.roborock_s8_duree_de_nettoyage" },
+    {
+      label: "Pièce actuelle",
+      entityId: "sensor.salon_roborock_s8_piece_actuelle",
+    },
   ],
   consumables: [
-    { label: 'Brosse principale', entityId: 'sensor.roborock_s8_temps_restant_brosse_principale' },
-    { label: 'Brosse latérale', entityId: 'sensor.roborock_s8_temps_restant_brosse_laterale' },
-    { label: 'Filtre', entityId: 'sensor.roborock_s8_temps_restant_filtre' },
-    { label: 'Capteurs', entityId: 'sensor.roborock_s8_temps_restant_capteurs' },
+    {
+      label: "Brosse principale",
+      entityId: "sensor.roborock_s8_temps_restant_brosse_principale",
+    },
+    {
+      label: "Brosse latérale",
+      entityId: "sensor.roborock_s8_temps_restant_brosse_laterale",
+    },
+    { label: "Filtre", entityId: "sensor.roborock_s8_temps_restant_filtre" },
+    {
+      label: "Capteurs",
+      entityId: "sensor.roborock_s8_temps_restant_capteurs",
+    },
   ],
   alerts: [
-    { label: 'Erreur', entityId: 'sensor.roborock_s8_erreur_aspirateur' },
-    { label: "Pénurie d'eau", entityId: 'binary_sensor.roborock_s8_penurie_d_eau' },
-    { label: "Réservoir d'eau", entityId: 'binary_sensor.roborock_s8_reservoir_d_eau_fixe' },
-    { label: 'Serpillière', entityId: 'binary_sensor.roborock_s8_serpilliere_fixee' },
+    { label: "Erreur", entityId: "sensor.roborock_s8_erreur_aspirateur" },
+    {
+      label: "Pénurie d'eau",
+      entityId: "binary_sensor.roborock_s8_penurie_d_eau",
+    },
+    {
+      label: "Réservoir d'eau",
+      entityId: "binary_sensor.roborock_s8_reservoir_d_eau_fixe",
+    },
+    {
+      label: "Serpillière",
+      entityId: "binary_sensor.roborock_s8_serpilliere_fixee",
+    },
   ],
-}
+};
 
 /** The vacuum detail-page entity references (Story 5.3), or undefined if no vacuum. */
 export function vacuumDetail(): VacuumDetail | undefined {
-  return vacuum() ? VACUUM_DETAIL : undefined
+  return vacuum() ? VACUUM_DETAIL : undefined;
 }
 
 /**
@@ -183,23 +290,32 @@ export function vacuumDetail(): VacuumDetail | undefined {
  * on "sortie" (its HA history is the log). Contract: see docs/home-assistant.md.
  */
 export interface BinsConfig {
-  /** HA template sensor: state ∈ jaune | noire | oubli_jaune | oubli_noire | aucune. */
-  readonly stateEntityId: string
+  /**
+   * HA template sensor. state ∈ aucune | {c}_a_sortir | {c}_sortie | {c}_oubli |
+   * {c}_oubli_ack, with c ∈ {jaune, noire}. Contract: docs/home-assistant.md.
+   */
+  readonly stateEntityId: string;
   /** input_datetime written (`set_datetime`) when a bin is marked out. */
-  readonly sortie: { readonly jaune: string; readonly noire: string }
+  readonly sortie: { readonly jaune: string; readonly noire: string };
+  /** input_datetime written when an *oubli* is acknowledged (dismissed, no sortie). */
+  readonly ack: { readonly jaune: string; readonly noire: string };
 }
 
 const BINS: BinsConfig = {
-  stateEntityId: 'sensor.poubelle_a_sortir',
+  stateEntityId: "sensor.poubelle_a_sortir",
   sortie: {
-    jaune: 'input_datetime.poubelle_jaune_sortie',
-    noire: 'input_datetime.poubelle_noire_sortie',
+    jaune: "input_datetime.poubelle_jaune_sortie",
+    noire: "input_datetime.poubelle_noire_sortie",
   },
-}
+  ack: {
+    jaune: "input_datetime.poubelle_jaune_oubli_ack",
+    noire: "input_datetime.poubelle_noire_oubli_ack",
+  },
+};
 
 /** The bins config (Story 6.1). */
 export function binsConfig(): BinsConfig {
-  return BINS
+  return BINS;
 }
 
 /**
@@ -209,30 +325,30 @@ export function binsConfig(): BinsConfig {
  * the client); their ids are optional seams, "à venir" until set.
  */
 export interface WeatherConfig {
-  readonly tempEntityId: string
-  readonly humidityEntityId: string
-  readonly batteryEntityId: string
-  readonly trendEntityId: string
+  readonly tempEntityId: string;
+  readonly humidityEntityId: string;
+  readonly batteryEntityId: string;
+  readonly trendEntityId: string;
   /** `weather.*` — drives the condition icon (state = condition). */
-  readonly conditionEntityId?: string
+  readonly conditionEntityId?: string;
   /** `weather.*` — daily + hourly forecast (usually same entity as condition). */
-  readonly forecastEntityId?: string
+  readonly forecastEntityId?: string;
 }
 
 const WEATHER: WeatherConfig = {
-  tempEntityId: 'sensor.interieur_exterieur_temperature',
-  humidityEntityId: 'sensor.interieur_exterieur_humidite',
-  batteryEntityId: 'sensor.interieur_exterieur_batterie',
-  trendEntityId: 'sensor.interieur_exterieur_temperature_trend',
+  tempEntityId: "sensor.interieur_exterieur_temperature",
+  humidityEntityId: "sensor.interieur_exterieur_humidite",
+  batteryEntityId: "sensor.interieur_exterieur_batterie",
+  trendEntityId: "sensor.interieur_exterieur_temperature_trend",
   // HA weather integration (Task 0, provided by Florian 2026-07-17): condition +
   // daily/hourly forecast come from one `weather.*` entity.
-  conditionEntityId: 'weather.forecast_home',
-  forecastEntityId: 'weather.forecast_home',
-}
+  conditionEntityId: "weather.forecast_home",
+  forecastEntityId: "weather.forecast_home",
+};
 
 /** The weather config (Story 6.2). */
 export function weatherConfig(): WeatherConfig {
-  return WEATHER
+  return WEATHER;
 }
 
 /** The single sensor entity for a (room, measure), or undefined if unmapped. */
@@ -241,8 +357,8 @@ export function sensor(
   measure: Measure,
 ): EntityEntry | undefined {
   return ENTITIES.find(
-    (e) => e.room === room && e.domain === 'sensor' && e.measure === measure,
-  )
+    (e) => e.room === room && e.domain === "sensor" && e.measure === measure,
+  );
 }
 
 /**
@@ -255,31 +371,31 @@ export function sensor(
 export function assertCanonicalMapping(
   entries: readonly EntityEntry[] = ENTITIES,
 ): void {
-  const seenIds = new Set<string>()
-  const seenSensorConcepts = new Set<string>()
+  const seenIds = new Set<string>();
+  const seenSensorConcepts = new Set<string>();
   for (const e of entries) {
     // Well-formedness: a malformed entity_id (typo, missing dot) otherwise
     // ships silently and only surfaces as an `unavailable` widget later.
     if (!ENTITY_ID_RE.test(e.entityId)) {
       throw new Error(
         `Malformed entity_id "${e.entityId}" — expected "<domain>.<object_id>"`,
-      )
+      );
     }
     if (seenIds.has(e.entityId)) {
       throw new Error(
         `Non-canonical mapping: entity_id "${e.entityId}" is mapped more than once`,
-      )
+      );
     }
-    seenIds.add(e.entityId)
+    seenIds.add(e.entityId);
 
-    if (e.domain === 'sensor' && e.measure) {
-      const concept = `${e.room}/${e.measure}`
+    if (e.domain === "sensor" && e.measure) {
+      const concept = `${e.room}/${e.measure}`;
       if (seenSensorConcepts.has(concept)) {
         throw new Error(
           `Non-canonical mapping: sensor concept "${concept}" is mapped more than once`,
-        )
+        );
       }
-      seenSensorConcepts.add(concept)
+      seenSensorConcepts.add(concept);
     }
   }
 }
@@ -293,17 +409,17 @@ export function assertCanonicalMapping(
 export function assertNoPlaceholders(
   entries: readonly EntityEntry[] = ENTITIES,
 ): void {
-  const remaining = entries.filter((e) => e.placeholder)
+  const remaining = entries.filter((e) => e.placeholder);
   if (remaining.length > 0) {
     throw new Error(
       `${remaining.length} placeholder entity_id(s) not yet replaced with real HA ids: ` +
-        remaining.map((e) => e.entityId).join(', '),
-    )
+        remaining.map((e) => e.entityId).join(", "),
+    );
   }
 }
 
 // Self-enforce the canonical invariant live in dev (not just under `npm test`),
 // so a bad edit surfaces immediately. Stripped from production builds.
 if (import.meta.env.DEV) {
-  assertCanonicalMapping()
+  assertCanonicalMapping();
 }
