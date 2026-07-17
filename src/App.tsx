@@ -77,8 +77,8 @@ function KioskShell() {
               added as children. */}
           <TopBarSlots>
             <TopBarWeather />
-            <BinTile />
             <TurtleTile />
+            <BinTile />
           </TopBarSlots>
         </HakitProvider>
       ) : (
