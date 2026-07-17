@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { HashRouter, Routes, Route } from "react-router-dom";
 import { HakitProvider, isConfigured } from "./hakit";
 import { TopBar } from "./ui/TopBar";
 import { TopBarSlots } from "./ui/TopBarSlots";
@@ -93,15 +93,17 @@ function KioskShell() {
   );
 }
 
-// Serve-path aware: matches Vite's base so routes work under a subpath deploy
-// (e.g. /local/home-dashboard/) as well as at root.
-const basename = import.meta.env.BASE_URL.replace(/\/$/, "");
-
+// HashRouter (not BrowserRouter): under HA's `/local/` static hosting the app is
+// entered at `…/index.html` (the bare directory 403s — HA serves no directory
+// index), and reloads/PWA-relaunch must hit a real 200 file. Hash routing keeps
+// the file path pinned to `index.html` and carries the route in the fragment
+// (`…/index.html#/meteo`), so entry, reload and relaunch always match a route
+// and never 403. No basename needed — the subpath lives before the `#`.
 function App() {
   return (
-    <BrowserRouter basename={basename}>
+    <HashRouter>
       <KioskShell />
-    </BrowserRouter>
+    </HashRouter>
   );
 }
 

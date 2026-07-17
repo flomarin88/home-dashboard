@@ -68,7 +68,11 @@ export default defineConfig(({ command, mode }) => {
           description: "Tableau de bord domotique — cuisine",
           lang: "fr",
           dir: "ltr",
-          start_url: base,
+          // Launch the installed PWA at the real index.html file, not the bare
+          // directory (`base`) — HA's /local/ 403s a directory URL, so a
+          // directory start_url fails the home-screen relaunch before the SW is
+          // active. HashRouter resolves the empty hash to "/" (Home).
+          start_url: `${base}index.html`,
           scope: base,
           display: "fullscreen",
           orientation: "landscape",
