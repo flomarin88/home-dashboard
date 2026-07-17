@@ -45,3 +45,18 @@ _Source: Epic 1 retrospective._
 - **Why deferred:** HA is LAN-only and the owner was off-network.
 - **Payback trigger:** once Tailscale + the deploy secrets are set — run the E2E proof
   (all four rooms live + refresh, offline degradation, warm PWA start, tap→room stub).
+
+## TD-4 — Top-bar HA widgets are hand-placed `fixed` siblings  ·  severity: low
+_Source: Story 6.2 (2026-07-16). Recurring since 6.1._
+
+- **What:** HA-backed top-bar elements (`BinTile` 6.1, `TopBarWeather` 6.2) can't live in
+  `TopBar` (it's above the connection gate, TD-1), so each is a `fixed`-positioned sibling
+  mounted under the provider in `KioskShell`, with hand-tuned coordinates to avoid overlap
+  (weather left `left-44`, bins centered). This is now the **3rd** top-bar element and the
+  placement is coordinate-fragile — a 4th will make collisions likely, and the offsets are
+  guesses until validated on the real iPad.
+- **Why deferred:** two/three elements are manageable; a real composition layer is scope
+  the current stories don't need.
+- **Payback trigger:** a 4th HA top-bar element, or an observed overlap on-device. Then
+  extract a `TopBarSlots` layout (a `fixed` fl/grid region under the provider that lays
+  out its HA children) so elements flow instead of being individually positioned.

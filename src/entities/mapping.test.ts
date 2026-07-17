@@ -31,11 +31,12 @@ describe('rooms', () => {
 })
 
 describe('sensor mapping', () => {
-  it('maps each room to its 3 Netatmo measures (read-only)', () => {
+  it('maps the Salon to its 3 Netatmo measures + the sonomètre (read-only)', () => {
     const salon = roomSensors('salon')
     expect(salon.map((s) => s.measure).sort()).toEqual([
       'co2',
       'humidity',
+      'noise',
       'temperature',
     ])
     expect(salon.every((s) => s.domain === 'sensor' && s.service === null)).toBe(
@@ -43,18 +44,18 @@ describe('sensor mapping', () => {
     )
   })
 
-  it('covers all 4 rooms — 12 sensor entries total', () => {
-    expect(listRooms().flatMap((r) => roomSensors(r.id))).toHaveLength(12)
+  it('covers all 4 rooms — 13 sensor entries (Salon adds noise)', () => {
+    expect(listRooms().flatMap((r) => roomSensors(r.id))).toHaveLength(13)
   })
 
-  it('gives EVERY room exactly its 3 measures', () => {
-    const expected = ['co2', 'humidity', 'temperature']
+  it('gives every room its 3 base measures (Salon also has noise)', () => {
+    const base = ['co2', 'humidity', 'temperature']
     for (const room of listRooms()) {
-      expect(
-        roomSensors(room.id)
-          .map((s) => s.measure)
-          .sort(),
-      ).toEqual(expected)
+      const measures = roomSensors(room.id)
+        .map((s) => s.measure)
+        .sort()
+      const expected = room.id === 'salon' ? ['co2', 'humidity', 'noise', 'temperature'] : base
+      expect(measures).toEqual(expected)
     }
   })
 

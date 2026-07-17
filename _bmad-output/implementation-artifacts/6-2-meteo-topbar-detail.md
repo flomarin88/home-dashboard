@@ -4,7 +4,7 @@ baseline_commit: a94ed8961c60df7ae4882270fd2551fbbc2516b0
 
 # Story 6.2: Météo — widget barre supérieure + page détail
 
-Status: ready-for-dev
+Status: review
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -56,35 +56,35 @@ Coup d'œil météo extérieur. **Tout via HA** (décision Florian) : temp/humid
 
 ## Tasks / Subtasks
 
-- [ ] **Task 0 — (Futur, Florian, HA) : intégration météo pour condition/prévisions/pluie**
-  - [ ] Ajouter une **intégration météo à HA** (recommandé **Météo-France** : `weather.*` = condition + prévisions 7 j ; + capteur **« pluie dans l'heure »** / next-rain). Fournir les `entity_id` réels (`weather.…`, capteur pluie). **Optionnel/différé** : sans ça, l'app construit widget + Actuel + Historique ; condition/7j/pluie = « à venir ». Ne PAS deviner les ids.
+- [x] **Task 0 — (Florian, HA) : intégration météo pour condition/prévisions** — _fait (2026-07-17)_
+  - [x] Intégration météo HA fournie : **`weather.forecast_home`** (état = condition ; prévisions **daily + hourly** via `useWeather`/`weather.get_forecasts`). Mappée dans `WEATHER` (`conditionEntityId` + `forecastEntityId`). L'horaire remplace « pluie dans 1 h ». _(Un capteur nowcast « pluie dans l'heure » dédié reste possible plus tard, mais non requis — l'horaire couvre le besoin.)_
 
-- [ ] **Task 1 — Mapping météo** (AC: 1, 2, 3)
-  - [ ] `src/entities/mapping.ts` : config `WEATHER` (AD-7) : `tempEntityId`/`humidityEntityId`/`batteryEntityId`/`trendEntityId` (ids Netatmo réels) + **seams** `conditionEntityId?` / `forecastEntityId?` (souvent = le même `weather.*`) / `rainEntityId?`. Accesseur `weatherConfig()`.
+- [x] **Task 1 — Mapping météo** (AC: 1, 2, 3)
+  - [x] `src/entities/mapping.ts` : config `WEATHER` (AD-7) : `tempEntityId`/`humidityEntityId`/`batteryEntityId`/`trendEntityId` (ids Netatmo réels) + **seams** `conditionEntityId?` / `forecastEntityId?` (souvent = le même `weather.*`) / `rainEntityId?`. Accesseur `weatherConfig()`.
 
-- [ ] **Task 2 — Helpers purs** (AC: 1, 2) — **TDD**
-  - [ ] `src/widgets/weather-format.ts` : `trendArrow(state): '↑'|'↓'|'→'|''` (`up`/`down`/`stable`/`unknown` — **vérifier les valeurs réelles du capteur Netatmo au dev**) ; `weatherConditionIcon(condition): <glyph>` (map états HA `sunny`/`partlycloudy`/`cloudy`/`rainy`/`pouring`/`snowy`/`fog`/… → icône ; défaut thermo). Réutiliser `parseBattery`/`batteryColorClass` (`vacuum-status`) pour la batterie.
-  - [ ] Tests : chaque état tendance → flèche ; conditions connues → bonne icône ; défaut.
+- [x] **Task 2 — Helpers purs** (AC: 1, 2) — **TDD**
+  - [x] `src/widgets/weather-format.ts` : `trendArrow(state): '↑'|'↓'|'→'|''` (`up`/`down`/`stable`/`unknown`) ; `conditionCategory(condition)` (map états HA `sunny`/`partlycloudy`/`cloudy`/`rainy`/`pouring`/`snowy`/`fog`/… → catégorie d'icône ; défaut `thermo`). Batterie via `parseBattery`/`batteryColorClass` (`vacuum-status`).
+  - [x] Tests : chaque état tendance → flèche ; conditions connues → bonne catégorie ; défaut.
 
-- [ ] **Task 3 — Widget `TopBarWeather`** (AC: 1, 2) — **TDD (composant)**
-  - [ ] `src/widgets/TopBarWeather.tsx` : lit temp/humidité/batterie/tendance (via `useEntityValue`, obsolescence) ; icône (condition si `conditionEntityId` sinon thermo) + `formatSensorValue(temp,1)` °C + `trendArrow` + humidité % + batterie (`batteryColorClass`). **Tappable** → `useNavigate('/meteo')`. **Fixed** dans la barre sup. **près de l'horloge** (haut-gauche), monté **sous le provider** (`KioskShell`, comme `BinTile`). Obsolète → atténué/`—`.
-  - [ ] A11y : `aria-label` (« Météo extérieure 12°C, humidité 78%, en hausse »). Cibles tactiles OK (le widget entier navigue).
-  - [ ] Test (mock `@hakit`) : temp/humidité/tendance rendus + flèche ; clic → navigation `/meteo` (via `MemoryRouter`+`Routes`, patron `RoomSensorCard.test`) ; déconnecté → atténué.
+- [x] **Task 3 — Widget `TopBarWeather`** (AC: 1, 2) — **TDD (composant)**
+  - [x] `src/widgets/TopBarWeather.tsx` : lit temp/humidité/batterie/tendance (via `useEntityValue`, obsolescence) ; icône (thermo ; condition seam) + `formatSensorValue(temp,1)` °C + `trendArrow` + humidité % + batterie (`batteryColorClass`). **Tappable** → `useNavigate('/meteo')`. **Fixed** haut-gauche (`left-44 top-4`) monté **sous le provider** (`KioskShell`, comme `BinTile`). Obsolète → `opacity-60` + dernière valeur connue.
+  - [x] A11y : `aria-label` dynamique (« Météo extérieure 12.3 °C, humidité 78 %, en hausse — ouvrir le détail »). Le widget entier navigue (cible tactile ≥ 48 px).
+  - [x] Test (mock `@hakit`) : temp/humidité/tendance rendus + flèche ; clic → navigation `/meteo` ; déconnecté → atténué + dernière valeur.
 
-- [ ] **Task 4 — Page `WeatherDetail` (`/meteo`)** (AC: 2) — **TDD (composant)**
-  - [ ] `src/pages/WeatherDetail.tsx` : **contenu seul** (ground/TopBar = KioskShell, TD-1), retour « ‹ Accueil » ; layout **paysage 2 colonnes de tuiles** sans scroll (patron `VacuumDetail`, sections retirées → tuiles).
-    - **Actuel** : temp (grande) + humidité + batterie + tendance (+ condition si dispo).
-    - **Historique** : `Sparkline` de la température (24 h) via `useHistory(tempEntityId, { hoursToShow: 24 })` (réutilise 1.5 ; mock `useHistory` dans les tests, comme 1.5).
-    - **Prévisions 7 jours** : si `forecastEntityId`/`conditionEntityId` → lire les prévisions (`@hakit` `useWeather(weatherEntityId)` — **vérifier l'API `useWeather`/`get_forecasts` au dev**) → liste jour/temp min-max/icône ; sinon tuile **« Prévisions — à venir »**.
-    - **Pluie dans 1 h** : si `rainEntityId` → état du capteur nowcast ; sinon **« Pluie — à venir »**.
-  - [ ] `src/App.tsx` : route `/meteo` → `<WeatherDetail/>`.
-  - [ ] Test : sections Actuel + Historique rendues (mock `@hakit`) ; sans `conditionEntityId`/`rainEntityId` → « à venir » ; « ‹ Accueil » navigue.
+- [x] **Task 4 — Page `WeatherDetail` (`/meteo`)** (AC: 2) — **TDD (composant)**
+  - [x] `src/pages/WeatherDetail.tsx` : **contenu seul** (ground/TopBar = KioskShell, TD-1), retour « ‹ Accueil » ; layout **paysage 2 colonnes de tuiles** sans scroll (patron `VacuumDetail`).
+    - **Actuel** : temp (grande) + humidité + batterie + tendance.
+    - **Historique** : `Sparkline` de la température (24 h) via `useHistory(tempEntityId, { hoursToShow: SPARKLINE_HOURS })` (réutilise 1.5 ; `useHistory` mocké en test).
+    - **Prévisions 7 jours** : tuile **« À venir »** (seam) tant que `forecastEntityId`/`conditionEntityId` absents. Câblage `useWeather`/`weather.get_forecasts` reporté à Task 0 (API `@hakit` à vérifier sur une vraie entité `weather.*` — pas de code mort importé).
+    - **Pluie dans 1 h** : tuile **« À venir »** (seam) tant que `rainEntityId` absent.
+  - [x] `src/App.tsx` : route `/meteo` → `<WeatherDetail/>`.
+  - [x] Test : Actuel + Historique rendus (mock `@hakit`) ; sans `conditionEntityId`/`rainEntityId` → 2× « À venir » ; « ‹ Accueil » navigue.
 
-- [ ] **Task 5 — Monter `TopBarWeather` sous le provider** (AC: 1)
-  - [ ] `src/App.tsx` (`KioskShell`) : monter `<TopBarWeather/>` **DANS `HakitProvider`** (à côté de `AppRoutes`/`BinTile`), `fixed` haut-gauche près de l'horloge. **PAS** dans `TopBar` (TD-1). Coordonner avec `BinTile` (bins au centre, météo à gauche) pour ne pas se chevaucher.
+- [x] **Task 5 — Monter `TopBarWeather` sous le provider** (AC: 1)
+  - [x] `src/App.tsx` (`KioskShell`) : `<TopBarWeather/>` **DANS `HakitProvider`** (à côté de `AppRoutes`/`BinTile`), `fixed` haut-gauche. **PAS** dans `TopBar` (TD-1). Météo à gauche, bins au centre → pas de chevauchement. _(3ᵉ élément top-bar HA → voir TD-4.)_
 
-- [ ] **Task 6 — Validation (gates)** (AC: 3)
-  - [ ] `build` (sans token) + `typecheck` + `lint` + `test` **verts** ; 0 `entity_id` en dur hors `entities/` (code non-test) ; **0 `fetch` externe** ; 0 token dans `dist/`.
+- [x] **Task 6 — Validation (gates)** (AC: 3)
+  - [x] `build` (sans token) + `typecheck` + `lint` + `test` **verts** (115 tests) ; 0 `entity_id` en dur hors `entities/` (code non-test) ; **0 `fetch` externe** ; 0 token dans `dist/`.
   - [ ] **⏳ Preuve device (Florian, review)** : widget météo près de l'heure (temp/tendance/humidité/batterie réelles) ; tap → `/meteo` (Actuel + courbe historique) ; après ajout de l'intégration météo → condition + 7 j + pluie 1 h ; capteur coupé → obsolescence ; pas de scroll.
 
 ## Dev Notes
@@ -134,10 +134,64 @@ Coup d'œil météo extérieur. **Tout via HA** (décision Florian) : temp/humid
 
 ### Agent Model Used
 
-_(à remplir par le dev)_
+claude-opus-4-8 (Amelia / dev-story)
 
 ### Debug Log References
 
+- Gate 1 (typecheck) : ✅ `tsc -b` clean.
+- Gate 2 (lint) : ✅ `oxlint src` clean.
+- Gate 3 (test) : ✅ `vitest run` — 25 fichiers, **115 tests** verts.
+- Gate 4 (build) : ✅ build token-free (`VITE_HA_TOKEN=` override — le garde-fou AD-8 bloque
+  correctement quand le token est présent dans `.env`) ; **0 token JWT dans `dist/`**.
+- Guards : **0 `fetch`/axios/XHR** dans le code météo ; **0 `entity_id` en dur** hors
+  `src/entities/` (seules des mentions en commentaires).
+
 ### Completion Notes List
 
+- **Buildable-maintenant livré** : widget `TopBarWeather` (temp + tendance + humidité +
+  batterie, icône thermo) monté sous le provider ; page `/meteo` avec **Actuel** + **Historique
+  température 24 h** (`Sparkline`/`useHistory`, réutilise 1.5).
+- **Seams futurs** (Task 0, non devinés) : icône de condition (`conditionCategory` prêt),
+  **prévisions 7 j** et **pluie 1 h** rendues « À venir » tant que `conditionEntityId`/
+  `forecastEntityId`/`rainEntityId` sont absents du mapping. **Décision** : ne PAS pré-câbler
+  `useWeather` en branche morte — l'API `@hakit` doit être vérifiée sur une vraie entité
+  `weather.*` (sinon un import non résolu casserait typecheck/runtime). Insertion propre au
+  moment de Task 0, sans rework ailleurs.
+- **Réutilisation (zéro duplication)** : `useEntityValue`/`isStale` (1.6), `formatSensorValue`
+  (1.5), `Sparkline`+`useHistory` (1.5), `parseBattery`/`batteryColorClass` (2.7), pattern
+  widget top-bar fixe sous provider (`BinTile`, 6.1), pattern page contenu-seul 2 colonnes
+  (`VacuumDetail`, 5.3).
+- **TD-4 ouvert** : 3ᵉ élément top-bar HA `fixed` placé à la main (coordonnées fragiles) —
+  extraire une zone de composition top-bar dès un 4ᵉ élément ou un chevauchement constaté.
+- **À valider au dev sur device réel** (dépend de la LAN, TD-3) : valeurs exactes de
+  `sensor.…_temperature_trend` (`trendArrow` couvre `up`/`down`/`stable`), placement fixe
+  météo (`left-44`) vs bins (centre) sur l'iPad, absence de scroll sur `/meteo`.
+
 ### File List
+
+**NEW**
+- `src/widgets/weather-format.ts` — `trendArrow`, `trendColorClass`, `conditionCategory`, `conditionLabel`, `forecastDayLabel`, `forecastHourLabel` (purs).
+- `src/widgets/weather-format.test.ts`
+- `src/widgets/WeatherIcon.tsx` — icône de condition (SVG par catégorie ; défaut thermo) + `DropletIcon` (humidité, partagé widget/détail).
+- `src/widgets/SensorHistoryChart.tsx` — graphe historique 24 h **Recharts** générique (mesure-agnostique : `series`/`color`/`unit`/`tickSuffix`/`ariaLabel`). Interactif (tooltip tactile), axe Y + lignes pointillées, sans seuil. Default-export, **lazy-loadé** (chunk partagé `/meteo` + `/room`).
+- `src/widgets/SensorHistoryChart.test.tsx` — branches (données → région graphe ; <2 points → placeholder).
+- `src/widgets/TopBarWeather.tsx` — widget barre sup. (fixed, sous provider).
+- `src/widgets/TopBarWeather.test.tsx`
+- `src/pages/WeatherDetail.tsx` — page `/meteo` (Actuel + Historique + prévisions daily/hourly).
+- `src/pages/WeatherDetail.test.tsx`
+
+**UPDATE**
+- `src/entities/mapping.ts` — `WeatherConfig` + `WEATHER` (ids Netatmo + `weather.forecast_home`) + `weatherConfig()`.
+- `src/App.tsx` — route `/meteo` → `<WeatherDetail/>` ; `<TopBarWeather/>` monté sous le provider.
+- `TECH_DEBT.md` — ajout **TD-4** (widgets top-bar HA `fixed` hand-placed).
+- `package.json` / `package-lock.json` — dépendance **`recharts`** (graphes pages détail ; lazy-loadée ; accueil `Sparkline` reste SVG maison).
+- `_bmad-output/implementation-artifacts/sprint-status.yaml` — `6-2` → `review`.
+
+### Change Log
+
+| Date | Version | Description |
+|------|---------|-------------|
+| 2026-07-16 | 0.1 | Story 6.2 implémentée (buildable-now : widget + `/meteo` Actuel/Historique ; condition/7j/pluie seamés pour Task 0). Gates verts (115 tests). Status → review. |
+| 2026-07-17 | 0.2 | Retour Florian : batterie retirée du widget accueil (garde-la sur `/meteo`) ; icône goutte 💧 ajoutée pour l'humidité (bleu `accent-shutters`). Gates verts (115 tests). |
+| 2026-07-17 | 0.3 | `weather.forecast_home` mappé (Task 0 done, Florian) : icône de condition (widget + Actuel), prévisions **7 j (daily)** + **horaires** via `useWeather` (l'horaire remplace « pluie 1 h »). Tendance colorée (↑ rouge / ↓ bleu). Widget aligné sur la rangée de boutons TopBar (`top-6`/`px-4`). Icône humidité sur `/meteo`. Blocs graphe/prévisions remplissent leur tuile. Prévisions inversées (horaire en haut, jour en bas). Gates verts. |
+| 2026-07-17 | 0.4 | Graphe historique migré vers **Recharts** (interactif, décision Florian) — lazy-loadé sur `/meteo` (chunk séparé ~101 KB gz, hors bundle accueil) ; SVG maison `temp-chart`/`TempHistoryChart` supprimé. `Sparkline` accueil inchangé. Gates verts (122 tests). |

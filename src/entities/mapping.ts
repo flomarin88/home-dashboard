@@ -11,7 +11,7 @@ import type { RoomId } from './rooms'
  * read the live state via `@hakit` hooks. Consumers cast `entityId` to
  * `@hakit`'s `EntityName` at the `useEntity` boundary.
  */
-export type Measure = 'temperature' | 'co2' | 'humidity'
+export type Measure = 'temperature' | 'co2' | 'humidity' | 'noise'
 
 export type EntityDomain =
   | 'sensor'
@@ -57,6 +57,7 @@ const SENSORS: readonly EntityEntry[] = [
   { entityId: 'sensor.interieur_temperature', room: 'salon', domain: 'sensor', service: null, measure: 'temperature' },
   { entityId: 'sensor.interieur_dioxyde_de_carbone', room: 'salon', domain: 'sensor', service: null, measure: 'co2' },
   { entityId: 'sensor.interieur_humidite', room: 'salon', domain: 'sensor', service: null, measure: 'humidity' },
+  { entityId: 'sensor.interieur_noise', room: 'salon', domain: 'sensor', service: null, measure: 'noise' },
   // Chambre Parents
   { entityId: 'sensor.interieur_thermometre_parents_temperature', room: 'chambre_parents', domain: 'sensor', service: null, measure: 'temperature' },
   { entityId: 'sensor.interieur_thermometre_parents_dioxyde_de_carbone', room: 'chambre_parents', domain: 'sensor', service: null, measure: 'co2' },
@@ -199,6 +200,39 @@ const BINS: BinsConfig = {
 /** The bins config (Story 6.1). */
 export function binsConfig(): BinsConfig {
   return BINS
+}
+
+/**
+ * Weather (Story 6.2) — outdoor Netatmo sensors (temp/humidity/battery/trend,
+ * real ids) reflected via @hakit. Condition icon / 7-day forecast / rain-in-1h
+ * come from a HA weather integration to be added (AD-1/AD-2 — no external API in
+ * the client); their ids are optional seams, "à venir" until set.
+ */
+export interface WeatherConfig {
+  readonly tempEntityId: string
+  readonly humidityEntityId: string
+  readonly batteryEntityId: string
+  readonly trendEntityId: string
+  /** `weather.*` — drives the condition icon (state = condition). */
+  readonly conditionEntityId?: string
+  /** `weather.*` — daily + hourly forecast (usually same entity as condition). */
+  readonly forecastEntityId?: string
+}
+
+const WEATHER: WeatherConfig = {
+  tempEntityId: 'sensor.interieur_exterieur_temperature',
+  humidityEntityId: 'sensor.interieur_exterieur_humidite',
+  batteryEntityId: 'sensor.interieur_exterieur_batterie',
+  trendEntityId: 'sensor.interieur_exterieur_temperature_trend',
+  // HA weather integration (Task 0, provided by Florian 2026-07-17): condition +
+  // daily/hourly forecast come from one `weather.*` entity.
+  conditionEntityId: 'weather.forecast_home',
+  forecastEntityId: 'weather.forecast_home',
+}
+
+/** The weather config (Story 6.2). */
+export function weatherConfig(): WeatherConfig {
+  return WEATHER
 }
 
 /** The single sensor entity for a (room, measure), or undefined if unmapped. */

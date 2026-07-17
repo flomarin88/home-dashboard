@@ -3,10 +3,12 @@ import { HakitProvider, isConfigured } from './hakit'
 import { TopBar } from './ui/TopBar'
 import { UndoToast } from './ui/UndoToast'
 import { BinTile } from './widgets/BinTile'
+import { TopBarWeather } from './widgets/TopBarWeather'
 import { Skeleton } from './ui/Skeleton'
 import { Home } from './pages/Home'
 import { RoomDetail } from './pages/RoomDetail'
 import { VacuumDetail } from './pages/VacuumDetail'
+import { WeatherDetail } from './pages/WeatherDetail'
 
 function AppRoutes() {
   return (
@@ -14,6 +16,7 @@ function AppRoutes() {
       <Route path="/" element={<Home />} />
       <Route path="/room/:roomId" element={<RoomDetail />} />
       <Route path="/aspirateur" element={<VacuumDetail />} />
+      <Route path="/meteo" element={<WeatherDetail />} />
     </Routes>
   )
 }
@@ -65,9 +68,12 @@ function KioskShell() {
       {isConfigured ? (
         <HakitProvider loading={<ConnectingZones />}>
           <AppRoutes />
-          {/* Bin reminder (Story 6.1) — needs HA, so it lives UNDER the provider,
-              fixed-positioned into the top-bar area (TopBar itself is above the
-              gate, TD-1). Shows only when a bin is due. */}
+          {/* HA-backed top-bar widgets — they need HA, so (unlike TopBar/Clock,
+              which stay above the connection gate, TD-1) they live UNDER the
+              provider, fixed-positioned into the top-bar area. Weather sits near
+              the clock (left); the bin reminder is centered — placed so they
+              don't overlap. */}
+          <TopBarWeather />
           <BinTile />
         </HakitProvider>
       ) : (
