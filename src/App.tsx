@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { HakitProvider, isConfigured } from "./hakit";
 import { TopBar } from "./ui/TopBar";
+import { TopBarSlots } from "./ui/TopBarSlots";
 import { UndoToast } from "./ui/UndoToast";
 import { BinTile } from "./widgets/BinTile";
 import { TopBarWeather } from "./widgets/TopBarWeather";
@@ -70,11 +71,13 @@ function KioskShell() {
           <AppRoutes />
           {/* HA-backed top-bar widgets — they need HA, so (unlike TopBar/Clock,
               which stay above the connection gate, TD-1) they live UNDER the
-              provider, fixed-positioned into the top-bar area. Weather sits near
-              the clock (left); the bin reminder is centered — placed so they
-              don't overlap. */}
-          <TopBarWeather />
-          <BinTile />
+              provider. TopBarSlots (TD-4) is the composition layer that flows
+              them instead of each tile hand-placing itself; new tiles just get
+              added as children. */}
+          <TopBarSlots>
+            <TopBarWeather />
+            <BinTile />
+          </TopBarSlots>
         </HakitProvider>
       ) : (
         <AppRoutes />

@@ -95,7 +95,7 @@ development_status:
   6-1-sortie-poubelles: done  # app impl reviewed (9f14001) & shipped 2026-07-17; HA Task 0 + device-proof remain (Florian)
   6-2-meteo-topbar-detail: done
   6-3-nourrir-les-tortues: ready-for-dev  # created 2026-07-17 (correct-course); depends on 6-4 (do 6-4 first)
-  6-4-composition-barre-superieure: ready-for-dev  # created 2026-07-17 (TD-4 payback); PREREQUISITE for 6-3
+  6-4-composition-barre-superieure: review  # TD-4 payback; impl done (dev-story) 2026-07-17, device-proof pending (Florian)
   epic-6-retrospective: optional
 
 # Retrospective action items (see epic-1-retro-2026-07-15.md)

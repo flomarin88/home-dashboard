@@ -4,7 +4,7 @@ baseline_commit: d57fd519ff94ab81aaad815a442e21a98f94414a
 
 # Story 6.4: Composition barre supérieure — `TopBarSlots` (TD-4)
 
-Status: ready-for-dev
+Status: review
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -45,22 +45,22 @@ so that ajouter une tuile (tortue 6.3, et au-delà) **ne provoque plus de chevau
 
 ## Tasks / Subtasks
 
-- [ ] **Task 1 — Composant `TopBarSlots`** (AC: 1, 3)
-  - [ ] `src/ui/TopBarSlots.tsx` : région **`fixed`** dans la bande top-bar (`top-6`), **`flex`** en ligne avec `gap`, positionnée dans l'espace disponible **sans recouvrir** `Clock` (gauche) ni `Alarme`/`Caméras` (droite). Rend `children`. **Pas de hook HA** (couche layout pure) — mais héberge des enfants HA, donc montée **sous le provider**.
-  - [ ] Choisir un ancrage robuste (ex. cluster centré `left-1/2 -translate-x-1/2` + `flex gap-3`, ou bande dédiée) — voir Décisions ouvertes ; le valider sur iPad (Task 4).
+- [x] **Task 1 — Composant `TopBarSlots`** (AC: 1, 3)
+  - [x] `src/ui/TopBarSlots.tsx` : région **`fixed`** dans la bande top-bar (`top-6`), **`flex`** en ligne avec `gap`, positionnée dans l'espace disponible **sans recouvrir** `Clock` (gauche) ni `Alarme`/`Caméras` (droite). Rend `children`. **Pas de hook HA** (couche layout pure) — mais héberge des enfants HA, donc montée **sous le provider**.
+  - [x] Ancrage retenu : **cluster centré** `fixed left-1/2 top-6 z-40 flex -translate-x-1/2 items-center gap-3` — à valider sur iPad (Task 4, preuve device).
 
-- [ ] **Task 2 — Déplacer les tuiles dans la couche** (AC: 1, 2)
-  - [ ] `src/widgets/BinTile.tsx` : **retirer** l'auto-positionnement `fixed left-1/2 top-6 -translate-x-1/2 z-40` du `className` du `<button>` ; **conserver tout le reste** (min-h, rounded-lg, bordure oubli, disabled sortie, ✓, backdrop, logique). La tuile devient un **enfant flex**.
-  - [ ] `src/widgets/TopBarWeather.tsx` : idem — retirer `fixed left-44 top-6 z-40` ; conserver le reste (opacity obsolescence, contenu, tap→`/meteo`).
-  - [ ] `src/App.tsx` : remplacer les deux frères nus par `<TopBarSlots><TopBarWeather/><BinTile/></TopBarSlots>` (sous le provider). Mettre à jour le commentaire top-bar (TD-1/TD-4).
+- [x] **Task 2 — Déplacer les tuiles dans la couche** (AC: 1, 2)
+  - [x] `src/widgets/BinTile.tsx` : **retiré** `fixed left-1/2 top-6 z-40 -translate-x-1/2` du `className` du `<button>` ; **tout le reste conservé** (min-h, rounded-lg, bordure oubli, disabled sortie, ✓, backdrop, logique). Tuile = **enfant flex**.
+  - [x] `src/widgets/TopBarWeather.tsx` : retiré `fixed left-44 top-6 z-40` ; reste conservé (opacity obsolescence, contenu, tap→`/meteo`).
+  - [x] `src/App.tsx` : les deux frères nus remplacés par `<TopBarSlots><TopBarWeather/><BinTile/></TopBarSlots>` (sous le provider) ; commentaire top-bar mis à jour (TD-1/TD-4).
 
-- [ ] **Task 3 — Préserver le comportement + tests** (AC: 2, 3)
-  - [ ] Vérifier `BinTile.test.tsx`, `TopBarWeather.test.tsx`, `App.test.tsx` **toujours verts** (ils testent le comportement, pas la position — devraient passer tels quels ; ajuster **seulement** si une assertion portait sur une classe de position retirée).
-  - [ ] Ajouter `src/ui/TopBarSlots.test.tsx` : rend ses enfants ; applique le layout (flex/gap) ; un enfant `null` (poubelle absente) ne casse rien.
+- [x] **Task 3 — Préserver le comportement + tests** (AC: 2, 3)
+  - [x] `BinTile.test.tsx`, `TopBarWeather.test.tsx`, `App.test.tsx` **restés verts sans modification** (aucune assertion ne portait sur une classe de position).
+  - [x] Ajouté `src/ui/TopBarSlots.test.tsx` : rend ses enfants (fixed/flex) ; un enfant `null` (poubelle absente) ne casse rien / ne laisse pas de trou.
 
-- [ ] **Task 4 — Validation (gates) + preuve device** (AC: 3)
-  - [ ] `build`+`typecheck`+`lint`+`test` verts ; pre-commit passe ; 0 token.
-  - [ ] **⏳ Preuve device (Florian)** : sur iPad 1024×768 — météo + poubelle bien placées dans la bande top-bar, **sans chevauchement** avec l'heure (gauche) ni Alarme/Caméras (droite) ; pas de scroll ; poubelle qui apparaît/disparaît sans décaler la météo.
+- [x] **Task 4 — Validation (gates) + preuve device** (AC: 3)
+  - [x] `typecheck` + `oxlint` + suite complète **verts** (138 tests, 28 fichiers, +2 ; 0 régression) ; `build` **sans token** OK (PWA générée, AD-8 respecté) ; 0 token dans `dist/`.
+  - [ ] **⏳ Preuve device (Florian)** : sur iPad 1024×768 — météo + poubelle bien placées dans la bande top-bar, **sans chevauchement** avec l'heure (gauche) ni Alarme/Caméras (droite) ; pas de scroll ; poubelle qui apparaît/disparaît sans décaler la météo. _(Valide les offsets du cluster centré.)_
 
 ## Dev Notes
 
@@ -101,16 +101,36 @@ so that ajouter une tuile (tortue 6.3, et au-delà) **ne provoque plus de chevau
 
 ### Agent Model Used
 
-(à remplir au dev)
+claude-opus-4-8 (Liza Pairing, Autonomous — bmad dev-story).
 
 ### Debug Log References
 
+- **Refactor à comportement constant** : les tuiles gardent tout leur `className` sauf l'auto-positionnement (`fixed left-… top-6 z-40 [-translate-x-1/2]`), déplacé dans `TopBarSlots`. Aucune logique touchée.
+- **Filet de régression** : `BinTile.test`/`TopBarWeather.test`/`App.test` **verts sans retouche** (ils testent comportement/obsolescence, pas la position). +2 tests `TopBarSlots` (rendu des enfants, enfant `null` sans trou).
+- **Build/AD-8** : `npm run build` échoue **si** `VITE_HA_TOKEN` est présent (garde T0.5/AD-8, pré-existant). Vérifié **sans token** en mettant `.env.local` de côté puis restauré (op exploratoire bornée, sans lecture du fichier) → build OK, PWA générée. Ne PAS contourner le garde.
+
 ### Completion Notes List
 
+- **AC1–AC3 satisfaits (côté app).** `TopBarSlots` (couche `fixed` sous le provider, contrainte TD-1) dispose `TopBarWeather` + `BinTile` en `flex` centré ; plus aucune coordonnée par-tuile. Comportement 6.1/6.2 inchangé (tests verts). Enfant conditionnel (`BinTile`→`null`) sans trou (flex). Extensible : la tortue (6.3) s'ajoutera comme 3ᵉ enfant.
+- **TD-4 remboursé** — marqué ✅ PAID (Story 6.4) dans `TECH_DEBT.md`.
+- **Gates** : typecheck + oxlint + 138 tests verts ; build sans token OK ; pre-commit passe.
+- **Reste (non-agent)** : **preuve device** (Florian) — valider le cluster centré à 1024×768 (offsets vs heure/contrôles de droite). Seul point pouvant demander un ajustement d'ancrage.
+
 ### File List
+
+**Créés :**
+- `src/ui/TopBarSlots.tsx`, `src/ui/TopBarSlots.test.tsx`
+
+**Modifiés :**
+- `src/widgets/BinTile.tsx` (retrait auto-position)
+- `src/widgets/TopBarWeather.tsx` (retrait auto-position)
+- `src/App.tsx` (enveloppe `<TopBarSlots>` + import + commentaire)
+- `TECH_DEBT.md` (TD-4 → PAID)
+- `_bmad-output/implementation-artifacts/sprint-status.yaml` (6-4 → in-progress → review)
 
 ## Change Log
 
 | Date | Version | Description |
 | --- | --- | --- |
+| 2026-07-17 | 0.2 | **Implémentée (dev-story).** `TopBarSlots` créé (région `fixed` sous le provider, `flex` centré `gap-3`) ; `TopBarWeather` + `BinTile` déplacés dedans (auto-position retirée, comportement inchangé) ; `App.tsx` enveloppe les deux. `TECH_DEBT.md` : TD-4 → ✅ PAID. +2 tests (`TopBarSlots`), 138 verts, 0 régression, build sans token OK. Reste : preuve device (Florian). → review. |
 | 2026-07-17 | 0.1 | Story 6.4 créée (correct-course, remboursement TD-4) — **couche de composition `TopBarSlots`** : région `fixed` sous le provider (contrainte TD-1) disposant `TopBarWeather` + `BinTile` en `flex` au lieu de coordonnées `fixed` à la main. Refactor **à comportement constant** (aucune régression 6.1/6.2), **préalable à 6.3** (la tortue = 4ᵉ élément = trigger TD-4). Enfants conditionnels sans trou (flex). Discipline : intent unique, commit séparé, pas de correction de bug inline. → ready-for-dev. |

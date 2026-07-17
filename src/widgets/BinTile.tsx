@@ -74,7 +74,7 @@ export function BinTile() {
       onClick={onTap}
       disabled={isSortie}
       aria-label={label}
-      className={`fixed left-1/2 top-6 z-40 inline-flex min-h-[48px] -translate-x-1/2 items-center justify-center gap-2 rounded-lg bg-card-fill px-4 backdrop-blur-glass ${
+      className={`inline-flex min-h-[48px] items-center justify-center gap-2 rounded-lg bg-card-fill px-4 backdrop-blur-glass ${
         isOubli ? "border-2 border-security-alert" : "border border-card-border"
       } ${isSortie ? "opacity-60" : ""}`}
     >

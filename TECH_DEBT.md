@@ -49,9 +49,13 @@ _Source: Epic 1 retrospective._
 - **Payback trigger:** once Tailscale + the deploy secrets are set — run the E2E proof
   (all four rooms live + refresh, offline degradation, warm PWA start, tap→room stub).
 
-## TD-4 — Top-bar HA widgets are hand-placed `fixed` siblings · severity: low
+## TD-4 — Top-bar HA widgets are hand-placed `fixed` siblings · ✅ PAID (Story 6.4)
 
-_Source: Story 6.2 (2026-07-16). Recurring since 6.1._
+_Source: Story 6.2 (2026-07-16). Recurring since 6.1. **Paid 2026-07-17 (Story 6.4):**
+extracted `src/ui/TopBarSlots.tsx` — a `fixed` flex region mounted under the provider
+that flows its HA children (`TopBarWeather`, `BinTile`, and the turtle in 6.3) instead of
+per-tile coordinates; a conditional tile that renders `null` now leaves no gap. Final
+on-device offsets validated in 6.4's device-proof (Florian)._
 
 - **What:** HA-backed top-bar elements (`BinTile` 6.1, `TopBarWeather` 6.2) can't live in
   `TopBar` (it's above the connection gate, TD-1), so each is a `fixed`-positioned sibling

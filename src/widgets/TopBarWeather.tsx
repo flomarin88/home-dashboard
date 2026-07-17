@@ -56,7 +56,7 @@ export function TopBarWeather() {
       aria-label={`Météo extérieure${condLabel && condLabel !== "—" ? ` ${condLabel}` : ""} ${tempLabel}, humidité ${humLabel}${
         trendWord ? `, ${trendWord}` : ""
       } — ouvrir le détail`}
-      className={`fixed left-44 top-6 z-40 inline-flex min-h-[48px] items-center gap-2 rounded-lg border border-card-border bg-card-fill px-4 backdrop-blur-glass ${
+      className={`inline-flex min-h-[48px] items-center gap-2 rounded-lg border border-card-border bg-card-fill px-4 backdrop-blur-glass ${
         anyStale ? "opacity-60" : ""
       }`}
     >
