@@ -10,8 +10,8 @@
 - **Undo closure may capture stale HA refs** — `UndoToast` mounts above the connection gate; the `undo` closure is built by a caller *under* `HakitProvider` and (in 2.3) will capture a means to command HA. If that caller unmounts (navigation) or HA reconnects while a toast is live, running the closure could hit stale entity/service references. 2.2 ships no real caller so it's untested. Deferred to **Story 2.3** (first real trigger): resolve the entity/service at run-time via `useHass().callService(domain, service, { target: { entity_id } })` with a string `entity_id` — do NOT capture a live `useEntity(...)` object in the closure. The `reapply` path via `usePendingStore.getState()` (module scope) is already safe.
 
 Ajouter en haut à droite tuile -> étage (0 ou 1 dans une pill avec couleur différente)
-Chambre Parents -> Parents
-Inverser les tuiles Gaspard et Nathan
+~~Chambre Parents -> Parents~~ ✅ fait 2026-07-17
+~~Inverser les tuiles Gaspard et Nathan~~ ✅ fait 2026-07-17
 
 ## Deferred from: code review of 6-2-meteo-topbar-detail (2026-07-17)
 

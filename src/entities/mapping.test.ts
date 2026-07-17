@@ -17,8 +17,8 @@ describe("rooms", () => {
     expect(listRooms().map((r) => r.id)).toEqual([
       "salon",
       "chambre_parents",
-      "nathan",
       "gaspard",
+      "nathan",
     ]);
   });
 

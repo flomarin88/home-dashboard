@@ -14,9 +14,9 @@ export interface Room {
 
 export const ROOMS: readonly Room[] = [
   { id: "salon", label: "Salon", kid: false },
-  { id: "chambre_parents", label: "Chambre Parents", kid: false },
-  { id: "nathan", label: "Nathan", kid: true },
+  { id: "chambre_parents", label: "Parents", kid: false },
   { id: "gaspard", label: "Gaspard", kid: true },
+  { id: "nathan", label: "Nathan", kid: true },
 ];
 
 export function listRooms(): readonly Room[] {
