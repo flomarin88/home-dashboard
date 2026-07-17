@@ -319,6 +319,25 @@ export function binsConfig(): BinsConfig {
 }
 
 /**
+ * Turtles (Story 6.3) — a family-coordination ritual (Epic 6). The app REFLECTS a
+ * HA `counter` (0..2 feedings today) and INCREMENTS it via a service on tap; the
+ * daily midnight reset is an HA automation (AD-4). Contract: docs/home-assistant.md.
+ */
+export interface TurtlesConfig {
+  /** HA `counter` helper (min 0, max 2). state ∈ "0" | "1" | "2". */
+  readonly counterEntityId: string;
+}
+
+const TURTLES: TurtlesConfig = {
+  counterEntityId: "counter.tortues_repas",
+};
+
+/** The turtles config (Story 6.3). */
+export function turtlesConfig(): TurtlesConfig {
+  return TURTLES;
+}
+
+/**
  * Weather (Story 6.2) — outdoor Netatmo sensors (temp/humidity/battery/trend,
  * real ids) reflected via @hakit. Condition icon / 7-day forecast / rain-in-1h
  * come from a HA weather integration to be added (AD-1/AD-2 — no external API in

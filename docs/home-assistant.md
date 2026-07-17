@@ -146,3 +146,71 @@ jaune_oubli_ack` (masquage d'un oubli).
   sortie) ; l'ack auto-expire au cycle suivant. Une **sortie tardive** reste possible tant
   qu'on est en `_oubli` (avant acquittement) — pour la rétablir, câbler le tap `_oubli` sur
   `_sortie` plutôt que `_oubli_ack` côté app.
+
+---
+
+## Tortues — nourrissage 2×/jour (Story 6.3)
+
+La tuile tortue **reflète** un compteur HA (0..2 repas donnés aujourd'hui) et
+**incrémente** ce compteur au tap. Le _schéma « 2×/jour » et la remise à zéro
+quotidienne_ vivent **dans HA** (AD-4). L'app n'a **aucune persistance propre**.
+
+### 1. Un helper `counter`
+
+**Paramètres → Appareils et services → Helpers → Créer un helper → Compteur** :
+
+- **Tortues repas** → `counter.tortues_repas` — **minimum 0**, **maximum 2**, **pas 1**,
+  valeur initiale **0**.
+
+Équivalent YAML :
+
+```yaml
+counter:
+  tortues_repas:
+    name: Tortues repas
+    minimum: 0
+    maximum: 2
+    step: 1
+    initial: 0
+```
+
+Le `maximum: 2` fait qu'un `counter.increment` au-delà de 2 est un **no-op** (HA clampe) —
+garde-fou même si le bouton désactivé de l'app échouait.
+
+### 2. Une automation « Reset tortues minuit »
+
+Remet le compteur à 0 chaque nuit (le « schéma horaire » côté HA, AD-4) :
+
+```yaml
+automation:
+  - alias: Reset tortues minuit
+    trigger:
+      - platform: time
+        at: "00:00:00"
+    action:
+      - service: counter.reset
+        target:
+          entity_id: counter.tortues_repas
+```
+
+### Contrat d'interface (⚠️ le code du dashboard en dépend)
+
+`counter.tortues_repas` — `state` ∈ :
+
+| state           | tuile (`src/widgets/TurtleTile.tsx`)                     |
+| --------------- | -------------------------------------------------------- |
+| `"0"`           | fond vide ; tap → `counter.increment`                    |
+| `"1"`           | fond à moitié ; tap → `counter.increment`                |
+| `"2"`           | fond plein, **désactivée** (repas faits, jusqu'au reset) |
+| `unavailable`/… | obsolescence (atténuée, non interactive — AD-6)          |
+
+Le tap n'appelle **que** `counter.increment` (service HA, AD-4) ; **HA recalcule** l'état,
+le front ne fait que refléter. Si tu changes l'`entity_id`, mets à jour le mapping
+(`src/entities/mapping.ts`, `turtlesConfig()`).
+
+### 3. Appliquer & tester
+
+- **Recharger** : Outils de dév → YAML → **Recharger Compteur** et **Recharger Automation**
+  (ou redémarrer HA) ; helpers créés via l'UI : pas de rechargement.
+- **Tester** : Outils de dév → Actions → `counter.increment` sur `counter.tortues_repas` →
+  l'état passe `0 → 1 → 2` (la tuile se remplit) ; `counter.reset` → retour à `0`.

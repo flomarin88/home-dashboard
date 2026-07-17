@@ -1,0 +1,87 @@
+import { useService } from "@hakit/core";
+import type { EntityName } from "@hakit/core";
+import { turtlesConfig } from "../entities";
+import { useEntityValue } from "../hakit/useEntityValue";
+import { turtleView, type TurtleFill } from "./turtle-state";
+
+/**
+ * TurtleTile (Story 6.3) — the turtle-feeding reminder, a permanent tile in the
+ * TOP BAR (a `TopBarSlots` child, 6.4). Reflects `counter.tortues_repas` (0..2
+ * feedings today); the schedule/reset live in HA (AD-4: a midnight automation).
+ *
+ * HA is the single source of truth (like BinTile after 6.1's rework): the tile
+ * only mirrors the counter, and a tap calls `counter.increment` — HA re-evaluates
+ * and echoes the new count. No local optimistic state. The tile fills from the
+ * bottom (empty → half → full); at 2/2 it stays visible but disabled until the
+ * midnight reset. Offline → dimmed + inert (AD-6), never hidden (unlike BinTile).
+ */
+const FILL_HEIGHT: Record<TurtleFill, string> = {
+  empty: "h-0",
+  half: "h-1/2",
+  full: "h-full",
+};
+
+export function TurtleTile() {
+  const cfg = turtlesConfig();
+  const { value, isStale } = useEntityValue(cfg.counterEntityId as EntityName);
+  const svc = useService("counter");
+
+  const view = turtleView(value);
+  const interactive = !isStale && !view.done;
+
+  // Tap → increment the HA counter (no serviceData). HA echoes the new count;
+  // no local optimistic state. Surface a failed call (lesson from 6.1).
+  const feed = () => {
+    if (!interactive) return;
+    void Promise.resolve(svc.increment({ target: cfg.counterEntityId })).catch(
+      (err) => console.warn("turtle: counter.increment failed", err),
+    );
+  };
+
+  const label = `Tortues : ${view.count} repas sur 2${interactive ? " — nourrir" : ""}`;
+
+  return (
+    <button
+      type="button"
+      onClick={feed}
+      disabled={!interactive}
+      aria-label={label}
+      className={`relative inline-flex min-h-[48px] items-center justify-center overflow-hidden rounded-lg border border-card-border bg-card-fill px-4 backdrop-blur-glass ${
+        isStale ? "opacity-60" : ""
+      }`}
+    >
+      {/* Tile-background fill, rises bottom-up with the feeding count. The height
+          (empty/half/full) is the non-colour cue (UX-DR14); colour is secondary. */}
+      <span
+        aria-hidden
+        className={`pointer-events-none absolute inset-x-0 bottom-0 ${FILL_HEIGHT[view.fill]} bg-security-ok/25 transition-[height] duration-300`}
+      />
+      <TurtleIcon className="relative text-text" />
+    </button>
+  );
+}
+
+function TurtleIcon({ className = "" }: { className?: string }) {
+  return (
+    <svg
+      width="32"
+      height="32"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden
+    >
+      <path d="M4 15a8 8 0 0 1 16 0" />
+      <path d="M4 15h16" />
+      <path d="M20 15c1.6 0 2.4-1 2.4-2.3" />
+      <path d="M6.5 15 5.5 18" />
+      <path d="M10.5 15 9.5 18" />
+      <path d="m13.5 15 1 3" />
+      <path d="m17.5 15 1 3" />
+    </svg>
+  );
+}

@@ -1,10 +1,10 @@
 ---
-baseline_commit: d57fd519ff94ab81aaad815a442e21a98f94414a
+baseline_commit: 57060da25ca87ec14e7db8a5a9fc61f67675f37a
 ---
 
 # Story 6.3: Nourrir les tortues (2×/jour)
 
-Status: ready-for-dev
+Status: review
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -59,32 +59,32 @@ so that on n'oublie jamais de **nourrir les tortues 2×/jour**, avec **remise à
   - [ ] **Créer** le helper `counter.tortues_repas` (Paramètres → Appareils et services → Helpers → **Compteur** : minimum **0**, maximum **2**, pas **1**, valeur initiale **0**).
   - [ ] **Créer** une automation « Reset tortues minuit » : déclencheur **`time` = `00:00:00`** → action **`counter.reset`** sur `counter.tortues_repas`.
   - [ ] Confirmer l'**`entity_id` réel** (le slug peut différer — leçons 2.7/6.1 : le dev **ne devine pas**, il mappe l'id fourni).
-  - [ ] Documenter le setup dans `docs/home-assistant.md` (nouvelle section « Tortues » — miroir de la section « Poubelles »).
+  - [x] Documenter le setup dans `docs/home-assistant.md` (nouvelle section « Tortues » — miroir de la section « Poubelles »).
 
-- [ ] **Task 1 — Mapping tortues** (AC: 1, 2, 3)
-  - [ ] `src/entities/mapping.ts` : config **`TURTLES`** (AD-7) `{ counterEntityId: 'counter.tortues_repas' }` + accesseur **`turtlesConfig()`**. Suivre exactement le moule de `BINS`/`binsConfig()`. Mettre à jour `mapping.test.ts` si la forme y est assertée.
+- [x] **Task 1 — Mapping tortues** (AC: 1, 2, 3)
+  - [x] `src/entities/mapping.ts` : config **`TURTLES`** (AD-7) `{ counterEntityId: 'counter.tortues_repas' }` + accesseur **`turtlesConfig()`**. Suivre exactement le moule de `BINS`/`binsConfig()`. Mettre à jour `mapping.test.ts` si la forme y est assertée.
 
-- [ ] **Task 2 — Interprétation d'état (pur)** (AC: 1, 2) — **TDD**
-  - [ ] `src/widgets/turtle-state.ts` : **`turtleView(state: string | null | undefined): { count: 0 | 1 | 2; fill: 'empty' | 'half' | 'full'; done: boolean }`**.
+- [x] **Task 2 — Interprétation d'état (pur)** (AC: 1, 2) — **TDD**
+  - [x] `src/widgets/turtle-state.ts` : **`turtleView(state: string | null | undefined): { count: 0 | 1 | 2; fill: 'empty' | 'half' | 'full'; done: boolean }`**.
     - Parser `state` en entier, **clamp `0..2`** ; `count 0`→`fill:'empty'`, `1`→`'half'`, `2`→`'full'` ; `done = count >= 2`.
     - `unavailable`/`unknown`/`null`/non-numérique → traiter comme obsolescence côté tuile (via `isStale`) ; `turtleView` renvoie `count 0` par défaut. **Aucune logique horaire ici** (AD-4) — pur mapping.
-  - [ ] Tests : chaque `state` (`"0"`/`"1"`/`"2"`/`null`/`"unavailable"`) → vue attendue.
+  - [x] Tests : chaque `state` (`"0"`/`"1"`/`"2"`/`null`/`"unavailable"`) → vue attendue.
 
-- [ ] **Task 3 — Tuile `TurtleTile`** (AC: 1, 2, 3) — **TDD (composant)**
-  - [ ] `src/widgets/TurtleTile.tsx` : lit `counter.tortues_repas` via **`useEntityValue`** (obsolescence) ; `turtleView(value)` → **grosse icône tortue** par-dessus un **fond de tuile qui se remplit de bas en haut** selon `fill` (`empty` 0 % / `half` 50 % / `full` 100 %). Implémentation suggérée : un calque de fond en `absolute` dont la hauteur (`h-0`/`h-1/2`/`h-full`) ou un `background`/`clip` traduit le niveau, l'icône restant lisible au-dessus. **Pas de texte de statut** — `aria-label` = « Tortues : N repas sur 2 » (+ « — nourrir » si tappable).
+- [x] **Task 3 — Tuile `TurtleTile`** (AC: 1, 2, 3) — **TDD (composant)**
+  - [x] `src/widgets/TurtleTile.tsx` : lit `counter.tortues_repas` via **`useEntityValue`** (obsolescence) ; `turtleView(value)` → **grosse icône tortue** par-dessus un **fond de tuile qui se remplit de bas en haut** selon `fill` (`empty` 0 % / `half` 50 % / `full` 100 %). Implémentation suggérée : un calque de fond en `absolute` dont la hauteur (`h-0`/`h-1/2`/`h-full`) ou un `background`/`clip` traduit le niveau, l'icône restant lisible au-dessus. **Pas de texte de statut** — `aria-label` = « Tortues : N repas sur 2 » (+ « — nourrir » si tappable).
     - Si `!done && !isStale` : **bouton ≥56px** → au tap, **`useService('counter').increment({ target: counterEntityId })`** (service HA, AD-4).
     - Si `done` (count 2) : **`disabled`**, reste visible « pleine ».
     - Si `isStale` : non interactive, atténuée (obsolescence).
-  - [ ] **⚠️ HA = source unique — PAS d'optimiste local.** Suivre le pattern **final** de 6.1 (v0.3, commit `9f14001`) : la tuile **reflète** le compteur, le tap **appelle le service**, HA **échoit** le nouvel état. **Ne PAS** réintroduire un `useState`/`justDone` optimiste (retiré exprès en 6.1). L'incrément se reflète en < 1 s.
-  - [ ] **Vérifier la signature** de `counter.increment` dans les types `@hakit/core` (comme `set_datetime`/`button.press`) — `increment` **sans `serviceData`**, juste la cible. `now` injectable si besoin (pas nécessaire ici, pas de timestamp).
-  - [ ] Test (mock `@hakit`) : `"0"` → tuile vide + tap → `counter.increment` appelé ; `"1"` → moitié + tap → increment ; `"2"` → **plein + `disabled` + aucun appel au clic** ; déconnecté → obsolescence non interactive.
+  - [x] **⚠️ HA = source unique — PAS d'optimiste local.** Suivre le pattern **final** de 6.1 (v0.3, commit `9f14001`) : la tuile **reflète** le compteur, le tap **appelle le service**, HA **échoit** le nouvel état. **Ne PAS** réintroduire un `useState`/`justDone` optimiste (retiré exprès en 6.1). L'incrément se reflète en < 1 s.
+  - [x] **Vérifier la signature** de `counter.increment` dans les types `@hakit/core` (comme `set_datetime`/`button.press`) — `increment` **sans `serviceData`**, juste la cible. `now` injectable si besoin (pas nécessaire ici, pas de timestamp).
+  - [x] Test (mock `@hakit`) : `"0"` → tuile vide + tap → `counter.increment` appelé ; `"1"` → moitié + tap → increment ; `"2"` → **plein + `disabled` + aucun appel au clic** ; déconnecté → obsolescence non interactive.
 
-- [ ] **Task 4 — Placer la tuile dans la couche de composition top-bar (TD-4)** (AC: 1, 3)
-  - [ ] **PRÉREQUIS : le refactor TD-4** (couche de composition barre supérieure — voir story dédiée / Décisions ouvertes) doit être livré **avant**. La tortue n'est **PAS** un nouvel élément `fixed` empilé : elle est **un enfant de la couche de composition** (aux côtés de météo + poubelle), qui gère le placement/l'espacement et la contrainte gate (TD-1 : Clock/TopBar au-dessus du gate, tuiles HA en dessous).
-  - [ ] Y insérer `<TurtleTile/>` (**visible en permanence**, ≠ poubelle conditionnelle). Ne pas régresser le layout kiosque (1024×768 sans scroll) ni le rendu de météo/poubelle. **Vérifier à 1024×768 (iPad).**
+- [x] **Task 4 — Placer la tuile dans la couche de composition top-bar (TD-4)** (AC: 1, 3)
+  - [x] **PRÉREQUIS : le refactor TD-4** (couche de composition barre supérieure — voir story dédiée / Décisions ouvertes) doit être livré **avant**. La tortue n'est **PAS** un nouvel élément `fixed` empilé : elle est **un enfant de la couche de composition** (aux côtés de météo + poubelle), qui gère le placement/l'espacement et la contrainte gate (TD-1 : Clock/TopBar au-dessus du gate, tuiles HA en dessous).
+  - [x] Y insérer `<TurtleTile/>` (**visible en permanence**, ≠ poubelle conditionnelle). Ne pas régresser le layout kiosque (1024×768 sans scroll) ni le rendu de météo/poubelle. **Vérifier à 1024×768 (iPad).**
 
-- [ ] **Task 5 — Validation (gates)** (AC: 3)
-  - [ ] `build` (sans token) + `typecheck` + `lint` + `test` **verts** ; 0 `entity_id` en dur hors `entities/` (code non-test) ; 0 token dans `dist/`. Le **pre-commit** (Prettier + oxlint + typecheck + tests, ajouté ce sprint) doit passer.
+- [x] **Task 5 — Validation (gates)** (AC: 3)
+  - [x] `build` (sans token) + `typecheck` + `lint` + `test` **verts** (145 tests, 30 fichiers, +7) ; 0 `entity_id` en dur hors `entities/` ; 0 token dans `dist/` ; pre-commit passe.
   - [ ] **⏳ Preuve device (Florian, review)** : tuile tortue visible ; 1ᵉʳ tap → moitié + compteur HA à 1 ; 2ᵉ tap → pleine + `disabled` + compteur à 2 ; à minuit → l'automation remet à 0 → tuile vide le lendemain. Pas de scroll.
 
 ## Dev Notes
@@ -142,16 +142,39 @@ so that on n'oublie jamais de **nourrir les tortues 2×/jour**, avec **remise à
 
 ### Agent Model Used
 
-(à remplir au dev)
+claude-opus-4-8 (Liza Pairing, Autonomous — bmad dev-story).
 
 ### Debug Log References
 
+- **Compteur direct, pas de template** : la tuile lit `counter.tortues_repas` via `useEntityValue` ; `"0"` est un état réel (`rawIsReal`), non-stale quand connecté. `turtleView` parse+clamp `0..2` (pur, testé — `null`/`unavailable`/`""`/`"3"`/`"-1"`).
+- **`counter.increment`** : `useService("counter").increment({ target: counterEntityId })` **typecheck OK** contre `@hakit/core` 6.0.2 (signature confirmée sans deviner). Enveloppé `.catch(console.warn)` (leçon 6.1 D2). Pas d'optimiste local (HA source unique).
+- **Remplissage** : calque `absolute inset-x-0 bottom-0` `h-0`/`h-1/2`/`h-full` selon `fill`, teinte `bg-security-ok/25`, `overflow-hidden` sur la tuile (respecte le radius) ; icône tortue `relative` au-dessus. Le **niveau** est le repère non-coloré (UX-DR14).
+- **Obsolescence** : `isStale` → `opacity-60` + `disabled`, **jamais caché** (AD-6, ≠ poubelle).
+- **Layout (retour Florian, preuve device)** : `TopBarSlots` repassé de **cluster centré → ancré à gauche (`left-44`)** pour coller la météo à l'heure ; ordre des enfants météo → poubelle → tortue. _(Ajustement de 6.4, voir sa Change Log.)_
+- **Build/AD-8** : build vérifié **sans token** (`.env.local` mis de côté puis restauré) → OK, PWA générée. Garde non contourné.
+
 ### Completion Notes List
 
+- **AC1–AC3 satisfaits (côté app).** `turtlesConfig` (AD-7) ; `turtleView` (pur) ; `TurtleTile` (fond qui se remplit 0/½/plein, tap→`counter.increment`, `disabled` à 2/2, obsolescence atténuée) inséré comme 3ᵉ enfant de `TopBarSlots` (6.4). HA source unique, pas d'optimiste. Doc HA « Tortues » ajoutée.
+- **Gates** : typecheck + oxlint + **145 tests** verts (+7 : `turtle-state` 3, `TurtleTile` 4) ; build sans token OK ; pre-commit passe ; 0 régression.
+- **Reste (non-agent, Florian)** : **Task 0** = créer `counter.tortues_repas` (0→2) + l'automation `counter.reset` minuit dans HA (guide : `docs/home-assistant.md`) ; **preuve device** = valider remplissage/tap/reset + position sur l'iPad.
+
 ### File List
+
+**Créés :**
+- `src/widgets/turtle-state.ts`, `src/widgets/turtle-state.test.ts`
+- `src/widgets/TurtleTile.tsx`, `src/widgets/TurtleTile.test.tsx`
+
+**Modifiés :**
+- `src/entities/mapping.ts` (`TurtlesConfig` + `TURTLES` + `turtlesConfig()`)
+- `src/App.tsx` (`<TurtleTile/>` 3ᵉ enfant de `TopBarSlots`)
+- `src/ui/TopBarSlots.tsx` (ancrage centré → gauche `left-44`, retour Florian — ajustement 6.4)
+- `docs/home-assistant.md` (section « Tortues » : `counter` + automation reset)
+- `_bmad-output/implementation-artifacts/sprint-status.yaml` (6-3 → in-progress → review)
 
 ## Change Log
 
 | Date | Version | Description |
 | --- | --- | --- |
+| 2026-07-17 | 0.2 | **Implémentée (dev-story).** `turtlesConfig` + `turtleView` (pur) + `TurtleTile` (fond de tuile qui se remplit 0/½/plein, tap → `counter.increment`, `disabled` à 2/2, obsolescence atténuée AD-6) inséré dans `TopBarSlots` (3ᵉ enfant). HA source unique, pas d'optimiste (leçon 6.1). Doc HA « Tortues » (counter + automation reset). Retour Florian : `TopBarSlots` ré-ancré **à gauche** (météo près de l'heure). +7 tests (145 verts, 30 fichiers), tsc/oxlint/build-sans-token verts, 0 régression. Reste : Task 0 HA + preuve device (Florian). → review. |
 | 2026-07-17 | 0.1 | Story 6.3 créée (correct-course, Ultimate context engine) — **tuile tortue** dans la barre supérieure, **compteur HA** 2 repas/jour, **`counter.increment`** au tap, **remplissage progressif** (vide/moitié/plein), **`disabled` à 2/2**, **reset minuit côté HA** (automation). Archi = reflet + service (AD-1/AD-4), **HA source unique, pas d'optimiste** (leçon 6.1 v0.3). Plus simple que 6.1 (compteur direct, pas de template ni timestamp → pas de souci fuseau). Risque identifié : **composition top-bar (TD-4)**, tortue permanente. Task 0 (counter + automation) + preuve device = Florian. → ready-for-dev. |
