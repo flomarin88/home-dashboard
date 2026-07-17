@@ -28,6 +28,13 @@ describe("rooms", () => {
     expect(getRoom("salon").kid).toBe(false);
     expect(getRoom("chambre_parents").kid).toBe(false);
   });
+
+  it("assigns floors — salon at RDC (0), the bedrooms upstairs (1)", () => {
+    expect(getRoom("salon").floor).toBe(0);
+    expect(getRoom("chambre_parents").floor).toBe(1);
+    expect(getRoom("nathan").floor).toBe(1);
+    expect(getRoom("gaspard").floor).toBe(1);
+  });
 });
 
 describe("sensor mapping", () => {

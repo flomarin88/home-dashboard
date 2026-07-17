@@ -8,6 +8,7 @@ import { formatSensorValue, co2ColorClass } from "./room-sensor-format";
 import { DropletIcon, Co2Icon } from "./WeatherIcon";
 import { Sparkline } from "./Sparkline";
 import { OfflinePill } from "../ui/OfflinePill";
+import { FloorPill } from "../ui/FloorPill";
 import { Skeleton } from "../ui/Skeleton";
 import { TEMPERATURE_THRESHOLD_C, SPARKLINE_HOURS } from "../config";
 
@@ -65,7 +66,10 @@ export function RoomSensorCard({ room }: { room: RoomId }) {
     >
       {/* Fixed row heights so loading/offline/live occupy the SAME footprint —
           no tile-height jump when data arrives (CLS). */}
-      <span className="text-label font-semibold">{getRoom(room).label}</span>
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-label font-semibold">{getRoom(room).label}</span>
+        <FloorPill floor={getRoom(room).floor} />
+      </div>
 
       <div className="flex h-8 items-center">
         {loading ? (
