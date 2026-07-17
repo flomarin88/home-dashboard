@@ -58,3 +58,37 @@ will be replaced by the real kiosk shell in later stories.
 
 All Home Assistant access goes through `src/hakit/` (the `@hakit` provider and
 hooks) — there are no ad-hoc REST/WebSocket calls to HA anywhere else (AD-2).
+
+## Accessing the Pi (SSH)
+
+The dashboard is hosted on a Raspberry Pi running Home Assistant OS. SSH is **not**
+native to HAOS — it's provided by the _Advanced SSH & Web Terminal_ add-on, which
+must be installed and started (see [`docs/deploy.md`](docs/deploy.md) § Pi
+prerequisites).
+
+Once the add-on is up with your **public** key in its `authorized_keys`, connect
+through the `pi-dashboard` alias:
+
+```bash
+ssh pi-dashboard        # → root@<pi-lan-ip>, LAN-only
+```
+
+The alias lives in `~/.ssh/config` (per machine, never committed):
+
+```
+Host pi-dashboard
+    HostName 192.168.1.29      # the Pi's LAN IP
+    User root
+    IdentityFile ~/.ssh/home_dashboard_pi
+    IdentitiesOnly yes
+```
+
+**New machine / new key:**
+
+```bash
+ssh-keygen -t ed25519 -f ~/.ssh/home_dashboard_pi   # dedicated key, no passphrase
+cat ~/.ssh/home_dashboard_pi.pub                    # → paste into the add-on's authorized_keys
+```
+
+For the automated cloud deploy (over Tailscale, not this LAN alias), see
+[`docs/deploy.md`](docs/deploy.md).
