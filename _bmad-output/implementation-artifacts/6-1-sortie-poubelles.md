@@ -4,8 +4,9 @@ baseline_commit: 7cd7d69e920fc786a1dbfaaeff19ae73cfc84589
 
 # Story 6.1: Sortie des poubelles (jaune / noire)
 
-Status: review
+Status: done
 
+<!-- App implementation reviewed (multi-agent, 2026-07-17) & shipped (9f14001). NB: the design evolved to a 9-state machine after the body below was written — see Change Log v0.3. Task 0 (HA sensor + helpers) and the device-proof remain Florian's (tracked as action items). -->
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
 ## Story
@@ -90,6 +91,26 @@ so that on n'oublie jamais de sortir la bonne poubelle (jaune = tri · noire = o
   - [x] `build` (sans token) + `typecheck` + `lint` + `test` **verts** ; 0 `entity_id` en dur hors `entities/` (code non-test) ; 0 token dans `dist/`.
   - [ ] **⏳ Preuve device (Florian, review)** : mardi soir → tuile jaune + tap « Sortie » → `input_datetime` écrit (visible dans HA) + tuile repasse `aucune` ; jeudi soir → noire ; oubli → rouge ; historique consultable dans HA (historique de l'`input_datetime`). Pas de scroll.
 
+### Review Findings
+
+_Code review 2026-07-17 — multi-agent (Blind Hunter `bmad-review-adversarial-general` + Edge Case Hunter `bmad-review-edge-case-hunter`), run in no-spec mode (this story file was missed at review time). Reviewed the **9-state** implementation (see Change Log v0.3). Fixes committed in `9f14001`._
+
+**Patch — applied:**
+- [x] [Review][Patch] Cross-colour tile wiring under-tested — added `noire_a_sortir → sortie` and `jaune_oubli → ack` tile tests [src/widgets/BinTile.test.tsx]
+
+**Defer bucket — resolved this session (went past defer):**
+- [x] [Review][Fixed] Timezone/local-clock: the tap now writes an epoch `timestamp` (not a naive `YYYY-MM-DD HH:mm:ss` local string), so HA reads it TZ/DST-agnostically; dead `haDateTime` removed [src/widgets/BinTile.tsx]
+- [x] [Review][Fixed] Silent HA-call failures: `setDatetime` wrapped in `.catch(console.warn)`, mirroring `undo.ts` [src/widgets/BinTile.tsx]
+
+**Defer bucket — reviewed and consciously accepted (declined by Florian, recorded so a future review won't re-flag):**
+- [x] [Review][Accepted] Double-tap → duplicate (idempotent) writes — a pending-guard would re-add the local state deliberately removed; benign. [src/widgets/BinTile.tsx]
+- [x] [Review][Accepted] jaune/noire by icon colour only (WCAG 1.4.1) — `aria-label` carries text; `oubli`/`sortie` use non-colour cues; single-user kiosk. [src/widgets/BinTile.tsx]
+- [x] [Review][Accepted] `sortie` confirmation is a `disabled` `<button>` (SR skips) — marginal for a wall kiosk. [src/widgets/BinTile.tsx]
+
+**Dismissed as noise / by-design (4):** late sortie from `oubli` unrecordable (by design, documented); `isStale` hides the tile offline (AD-6); "HA never recomputes → stuck" (HA is the source of truth); speculative 4th-phase branch (YAGNI — `BinPhase` has 3 values).
+
+**Outcome:** 0 high/medium defects introduced; the strongest real finding (timezone) was pre-existing and is now fixed. App-side DoD met (136 tests, typecheck/lint/build green, pushed). **Still open (Florian, non-app):** Task 0 (HA template + the 4 `input_datetime` helpers, now incl. the two `_oubli_ack`) and the device-proof.
+
 ## Dev Notes
 
 **Portée stricte.** Tuile poubelle **pilotée par un capteur HA** + écriture du timestamp de sortie. **Hors scope — NE PAS construire :**
@@ -170,5 +191,6 @@ claude-opus-4-8 (Liza Pairing mode, Autonomous — Amelia dev-story).
 
 | Date | Version | Description |
 | --- | --- | --- |
+| 2026-07-17 | 0.3 | **Refonte machine à états (9 états) + revue + outillage.** Le modèle 5 états (`jaune`/`noire`/`oubli_*`/`aucune`) devient une machine **par-poubelle à 9 états** : `aucune \| {c}_a_sortir \| {c}_sortie \| {c}_oubli \| {c}_oubli_ack` (`{c}` ∈ jaune/noire). **L'acquittement d'oubli persiste dans HA** (nouveaux helpers `input_datetime.poubelle_{c}_oubli_ack`) au lieu d'un flag local → survit au reload/reconnexion. Tuile pilotée par phase : `a_sortir`→écrit `sortie`, `oubli`→écrit `oubli_ack` (masque sans logger de sortie), `sortie`→confirmation ✓ **désactivée** jusqu'à `aucune`. Icône agrandie (20→32px), tuile alignée sur les autres du top-bar ; `oubli` = **bordure rouge épaisse** (l'icône garde sa couleur) au lieu d'une icône rouge + « ! ». Écriture en **epoch `timestamp`** (fix fuseau) ; échecs HA remontés (`.catch`) ; `haDateTime` + optimiste local `justDone` **supprimés** (HA = source unique). `docs/home-assistant.md` réécrit (contrat 9 états + template + 4 helpers). **Revue multi-agent** (1 patch + 2 defers appliqués, 3 acceptés — voir Review Findings). Adoption **Prettier + Husky + lint-staged** (repo reformé, commit séparé). Commits `c3e96f3` (chore outillage) + `9f14001` (feat), poussés sur `master`. **136 tests verts.** Task 0 (HA) + preuve device : toujours Florian. |
 | 2026-07-16 | 0.2 | **Retours Florian :** (1) icône **dans la barre supérieure** — `BinTile` devient un indicateur compact `fixed` monté **sous le provider** dans `KioskShell` (contrainte TD-1 résolue : `TopBar` reste hors du gate ; l'indicateur HA vit sous le provider, positionné `fixed` en haut) ; visible seulement quand une poubelle est due (jaune/noire/oubli), masqué sinon. (2) **Suppression des `SectionCard` de l'accueil** — `Home` = tuiles seules (Ambiance · Éclairage · Aspirateur), mêmes positions ; `ConnectingZones` aligné ; `SectionCard` désormais inutilisé (fichier conservé). Tests màj (Home/App/BinTile). 105 tests verts, gates verts. Rendu visuel (position top-bar, contraste, layout tuiles) **à valider sur l'iPad**. |
 | 2026-07-16 | 0.1 | Tuile poubelles (Story 6.1) : reflet de `sensor.poubelle_a_sortir` (schéma horaire côté HA, AD-4) → grosse icône colorée jaune/noire/rouge/atténuée (≥56px, sans texte, `aria-label`) ; « Sortie » écrit `input_datetime.set_datetime` (optimiste léger) ; journal = historique HA. `binView` pur + `haDateTime`. Placée sur l'accueil. 106 tests verts, gates verts, 0 token. **Task 0 (setup HA) + preuve device = Florian.** → review. |

@@ -92,7 +92,7 @@ development_status:
 
   # Epic 6 — Maison & coordination (correct-course 2026-07-16)
   epic-6: in-progress
-  6-1-sortie-poubelles: review
+  6-1-sortie-poubelles: done  # app impl reviewed (9f14001) & shipped 2026-07-17; HA Task 0 + device-proof remain (Florian)
   6-2-meteo-topbar-detail: done
   epic-6-retrospective: optional
 
