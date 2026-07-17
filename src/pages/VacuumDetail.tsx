@@ -82,7 +82,7 @@ export function VacuumDetailContent({
     <div className="flex h-full flex-col gap-grid-gap overflow-hidden">
       <BackLink />
 
-      <div className="grid min-h-0 flex-1 grid-cols-3 gap-grid-gap">
+      <div className="grid min-h-0 flex-1 grid-cols-3 grid-rows-1 gap-grid-gap">
         {/* Left 2/3 — map */}
         <Tile className="col-span-2 min-h-0 items-center justify-center">
           {mapUrl ? (
