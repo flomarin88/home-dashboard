@@ -10,12 +10,13 @@ import type { ReactNode } from "react";
  * (turtle, 6.3) can't cause coordinate collisions, and a conditional tile that
  * renders `null` (e.g. `BinTile` when no bin is due) simply leaves no gap.
  *
- * Centered cluster between the Clock (left) and the Alarme/Caméras controls
- * (right of `TopBar`). Offsets are validated on the real iPad (TD-4).
+ * Left-anchored next to the Clock (date/time), flowing rightward toward the
+ * Alarme/Caméras controls — the first child (weather) sits closest to the clock.
+ * Offsets validated on the real iPad (TD-4).
  */
 export function TopBarSlots({ children }: { children: ReactNode }) {
   return (
-    <div className="fixed left-1/2 top-6 z-40 flex -translate-x-1/2 items-center gap-3">
+    <div className="fixed left-44 top-6 z-40 flex items-center gap-3">
       {children}
     </div>
   );

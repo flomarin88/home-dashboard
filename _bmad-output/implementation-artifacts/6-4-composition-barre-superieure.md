@@ -132,5 +132,6 @@ claude-opus-4-8 (Liza Pairing, Autonomous — bmad dev-story).
 
 | Date | Version | Description |
 | --- | --- | --- |
+| 2026-07-17 | 0.3 | **Ajustement layout (retour Florian, preuve device).** `TopBarSlots` ré-ancré de **cluster centré (`left-1/2 -translate-x-1/2`) → gauche (`left-44`)** pour que la météo soit collée à l'heure. Ordre des enfants : météo → poubelle → tortue. Livré avec l'impl 6.3 (commit commun). |
 | 2026-07-17 | 0.2 | **Implémentée (dev-story).** `TopBarSlots` créé (région `fixed` sous le provider, `flex` centré `gap-3`) ; `TopBarWeather` + `BinTile` déplacés dedans (auto-position retirée, comportement inchangé) ; `App.tsx` enveloppe les deux. `TECH_DEBT.md` : TD-4 → ✅ PAID. +2 tests (`TopBarSlots`), 138 verts, 0 régression, build sans token OK. Reste : preuve device (Florian). → review. |
 | 2026-07-17 | 0.1 | Story 6.4 créée (correct-course, remboursement TD-4) — **couche de composition `TopBarSlots`** : région `fixed` sous le provider (contrainte TD-1) disposant `TopBarWeather` + `BinTile` en `flex` au lieu de coordonnées `fixed` à la main. Refactor **à comportement constant** (aucune régression 6.1/6.2), **préalable à 6.3** (la tortue = 4ᵉ élément = trigger TD-4). Enfants conditionnels sans trou (flex). Discipline : intent unique, commit séparé, pas de correction de bug inline. → ready-for-dev. |
