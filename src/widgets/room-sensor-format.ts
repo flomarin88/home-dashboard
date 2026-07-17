@@ -17,12 +17,13 @@ export function formatSensorValue(
 }
 
 /**
- * CO₂ air-quality colour (ppm): green < 1000, orange 1000–2000, red ≥ 2000.
- * Non-numeric/absent → neutral text. Thresholds from `config` (CO2_WARN/ALERT).
+ * CO₂ air-quality level (ppm): ok < 1000, warn 1000–2000, alert ≥ 2000.
+ * `none` for non-numeric/absent. Thresholds from `config` (CO2_WARN/ALERT).
+ * Single source for both the value colour class and the chart colour var.
  */
-export function co2ColorClass(
-  state: string | number | null | undefined,
-): string {
+type Co2Level = "ok" | "warn" | "alert" | "none";
+
+function co2Level(state: string | number | null | undefined): Co2Level {
   const n = Number(state);
   if (
     state === null ||
@@ -30,8 +31,37 @@ export function co2ColorClass(
     state === "" ||
     !Number.isFinite(n)
   )
-    return "text-text";
-  if (n < CO2_WARN_PPM) return "text-security-ok";
-  if (n < CO2_ALERT_PPM) return "text-accent-lights";
-  return "text-security-alert";
+    return "none";
+  if (n < CO2_WARN_PPM) return "ok";
+  if (n < CO2_ALERT_PPM) return "warn";
+  return "alert";
+}
+
+const CO2_TEXT_CLASS: Record<Co2Level, string> = {
+  ok: "text-security-ok",
+  warn: "text-accent-lights",
+  alert: "text-security-alert",
+  none: "text-text",
+};
+
+const CO2_COLOR_VAR: Record<Co2Level, string> = {
+  ok: "var(--color-security-ok)",
+  warn: "var(--color-accent-lights)",
+  alert: "var(--color-security-alert)",
+  none: "var(--color-text-muted)",
+};
+
+/** CO₂ air-quality colour as a Tailwind text class (green / orange / red). */
+export function co2ColorClass(
+  state: string | number | null | undefined,
+): string {
+  return CO2_TEXT_CLASS[co2Level(state)];
+}
+
+/**
+ * CO₂ air-quality colour as a CSS var (green / orange / red) — for the detail
+ * chart stroke, so the curve matches the current value's colour. Same thresholds.
+ */
+export function co2Color(state: string | number | null | undefined): string {
+  return CO2_COLOR_VAR[co2Level(state)];
 }

@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { formatSensorValue, co2ColorClass } from "./room-sensor-format";
+import {
+  formatSensorValue,
+  co2ColorClass,
+  co2Color,
+} from "./room-sensor-format";
 
 describe("formatSensorValue", () => {
   it("rounds to the requested decimals", () => {
@@ -28,6 +32,22 @@ describe("co2ColorClass", () => {
   it("neutral for missing / non-numeric", () => {
     for (const bad of ["unavailable", "unknown", "", null, undefined]) {
       expect(co2ColorClass(bad)).toBe("text-text");
+    }
+  });
+});
+
+describe("co2Color (chart stroke — same thresholds as the value)", () => {
+  it("maps ppm to the matching CSS colour var (green / orange / red)", () => {
+    expect(co2Color("620")).toBe("var(--color-security-ok)");
+    expect(co2Color("999")).toBe("var(--color-security-ok)");
+    expect(co2Color("1000")).toBe("var(--color-accent-lights)");
+    expect(co2Color("1999")).toBe("var(--color-accent-lights)");
+    expect(co2Color("2000")).toBe("var(--color-security-alert)");
+    expect(co2Color("2500")).toBe("var(--color-security-alert)");
+  });
+  it("neutral (muted) for missing / non-numeric", () => {
+    for (const bad of ["unavailable", "unknown", "", null, undefined]) {
+      expect(co2Color(bad)).toBe("var(--color-text-muted)");
     }
   });
 });

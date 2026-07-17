@@ -9,6 +9,7 @@ import { useEntityValue } from "../hakit/useEntityValue";
 import {
   formatSensorValue,
   co2ColorClass,
+  co2Color,
 } from "../widgets/room-sensor-format";
 import {
   SPARKLINE_HOURS,
@@ -32,6 +33,11 @@ interface MeasureConfig {
   readonly referenceLines?: readonly { y: number; color: string }[];
   /** Colour the current numeric value by threshold (e.g. CO₂ air quality). */
   readonly valueColorClass?: (state: string | null) => string;
+  /**
+   * Colour the history LINE by the current value's threshold band (CO₂ only), so
+   * the curve matches the current value (green/orange/red). Omit → fixed `color`.
+   */
+  readonly lineColor?: (state: string | null) => string;
 }
 
 const MEASURE_CONFIG: Record<Measure, MeasureConfig> = {
@@ -52,6 +58,7 @@ const MEASURE_CONFIG: Record<Measure, MeasureConfig> = {
     decimals: 0,
     referenceLines: CO2_REFERENCE_LINES,
     valueColorClass: co2ColorClass,
+    lineColor: co2Color,
   },
   humidity: {
     title: "Humidité",
@@ -128,6 +135,14 @@ function MeasureTile({ room, measure }: { room: RoomId; measure: Measure }) {
     .map((h) => ({ t: (h.lc ?? h.lu) * 1000, value: Number(h.s) }))
     .filter((d) => Number.isFinite(d.value) && Number.isFinite(d.t));
 
+  // CO₂ line colour follows the current value's band (green/orange/red), grey
+  // when stale — mirrors the value colour. Other measures keep their fixed colour.
+  const lineColor = cfg.lineColor
+    ? current.isStale
+      ? "var(--color-stale-text)"
+      : cfg.lineColor(current.value)
+    : cfg.color;
+
   return (
     <div className="flex flex-col gap-2 overflow-hidden rounded-md border border-tile-border bg-tile-fill p-4">
       <div className="flex items-baseline justify-between gap-2">
@@ -152,7 +167,7 @@ function MeasureTile({ room, measure }: { room: RoomId; measure: Measure }) {
         >
           <SensorHistoryChart
             series={series}
-            color={cfg.color}
+            color={lineColor}
             ariaLabel={`Historique — ${cfg.title} (24 h)`}
             tickSuffix={cfg.tickSuffix}
             unit={cfg.unit}
