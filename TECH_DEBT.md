@@ -115,3 +115,21 @@ _handleClose` → `reconnect`); it has **no periodic heartbeat** (`ping()` exist
 - **Payback trigger:** next work session — implement the watchdog, then validate on the
   real iPad through a screen-off/idle cycle (temps advance without a reload). Related to
   TD-3 (needs on-device proof).
+
+## TD-6 — Climate attribute optimism is a component-local overlay, not the shared pending layer · severity: low
+
+_Source: Story 2.6 (deliberate design decision — see story Dev Notes)._
+
+- **What:** `ClimateTile` drives the numeric setpoint + fan + swing through a component-local
+  `useOptimisticAttr` overlay, NOT the shared per-`entity_id` pending layer (AD-11) used by
+  lights/vacuum/climate-mode. This is deliberate: AD-11's single slot per `entity_id` is
+  already taken by the hvac_mode intent, and a climate entity has several independently-set
+  facets. A single tile owns the entity, so there's no cross-widget race (the harm AD-11
+  prevents) — the local overlay is sound here.
+- **Why deferred:** unifying attribute optimism into a per-`(entity_id, facet)` pending layer
+  would change an AD-11 invariant and touch the 2.1 infra shared by lights/vacuum — out of
+  scope for a single feature story, and unnecessary while only one widget owns the entity.
+- **Payback trigger:** a **second** widget needs to drive the same climate entity's attributes
+  (e.g. a future "Détail climatisation" page controlling the setpoint alongside the home tile),
+  OR a second attribute-driven device appears. Then promote the overlay to a shared
+  per-`(entity_id, facet)` pending layer so the two owners reconcile instead of racing.

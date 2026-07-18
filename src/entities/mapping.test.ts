@@ -6,6 +6,7 @@ import {
   sensor,
   lights,
   vacuum,
+  climate,
   assertCanonicalMapping,
   assertNoPlaceholders,
   ENTITIES,
@@ -151,6 +152,25 @@ describe("vacuum mapping (FR10)", () => {
     expect(v?.entityId).toBe("vacuum.roborock_s8");
     expect(v?.domain).toBe("vacuum");
     expect(v?.placeholder).toBeUndefined();
+  });
+});
+
+describe("climate mapping (FR6, Story 2.6)", () => {
+  it("maps the real Daikin Onecta climate entity (not a placeholder)", () => {
+    const c = climate();
+    expect(c?.entityId).toBe("climate.climatiseur_etage_room_temperature");
+    expect(c?.domain).toBe("climate");
+    expect(c?.placeholder).toBeUndefined();
+  });
+
+  it("declares the dedicated ambient sensor fallback (cloud current_temperature may be null)", () => {
+    expect(climate()?.ambientEntityId).toBe(
+      "sensor.climatiseur_etage_climatecontrol_room_temperature",
+    );
+  });
+
+  it("stays canonical with the climate entity added (AD-7)", () => {
+    expect(() => assertCanonicalMapping()).not.toThrow();
   });
 });
 

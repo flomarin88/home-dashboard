@@ -33,6 +33,10 @@ export interface EntityEntry {
   /** Vacuum-only: "Lancer" runs a routine via a `button` entity (e.g. the
    *  "Quotidien" program), not `vacuum.start`. */
   readonly startButtonEntityId?: string;
+  /** Climate-only: ambient temperature can live on a SEPARATE sensor when the
+   *  cloud integration leaves `current_temperature` null (like vacuum battery),
+   *  read for display as a fallback. */
+  readonly ambientEntityId?: string;
 }
 
 /** Well-formed HA entity_id: `<domain>.<object_id>`. */
@@ -180,11 +184,32 @@ const VACUUM: readonly EntityEntry[] = [
   },
 ];
 
+/**
+ * Climate (FR6) — the upstairs A/C, Story 2.6. REAL entity_id (Florian's HA,
+ * 2026-07-18): a Daikin Onecta unit. A single device covering the étage, no
+ * canonical room; `room: 'chambre_parents'` (floor 1) is a required-field
+ * default, not meaningful — the tile shows `FloorPill floor={1}` directly.
+ *
+ * Onecta is a rate-limited CLOUD integration (polled, not push): ambient temp is
+ * exposed on a dedicated sensor, read as a fallback when the climate entity's
+ * `current_temperature` attribute is null. `service` = the primary control.
+ */
+const CLIMATE: readonly EntityEntry[] = [
+  {
+    entityId: "climate.climatiseur_etage_room_temperature",
+    room: "chambre_parents",
+    domain: "climate",
+    service: "climate.set_hvac_mode",
+    ambientEntityId: "sensor.climatiseur_etage_climatecontrol_room_temperature",
+  },
+];
+
 /** All mapped entities. Feature stories append their entities here (AD-7). */
 export const ENTITIES: readonly EntityEntry[] = [
   ...SENSORS,
   ...LIGHTS,
   ...VACUUM,
+  ...CLIMATE,
 ];
 
 /** The Netatmo measures for a room (temperature, CO₂, humidity). */
@@ -200,6 +225,11 @@ export function lights(): EntityEntry[] {
 /** The mapped vacuum entity (FR10), or undefined if none. */
 export function vacuum(): EntityEntry | undefined {
   return ENTITIES.find((e) => e.domain === "vacuum");
+}
+
+/** The mapped climate entity (FR6, Story 2.6), or undefined if none. */
+export function climate(): EntityEntry | undefined {
+  return ENTITIES.find((e) => e.domain === "climate");
 }
 
 /** A labelled reference to a secondary HA entity used on the vacuum detail page. */

@@ -64,3 +64,37 @@ export const vacuumModel: ControlModel<"vacuum", VacuumTarget> = {
     else if (target === "idle") entity.service.stop();
   },
 };
+
+/**
+ * Climate hvac_mode targets (FR6, Story 2.6). The real capabilities of Florian's
+ * Daikin Onecta unit. NOTE: HA's "Auto" is `heat_cool`, NOT `auto` — the entity
+ * exposes heat_cool/heat/cool/dry/fan_only/off.
+ */
+export type ClimateModeTarget =
+  "off" | "heat" | "cool" | "heat_cool" | "dry" | "fan_only";
+
+/**
+ * Climate mode / on-off (FR6, Story 2.6). Only the hvac_mode is a state token, so
+ * only it goes through the generic optimistic hook: `entity.state` of a climate
+ * entity IS the current hvac_mode, so convergence is plain state equality. The
+ * numeric setpoint and the fan/swing attributes are NOT this model's concern —
+ * they get a component-local overlay in ClimateTile (they can't share the single
+ * per-entity pending slot with the mode intent, AD-11).
+ *
+ * No `isTransitional`: an hvac_mode change is immediate in HA state. AD-5's
+ * "target ≠ current" transitional case for climate is about the *temperature*
+ * (setpoint vs ambient), handled by the tile's overlay, not here.
+ *
+ * `timeoutMs` is LARGE (2 min), NOT the ~5s of local domains: Onecta is a polled
+ * cloud integration, so the HA echo arrives far later than a local light's. A
+ * short timeout would `setFailed(true)` before every echo → a false "Échec" on
+ * each mode change. A large timeout means "Échec" only on a genuine loss. Tune to
+ * the real poll interval at device-proof.
+ */
+export const climateModel: ControlModel<"climate", ClimateModeTarget> = {
+  domain: "climate",
+  timeoutMs: 120000,
+  isConverged: (target, state) => state === target,
+  apply: (entity, target) =>
+    entity.service.setHvacMode({ serviceData: { hvac_mode: target } }),
+};

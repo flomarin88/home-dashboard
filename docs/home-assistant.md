@@ -214,3 +214,37 @@ le front ne fait que refléter. Si tu changes l'`entity_id`, mets à jour le map
   (ou redémarrer HA) ; helpers créés via l'UI : pas de rechargement.
 - **Tester** : Outils de dév → Actions → `counter.increment` sur `counter.tortues_repas` →
   l'état passe `0 → 1 → 2` (la tuile se remplit) ; `counter.reset` → retour à `0`.
+
+---
+
+## Climatisation — étage (Story 2.6)
+
+**Aucun setup HA custom requis** : contrairement aux poubelles/tortues, la clim est une
+**entité native** de l'intégration **Daikin Onecta** (Paramètres → Appareils et services).
+Le dashboard la pilote directement, aucun helper / template / automation à créer.
+
+### Contrat d'interface (⚠️ le code du dashboard en dépend)
+
+| Élément                      | Valeur                                                                                                                                                        |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Entité `climate`             | `climate.climatiseur_etage_room_temperature`                                                                                                                  |
+| Capteur ambiant (repli)      | `sensor.climatiseur_etage_climatecontrol_room_temperature`                                                                                                    |
+| Services appelés             | `climate.set_hvac_mode`, `climate.set_temperature`, `climate.set_fan_mode`, `climate.set_swing_mode`                                                          |
+| Attributs lus                | `temperature` (consigne), `current_temperature`, `hvac_modes`, `fan_mode`/`fan_modes`, `swing_mode`/`swing_modes`, `min_temp`, `max_temp`, `target_temp_step` |
+| Capacités (unité de Florian) | modes `heat_cool`(Auto)/`heat`/`cool`/`dry`/`fan_only`/`off` · fan `Auto/Quiet/1-5` · swing `on/off`                                                          |
+
+Les `entity_id` vivent **uniquement** dans `src/entities/mapping.ts` (AD-7).
+
+### ⚠️ Onecta = cloud à quota
+
+L'intégration est **cloud, pollée** (pas push local), avec une **limite d'appels
+journalière** (`sensor.climatiseur_etage_gateway_ratelimit_remaining_day`). Le dashboard :
+
+- **debounce** les réglages de consigne (une rafale −/+ = un seul appel) ;
+- garde l'affichage optimiste **jusqu'à l'écho** (l'écho tarde — poll cloud), sans
+  retour arrière brutal ;
+- n'ajoute **aucun** polling maison ; le `button.climatiseur_etage_refresh` reste manuel.
+
+**Hors périmètre 2.6** (candidats à une future page « Détail climatisation ») :
+température extérieure, capteurs de défaut/alerte, présets `boost`/`away`
+(`climate.set_preset_mode`), planning (`select.*_schedule`).

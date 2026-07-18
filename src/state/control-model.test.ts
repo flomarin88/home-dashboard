@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import type { HassEntityWithService } from "@hakit/core";
-import { lightModel, vacuumModel } from "./control-model";
+import { lightModel, vacuumModel, climateModel } from "./control-model";
 
 describe("lightModel (AD-5 / AD-4)", () => {
   it("converges when confirmed state equals the target", () => {
@@ -59,5 +59,39 @@ describe("vacuumModel (AD-5 / AD-4)", () => {
     // 'cleaning' is a no-op here — the widget presses the "Quotidien" button.
     vacuumModel.apply(entity, "cleaning");
     expect(start).not.toHaveBeenCalled();
+  });
+});
+
+describe("climateModel (AD-5 / AD-4, Story 2.6)", () => {
+  it("converges on hvac_mode state equality", () => {
+    expect(climateModel.isConverged("heat", "heat")).toBe(true);
+    expect(climateModel.isConverged("heat", "off")).toBe(false);
+    expect(climateModel.isConverged("heat_cool", "heat_cool")).toBe(true);
+    expect(climateModel.isConverged("off", "off")).toBe(true);
+  });
+
+  it("has no transitional mode (hvac_mode change is immediate in HA state)", () => {
+    expect(climateModel.isTransitional).toBeUndefined();
+  });
+
+  it("uses a large timeout (cloud poll ≫ local latency; avoids false Échec)", () => {
+    expect(climateModel.timeoutMs).toBeGreaterThanOrEqual(60000);
+  });
+
+  it("apply issues set_hvac_mode with the target mode via HA services only (AD-4)", () => {
+    const setHvacMode = vi.fn();
+    const entity = {
+      service: { setHvacMode },
+    } as unknown as HassEntityWithService<"climate">;
+
+    climateModel.apply(entity, "cool");
+    expect(setHvacMode).toHaveBeenCalledWith({
+      serviceData: { hvac_mode: "cool" },
+    });
+
+    climateModel.apply(entity, "off");
+    expect(setHvacMode).toHaveBeenCalledWith({
+      serviceData: { hvac_mode: "off" },
+    });
   });
 });

@@ -1,15 +1,16 @@
 import { RoomSensorCard } from "../widgets/RoomSensorCard";
 import { LightTile } from "../widgets/LightTile";
 import { VacuumTile } from "../widgets/VacuumTile";
-import { listRooms, lights, vacuum } from "../entities";
+import { ClimateTile } from "../widgets/ClimateTile";
+import { listRooms, lights, vacuum, climate } from "../entities";
 import { isConfigured } from "../hakit";
 
 /**
  * Home — the composed landscape kiosk tiles (Story 1.3, UX-DR11 / AD-10).
  *
  * Content only: the ground + top bar are owned by `KioskShell` (App.tsx). Tiles
- * only — no titled section chrome — in IA order: Ambiance · Éclairage (Volets /
- * Climatisation to come) · Aspirateur. Fits the 1024×768 kiosk with no scroll
+ * only — no titled section chrome — in IA order: Ambiance · Éclairage ·
+ * Climatisation (Volets to come) · Aspirateur. Fits the 1024×768 kiosk with no scroll
  * (memory: target-device-and-layout). HA widgets render only under the provider;
  * unconfigured, the shell still shows (AD-6/NFR4).
  */
@@ -21,6 +22,7 @@ export function Home() {
   }
 
   const vacuumEntry = vacuum();
+  const climateEntry = climate();
   return (
     <div className="flex flex-col gap-grid-gap">
       {/* Ambiance — 4 room sensor tiles */}
@@ -30,8 +32,8 @@ export function Home() {
         ))}
       </div>
 
-      {/* Éclairage · Volets · Climatisation — tiles in their columns (volets/clim
-          to come; empty columns hold Éclairage's position) */}
+      {/* Éclairage · Volets · Climatisation — tiles in their columns (volets to
+          come; empty column holds its position) */}
       <div className="grid gap-grid-gap md:grid-cols-3">
         <div className="grid grid-cols-2 gap-tile-gap">
           {lights().map((entry) => (
@@ -39,7 +41,7 @@ export function Home() {
           ))}
         </div>
         <div />
-        <div />
+        {climateEntry ? <ClimateTile entry={climateEntry} /> : <div />}
       </div>
 
       {/* Aspirateur */}

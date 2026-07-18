@@ -42,7 +42,7 @@
 # - Retrospective appends its action items to action_items; sprint-status surfaces open ones
 
 generated: 2026-07-13
-last_updated: 2026-07-17
+last_updated: 2026-07-18
 # EPIC 1 (Fondation) DONE — stories 1.1-1.6 done (2026-07-15). Epic-1 retrospective optional. Next: epic-2 (pilotage).
 project: home-dashboard
 project_key: NOKEY
@@ -67,7 +67,7 @@ development_status:
   2-3-eclairage-allumer-eteindre-piece-groupe: backlog
   2-4-eclairage-intensite-couleur: backlog
   2-5-volets-ouvrir-fermer-position: backlog
-  2-6-climatisation-etage: backlog
+  2-6-climatisation-etage: review
   2-7-robot-aspirateur-roborock: done
   epic-2-retrospective: optional
 
