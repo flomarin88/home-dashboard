@@ -134,9 +134,10 @@ _Source: Story 2.6 (deliberate design decision — see story Dev Notes)._
   OR a second attribute-driven device appears. Then promote the overlay to a shared
   per-`(entity_id, facet)` pending layer so the two owners reconcile instead of racing.
 
-## TD-7 — Climate card redesign not visually verified on 1024×768 · severity: low (verification, not code)
+## TD-7 — Climate card redesign not visually verified on 1024×768 · ✅ VERIFIED (2026-07-18, iPad)
 
-_Source: Climate card UX redesign (2026-07-18, branch `feat/climate-card-redesign`)._
+_Source: Climate card UX redesign (2026-07-18, branch `feat/climate-card-redesign`).
+Resolved: eyeballed on the wall iPad against live HA — the lower band fits with no scroll._
 
 - **What:** the redesigned `ClimateTile` is taller than the previous version (header +
   central setpoint + 5 icon'd mode chips + two full-width segmented rows for Vitesse/
