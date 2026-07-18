@@ -3,6 +3,7 @@ import { useService } from "@hakit/core";
 import type { EntityName } from "@hakit/core";
 import { turtlesConfig } from "../entities";
 import { useEntityValue } from "../hakit/useEntityValue";
+import { offerUndo } from "../state/undo";
 import { turtleView, type TurtleFill } from "./turtle-state";
 
 /**
@@ -40,7 +41,9 @@ export function TurtleTile() {
   }, [value]);
 
   // Tap → increment the HA counter (no serviceData). HA echoes the new count.
-  // On failure, release the guard so a retry is possible.
+  // On failure, release the guard so a retry is possible. Then offer a 5 s undo
+  // (misclick safety-net, UX-DR9): the reverse is `counter.decrement`, floored
+  // at 0 by the HA counter's min so an undo after a reset can't underflow.
   const feed = () => {
     if (!interactive || pending.current) return;
     pending.current = true;
@@ -49,6 +52,15 @@ export function TurtleTile() {
         pending.current = false;
         console.warn("turtle: counter.increment failed", err);
       },
+    );
+    offerUndo(
+      "Tortues nourries",
+      () => {
+        void Promise.resolve(
+          svc.decrement({ target: cfg.counterEntityId }),
+        ).catch((err) => console.warn("turtle: undo decrement failed", err));
+      },
+      5000,
     );
   };
 

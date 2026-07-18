@@ -1,29 +1,55 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { BinTile } from "./BinTile";
+import { useUndoStore } from "../state/undo";
 
 const hass = vi.hoisted(() => ({
   state: "jaune_a_sortir" as string,
   connectionStatus: "connected" as string,
   setDatetime: vi.fn(),
+  // prior epoch of the target input_datetime, snapshotted by the tile on tap.
+  priorTimestamp: 1_600_000_000 as number | undefined,
 }));
 
-vi.mock("@hakit/core", () => ({
-  useEntity: () => ({
-    state: hass.state,
-    last_changed: "2026-07-16T18:00:00Z",
-    attributes: {},
-  }),
-  useHass: (selector: (s: { connectionStatus: string }) => unknown) =>
-    selector({ connectionStatus: hass.connectionStatus }),
-  useService: () => ({ setDatetime: hass.setDatetime }),
-}));
+vi.mock("@hakit/core", () => {
+  const useHass = (selector: (s: { connectionStatus: string }) => unknown) =>
+    selector({ connectionStatus: hass.connectionStatus });
+  // The tile reads the target helper's prior value imperatively via
+  // `useHass.getState().entities[...]` — mirror that shape here.
+  useHass.getState = () => ({
+    entities: {
+      "input_datetime.poubelle_jaune_sortie": {
+        attributes: { timestamp: hass.priorTimestamp },
+      },
+      "input_datetime.poubelle_noire_sortie": {
+        attributes: { timestamp: hass.priorTimestamp },
+      },
+      "input_datetime.poubelle_jaune_oubli_ack": {
+        attributes: { timestamp: hass.priorTimestamp },
+      },
+      "input_datetime.poubelle_noire_oubli_ack": {
+        attributes: { timestamp: hass.priorTimestamp },
+      },
+    },
+  });
+  return {
+    useEntity: () => ({
+      state: hass.state,
+      last_changed: "2026-07-16T18:00:00Z",
+      attributes: {},
+    }),
+    useHass,
+    useService: () => ({ setDatetime: hass.setDatetime }),
+  };
+});
 
 describe("BinTile (Story 6.1 — top-bar indicator)", () => {
   beforeEach(() => {
     hass.state = "jaune_a_sortir";
     hass.connectionStatus = "connected";
+    hass.priorTimestamp = 1_600_000_000;
     hass.setDatetime.mockClear();
+    useUndoStore.setState({ current: null });
   });
 
   it("a_sortir → shown + marks sortie by writing the input_datetime", () => {
@@ -35,6 +61,35 @@ describe("BinTile (Story 6.1 — top-bar indicator)", () => {
     expect(hass.setDatetime).toHaveBeenCalledWith({
       target: "input_datetime.poubelle_jaune_sortie",
       serviceData: { timestamp: expect.any(Number) },
+    });
+  });
+
+  it("tap offers a 5 s undo that restores the target's prior timestamp (misclick net)", () => {
+    render(<BinTile />);
+    fireEvent.click(screen.getByRole("button", { name: /jaune à sortir/i }));
+    hass.setDatetime.mockClear(); // drop the forward write; assert only the revert
+
+    const undo = useUndoStore.getState().current;
+    expect(undo).not.toBeNull();
+    expect(undo!.expiresAt - undo!.offeredAt).toBe(5000);
+
+    useUndoStore.getState().runUndo();
+    expect(hass.setDatetime).toHaveBeenCalledWith({
+      target: "input_datetime.poubelle_jaune_sortie",
+      serviceData: { timestamp: 1_600_000_000 },
+    });
+  });
+
+  it("undo of a never-set helper restores epoch 0 (first-ever use → phase reverts)", () => {
+    hass.priorTimestamp = undefined;
+    render(<BinTile />);
+    fireEvent.click(screen.getByRole("button", { name: /jaune à sortir/i }));
+    hass.setDatetime.mockClear();
+
+    useUndoStore.getState().runUndo();
+    expect(hass.setDatetime).toHaveBeenCalledWith({
+      target: "input_datetime.poubelle_jaune_sortie",
+      serviceData: { timestamp: 0 },
     });
   });
 

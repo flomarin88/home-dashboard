@@ -1,11 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { TurtleTile } from "./TurtleTile";
+import { useUndoStore } from "../state/undo";
 
 const hass = vi.hoisted(() => ({
   state: "0" as string,
   connectionStatus: "connected" as string,
   increment: vi.fn(),
+  decrement: vi.fn(),
 }));
 
 vi.mock("@hakit/core", () => ({
@@ -16,7 +18,7 @@ vi.mock("@hakit/core", () => ({
   }),
   useHass: (selector: (s: { connectionStatus: string }) => unknown) =>
     selector({ connectionStatus: hass.connectionStatus }),
-  useService: () => ({ increment: hass.increment }),
+  useService: () => ({ increment: hass.increment, decrement: hass.decrement }),
 }));
 
 describe("TurtleTile (Story 6.3 — top-bar feeding counter)", () => {
@@ -24,6 +26,8 @@ describe("TurtleTile (Story 6.3 — top-bar feeding counter)", () => {
     hass.state = "0";
     hass.connectionStatus = "connected";
     hass.increment.mockClear();
+    hass.decrement.mockClear();
+    useUndoStore.setState({ current: null });
   });
 
   it("0 feedings → tappable, increments the HA counter", () => {
@@ -33,6 +37,30 @@ describe("TurtleTile (Story 6.3 — top-bar feeding counter)", () => {
     expect(hass.increment).toHaveBeenCalledWith({
       target: "counter.tortues_repas",
     });
+  });
+
+  it("tap offers a 5 s undo that decrements the counter on run (misclick net)", () => {
+    render(<TurtleTile />);
+    fireEvent.click(screen.getByRole("button", { name: /nourrir/i }));
+
+    const undo = useUndoStore.getState().current;
+    expect(undo).not.toBeNull();
+    expect(undo!.expiresAt - undo!.offeredAt).toBe(5000);
+
+    useUndoStore.getState().runUndo();
+    expect(hass.decrement).toHaveBeenCalledWith({
+      target: "counter.tortues_repas",
+    });
+  });
+
+  it("blocked double-tap does not offer a second undo", () => {
+    render(<TurtleTile />);
+    const btn = screen.getByRole("button", { name: /nourrir/i });
+    fireEvent.click(btn);
+    const first = useUndoStore.getState().current;
+    fireEvent.click(btn);
+    // guard returns before offering again → same offer, not a newer one
+    expect(useUndoStore.getState().current).toBe(first);
   });
 
   it("rapid double-tap → increments only once (in-flight guard, counter is not idempotent)", () => {

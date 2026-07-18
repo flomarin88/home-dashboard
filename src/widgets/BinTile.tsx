@@ -1,7 +1,8 @@
-import { useService } from "@hakit/core";
+import { useHass, useService } from "@hakit/core";
 import type { EntityName } from "@hakit/core";
 import { binsConfig } from "../entities";
 import { useEntityValue } from "../hakit/useEntityValue";
+import { offerUndo } from "../state/undo";
 import { binView } from "./bin-state";
 import type { BinColor } from "./bin-state";
 
@@ -47,21 +48,40 @@ export function BinTile() {
   const isOubli = view.phase === "oubli";
   const isSortie = view.phase === "sortie";
 
+  const name = BIN_NAME[view.color];
+
   // a_sortir → write the sortie timestamp; oubli → write the ack timestamp
   // (dismiss without logging a sortie). sortie is a passive confirmation.
   // Epoch seconds (not a local wall-clock string) so HA reads it unambiguously
   // whatever the kiosk's timezone. Fire-and-forget, but surface a failed call.
+  //
+  // Then offer a 5 s undo (misclick safety-net, UX-DR9). The reverse is another
+  // `set_datetime` restoring the target helper's PRIOR value — snapshotted at
+  // tap time from HA (input_datetime exposes an epoch `timestamp` attribute) so
+  // the revert preserves HA's history rather than overwriting it. Never-set
+  // helper (first-ever use, no attr) → epoch 0, which the sensor's
+  // `as_timestamp(state, 0)` reads as "not done", reverting the phase.
   const onTap = () => {
     if (!view.bin || isSortie) return;
+    const target = isOubli ? cfg.ack[view.bin] : cfg.sortie[view.bin];
+    const priorTs = useHass.getState().entities[target]?.attributes
+      ?.timestamp as number | undefined;
     void Promise.resolve(
       svc.setDatetime({
-        target: isOubli ? cfg.ack[view.bin] : cfg.sortie[view.bin],
+        target,
         serviceData: { timestamp: Math.floor(Date.now() / 1000) },
       }),
     ).catch((err) => console.warn("bin: setDatetime failed", err));
+    offerUndo(
+      isOubli ? `Poubelle ${name} masquée` : `Poubelle ${name} sortie`,
+      () => {
+        void Promise.resolve(
+          svc.setDatetime({ target, serviceData: { timestamp: priorTs ?? 0 } }),
+        ).catch((err) => console.warn("bin: undo setDatetime failed", err));
+      },
+      5000,
+    );
   };
-
-  const name = BIN_NAME[view.color];
   const label = isSortie
     ? `Poubelle ${name} sortie`
     : isOubli
