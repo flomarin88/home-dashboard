@@ -68,3 +68,50 @@ on-device offsets validated in 6.4's device-proof (Florian)._
 - **Payback trigger:** a 4th HA top-bar element, or an observed overlap on-device. Then
   extract a `TopBarSlots` layout (a `fixed` fl/grid region under the provider that lays
   out its HA children) so elements flow instead of being individually positioned.
+
+## TD-5 — Half-open WebSocket freezes data silently (no auto-refresh) · severity: HIGH · diagnosed, fix pending
+
+_Source: bug report 2026-07-18 ("dashboard not refreshing, last temp data 30 min late").
+Root-caused this session; fix proposed & approved-pending._
+
+- **Symptom (observed on the iPad kiosk):** the dashboard stops refreshing — a temperature
+  value was ~30 min stale. **No** stale/offline pill was shown (data looked normal), the
+  panel did **not** recover on its own (a manual reload fixed it), and it is **recurring**.
+- **Root cause:** all live data flows through the single `@hakit` `HassConnect` WebSocket
+  (AD-2); there is **no polling**. `home-assistant-js-websocket` drives reconnect **only**
+  from the socket `close`/`error` event (`socket.js:100-101` → `connection.js:66
+_handleClose` → `reconnect`); it has **no periodic heartbeat** (`ping()` exists at
+  `connection.js:239` but is never called on an interval). `connected` is just
+  `socket.readyState == OPEN` (`connection.js:143`). On iOS the OS silently tears down the
+  socket's TCP connection (screen dim / power mgmt / network handoff) **without firing
+  `close`** → the socket sits half-open: `readyState` stays OPEN → `connectionStatus` stays
+  `"connected"` → `isStale()` (`src/hakit/stale.ts`) returns false → no reconnect, no pill,
+  frozen data until a fresh socket is opened by reload.
+- **Why the three observations confirm it:** no pill rules out @hakit's clean suspend (that
+  sets status `"suspended"` → pill; see `handleSuspendResume.js`, `hiddenDelayMs` 5 min);
+  reload-fixes-it proves the server had newer data (client socket was dead, not the sensor);
+  recurring matches a systematic connection failure. The freeze happens while the page is
+  still **visible** (no `visibilitychange` fired), which is why neither the suspend path nor
+  a resume-triggered reload would catch it.
+- **Proposed fix (approved-pending):** add the missing socket-liveness heartbeat.
+  New `useConnectionWatchdog()` hook in `src/hakit/`, mounted once (render-null component)
+  **inside** `HakitProvider` (needs `useHass`). It reads `connection` from
+  `useHass((s) => s.connection)` — the public store exposes `connection: Connection | null`
+  (in `DATA_KEYS`). While `document.visibilityState === "visible"` (stand down when hidden so
+  it never fights @hakit's own suspend/resume), every ~30 s race `connection.ping()` against
+  a 5 s timeout (a hung ping = dead socket → the timeout is the detector); on timeout call
+  `connection.reconnect(true)` (force-close + reopen; the library auto-resubscribes). Also
+  ping immediately on `visibilitychange`→visible / `pageshow`. During the forced reconnect
+  the library emits disconnect→ready, so tiles show the stale pill briefly then refresh —
+  honest, not silent.
+  - **Test:** `useConnectionWatchdog.test.ts` (fake timers + mock `connection`): healthy
+    ping → no reconnect; hung ping → `reconnect(true)` after timeout; hidden → stands down;
+    resume → immediate probe.
+  - **Doc:** add a liveness/heartbeat note to `docs/home-assistant.md` under AD-6.
+  - **Rejected alternatives:** age-based staleness in `stale.ts` (only makes it _visible_,
+    doesn't restore auto-refresh, false-positives on legitimately-stable sensors);
+    `location.reload()` on resume (doesn't fire — the freeze happens while visible).
+- **Why deferred:** owner switched context; logged for pickup.
+- **Payback trigger:** next work session — implement the watchdog, then validate on the
+  real iPad through a screen-off/idle cycle (temps advance without a reload). Related to
+  TD-3 (needs on-device proof).
