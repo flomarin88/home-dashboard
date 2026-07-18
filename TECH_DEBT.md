@@ -133,3 +133,20 @@ _Source: Story 2.6 (deliberate design decision — see story Dev Notes)._
   (e.g. a future "Détail climatisation" page controlling the setpoint alongside the home tile),
   OR a second attribute-driven device appears. Then promote the overlay to a shared
   per-`(entity_id, facet)` pending layer so the two owners reconcile instead of racing.
+
+## TD-7 — Climate card redesign not visually verified on 1024×768 · severity: low (verification, not code)
+
+_Source: Climate card UX redesign (2026-07-18, branch `feat/climate-card-redesign`)._
+
+- **What:** the redesigned `ClimateTile` is taller than the previous version (header +
+  central setpoint + 5 icon'd mode chips + two full-width segmented rows for Vitesse/
+  Oscillation), and `Home` now packs it beside a left column (éclairage + aspirateur) in a
+  `md:grid-cols-[1fr_1.3fr]` band. All behaviour is machine-verified (191 tests, typecheck,
+  lint), but the **no-scroll invariant at 1024×768** (memory: target-device-and-layout) has
+  NOT been eyeballed on a real render — jsdom has no layout, and HA data is LAN-only from the
+  build machine.
+- **Why deferred:** owner chose to commit as-is and verify on the wall iPad later, rather
+  than block on a partial (skeleton-only) local screenshot.
+- **Payback trigger:** next time the dashboard runs against live HA on the iPad — confirm the
+  lower band fits with no scroll. If it overflows, reduce row heights (mode chips `min-h-[56px]`,
+  segments `min-h-[48px]`) or the inter-row `gap-3` on the climate card before anything else.

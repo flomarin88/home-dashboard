@@ -36,9 +36,9 @@ describe("fanLabel", () => {
 
 describe("swingLabel", () => {
   it("maps both HA value shapes (on/off and Swing/Stop)", () => {
-    expect(swingLabel("on")).toBe("Oscillation");
+    expect(swingLabel("on")).toBe("Balayage");
     expect(swingLabel("off")).toBe("Fixe");
-    expect(swingLabel("Swing")).toBe("Oscillation");
+    expect(swingLabel("Swing")).toBe("Balayage");
     expect(swingLabel("Stop")).toBe("Fixe");
     expect(swingLabel("weird")).toBe("weird");
     expect(swingLabel(null)).toBe("—");

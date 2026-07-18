@@ -33,9 +33,9 @@ export function fanLabel(mode: string | null | undefined): string {
 
 /** swing_mode → French label. Maps both HA value shapes (on/off and Swing/Stop). */
 const SWING_LABELS: Readonly<Record<string, string>> = {
-  on: "Oscillation",
-  Swing: "Oscillation",
-  swing: "Oscillation",
+  on: "Balayage",
+  Swing: "Balayage",
+  swing: "Balayage",
   off: "Fixe",
   Stop: "Fixe",
   stop: "Fixe",
