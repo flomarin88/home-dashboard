@@ -5,7 +5,7 @@ import type { RoomId, Measure } from "../entities";
 import { roomSensors, getRoom } from "../entities";
 import { useEntityValue } from "../hakit/useEntityValue";
 import { formatSensorValue, co2ColorClass } from "./room-sensor-format";
-import { DropletIcon, Co2Icon } from "./WeatherIcon";
+import { DropletIcon, Co2Icon, RoomIcon } from "./WeatherIcon";
 import { Sparkline } from "./Sparkline";
 import { OfflinePill } from "../ui/OfflinePill";
 import { FloorPill } from "../ui/FloorPill";
@@ -67,7 +67,10 @@ export function RoomSensorCard({ room }: { room: RoomId }) {
       {/* Fixed row heights so loading/offline/live occupy the SAME footprint —
           no tile-height jump when data arrives (CLS). */}
       <div className="flex items-center justify-between gap-2">
-        <span className="text-label font-semibold">{getRoom(room).label}</span>
+        <span className="flex items-center gap-1.5 text-label font-semibold">
+          <RoomIcon kind={getRoom(room).kind} size={14} />
+          {getRoom(room).label}
+        </span>
         <FloorPill floor={getRoom(room).floor} />
       </div>
 

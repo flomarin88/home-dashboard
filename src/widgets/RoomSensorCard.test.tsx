@@ -42,17 +42,18 @@ vi.mock("@hakit/core", () => ({
 }));
 
 import { RoomSensorCard } from "./RoomSensorCard";
+import type { RoomId } from "../entities";
 
 function Detail() {
   const { roomId } = useParams();
   return <div>detail:{roomId}</div>;
 }
 
-function renderCard() {
+function renderCard(room: RoomId = "salon") {
   return render(
     <MemoryRouter initialEntries={["/"]}>
       <Routes>
-        <Route path="/" element={<RoomSensorCard room="salon" />} />
+        <Route path="/" element={<RoomSensorCard room={room} />} />
         <Route path="/room/:roomId" element={<Detail />} />
       </Routes>
     </MemoryRouter>,
@@ -74,6 +75,17 @@ describe("RoomSensorCard", () => {
     expect(screen.getByText(/620 ppm/).className).toContain("text-security-ok");
     expect(screen.getByText(/48 %/)).toBeInTheDocument();
     expect(screen.queryByText(/Hors ligne/)).toBeNull();
+  });
+
+  it("shows a sofa glyph for the living room, a bed glyph for a bedroom", () => {
+    const { unmount } = renderCard("salon");
+    expect(screen.getByTestId("room-icon-living")).toBeInTheDocument();
+    expect(screen.queryByTestId("room-icon-bedroom")).toBeNull();
+    unmount();
+
+    renderCard("nathan");
+    expect(screen.getByTestId("room-icon-bedroom")).toBeInTheDocument();
+    expect(screen.queryByTestId("room-icon-living")).toBeNull();
   });
 
   it("navigates to the room detail route on tap", () => {
