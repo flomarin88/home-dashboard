@@ -12,6 +12,7 @@ import {
   climate,
 } from "../entities";
 import { isConfigured } from "../hakit";
+import { TEMPERATURE_THRESHOLD_C } from "../config";
 
 /**
  * Home — the composed landscape kiosk tiles, grouped by floor (moule
@@ -23,8 +24,9 @@ import { isConfigured } from "../hakit";
  * Parents, Gaspard, Nathan] (4 columns), the RDC is [Salon, Aspirateur] (2
  * columns). Room cards are the tappable atom → room detail; the compact
  * ClimateTile and the VacuumTile sit as peers of the room cards (the vacuum is
- * kept on the home so `/aspirateur` stays reachable). The étage rooms' temperature
- * sparklines show the A/C setpoint as a red dashed reference line.
+ * kept on the home so `/aspirateur` stays reachable). The room sparklines carry a
+ * red dashed reference line: the A/C setpoint for the étage rooms, a static 26 °C
+ * for the RDC (Salon, which has no A/C).
  *
  * Reverses the earlier "tiles only — no titled section chrome" decision
  * (UX-DR11 / AD-10) on purpose — see TD-8. Fits the 1024×768 kiosk with no
@@ -44,8 +46,8 @@ export function Home() {
 function HomeContent() {
   const vacuumEntry = vacuum();
   const climateEntry = climate();
-  // The upstairs A/C setpoint — drawn as a red dashed reference line on the étage
-  // rooms' temperature sparklines.
+  // The upstairs A/C setpoint — the étage rooms' reference line (the RDC uses a
+  // static 26 °C instead, below).
   const climateEntity = useEntity(
     (climateEntry?.entityId ?? "unknown") as EntityName,
     { returnNullIfNotFound: true },
@@ -78,7 +80,9 @@ function HomeContent() {
               <RoomSensorCard
                 key={r.id}
                 room={r.id}
-                refTemp={floor === "etage1" ? setpoint : undefined}
+                refTemp={
+                  floor === "etage1" ? setpoint : TEMPERATURE_THRESHOLD_C
+                }
               />
             ))}
 
