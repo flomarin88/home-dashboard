@@ -174,3 +174,11 @@ _Source: U1 rework (2026-07-20) — floor pills replaced by a floor-grouped home
   TD-7) or drop it below the room row. Also open then: the RDC row shows a lone
   Salon card at 1/3 width (`grid-cols-3`) — revisit the grid when lights/glyphs
   backfill.
+- **Progress (Intent B1, 2026-07-20):** `ClimateTile` reduced to a
+  temperature-only compact tile; the full controls (mode / speed / oscillation /
+  power) + a 24 h temperature history chart moved to the new `/climatisation`
+  detail page, over a shared `useClimate` hook. The étage section is now short,
+  so the home no-scroll pressure is largely relieved. **Still to confirm on the
+  wall iPad:** no-scroll on BOTH the home and the new detail page. **Remaining:**
+  B2 = the Mode/Vitesse 24 h timeline on the detail page (fan-mode attribute
+  history feasibility to verify).
