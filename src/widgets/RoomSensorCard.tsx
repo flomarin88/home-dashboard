@@ -6,12 +6,12 @@ import { roomSensors, getRoom, roomBattery } from "../entities";
 import { useEntityValue } from "../hakit/useEntityValue";
 import { formatSensorValue, co2ColorClass } from "./room-sensor-format";
 import { DropletIcon, Co2Icon, NoiseIcon, RoomIcon } from "./WeatherIcon";
-import { Sparkline } from "./Sparkline";
+import TileTempChart from "./TileTempChart";
 import { OfflinePill } from "../ui/OfflinePill";
 import { BatteryPill } from "../ui/BatteryPill";
 import { TileHeader } from "../ui/TileHeader";
 import { Skeleton } from "../ui/Skeleton";
-import { TEMPERATURE_THRESHOLD_C, SPARKLINE_HOURS } from "../config";
+import { SPARKLINE_HOURS } from "../config";
 
 /**
  * Room sensor card (Story 1.5, UX-DR4) — one room's Netatmo ambience.
@@ -22,9 +22,16 @@ import { TEMPERATURE_THRESHOLD_C, SPARKLINE_HOURS } from "../config";
  * Obsolescence (Story 1.6): when the temperature entity goes offline (socket
  * lost or entity unavailable), the card keeps the last-known value + a
  * "Hors ligne" pill + timestamp, with a dashed stale border — never blank.
- * Tap opens the room detail route.
+ * Tap opens the room detail route. `refTemp` (the upstairs A/C setpoint, passed
+ * by Home for the étage rooms) draws a red dashed reference line on the sparkline.
  */
-export function RoomSensorCard({ room }: { room: RoomId }) {
+export function RoomSensorCard({
+  room,
+  refTemp,
+}: {
+  room: RoomId;
+  refTemp?: number | null;
+}) {
   const navigate = useNavigate();
   const sensors = roomSensors(room);
   const idFor = (m: Measure): EntityName =>
@@ -115,13 +122,15 @@ export function RoomSensorCard({ room }: { room: RoomId }) {
         )}
       </div>
 
-      <div className="mt-1 flex h-8 items-center">
+      <div className="mt-1 h-8">
         {loading ? (
           <Skeleton className="h-full w-full" />
         ) : offline ? (
-          <OfflinePill since={temperature.since} />
+          <div className="flex h-full items-center">
+            <OfflinePill since={temperature.since} />
+          </div>
         ) : (
-          <Sparkline values={tempSeries} threshold={TEMPERATURE_THRESHOLD_C} />
+          <TileTempChart values={tempSeries} refTemp={refTemp} />
         )}
       </div>
     </button>

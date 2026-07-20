@@ -49,6 +49,15 @@ vi.mock("@hakit/core", () => ({
     selector({ connectionStatus: state.connectionStatus }),
 }));
 
+// The tile sparkline is now Recharts — stub it (no ResizeObserver/canvas in jsdom).
+vi.mock("recharts", () => ({
+  ResponsiveContainer: ({ children }: { children: unknown }) => children,
+  LineChart: ({ children }: { children: unknown }) => children,
+  Line: () => null,
+  YAxis: () => null,
+  ReferenceLine: () => null,
+}));
+
 import { RoomSensorCard } from "./RoomSensorCard";
 import type { RoomId } from "../entities";
 

@@ -1,6 +1,9 @@
+import { useEntity } from "@hakit/core";
+import type { EntityName } from "@hakit/core";
 import { RoomSensorCard } from "../widgets/RoomSensorCard";
 import { VacuumTile } from "../widgets/VacuumTile";
 import { ClimateTile } from "../widgets/ClimateTile";
+import { parseTemp } from "../widgets/climate-status";
 import {
   FLOOR_ORDER,
   FLOOR_LABEL,
@@ -20,9 +23,8 @@ import { isConfigured } from "../hakit";
  * Parents, Gaspard, Nathan] (4 columns), the RDC is [Salon, Aspirateur] (2
  * columns). Room cards are the tappable atom → room detail; the compact
  * ClimateTile and the VacuumTile sit as peers of the room cards (the vacuum is
- * kept on the home so `/aspirateur` stays reachable). The placeholder Salon
- * light is not shown yet — it returns later as a status glyph inside the Salon
- * card (backfill).
+ * kept on the home so `/aspirateur` stays reachable). The étage rooms' temperature
+ * sparklines show the A/C setpoint as a red dashed reference line.
  *
  * Reverses the earlier "tiles only — no titled section chrome" decision
  * (UX-DR11 / AD-10) on purpose — see TD-8. Fits the 1024×768 kiosk with no
@@ -35,9 +37,24 @@ export function Home() {
       <p className="text-meta text-text-muted">Home Assistant non configuré.</p>
     );
   }
+  return <HomeContent />;
+}
 
+/** Rendered only when configured (under the HA provider), so it may use hooks. */
+function HomeContent() {
   const vacuumEntry = vacuum();
   const climateEntry = climate();
+  // The upstairs A/C setpoint — drawn as a red dashed reference line on the étage
+  // rooms' temperature sparklines.
+  const climateEntity = useEntity(
+    (climateEntry?.entityId ?? "unknown") as EntityName,
+    { returnNullIfNotFound: true },
+  );
+  const setpoint = parseTemp(
+    (climateEntity?.attributes as { temperature?: number | string } | undefined)
+      ?.temperature,
+  );
+
   return (
     <div className="flex flex-col gap-grid-gap">
       {FLOOR_ORDER.map((floor) => (
@@ -58,7 +75,11 @@ export function Home() {
             ) : null}
 
             {roomsOnFloor(floor).map((r) => (
-              <RoomSensorCard key={r.id} room={r.id} />
+              <RoomSensorCard
+                key={r.id}
+                room={r.id}
+                refTemp={floor === "etage1" ? setpoint : undefined}
+              />
             ))}
 
             {floor === "rdc" && vacuumEntry ? (
