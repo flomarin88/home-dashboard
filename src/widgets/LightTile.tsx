@@ -6,6 +6,7 @@ import {
   type LightState,
 } from "./useLight";
 import { OfflinePill } from "../ui/OfflinePill";
+import { TileHeader } from "../ui/TileHeader";
 
 /**
  * LightTile (FR2/FR3, Story 2.3→2.4) — the bespoke light control tile. On/off by
@@ -25,10 +26,7 @@ export function LightTile({ entry }: { entry: EntityEntry }) {
         data-domain="lights"
         className="flex flex-col gap-2 rounded-md border border-dashed border-stale bg-tile-fill px-4 py-3 text-stale-text"
       >
-        <div className="flex items-center gap-2">
-          <BulbIcon on={false} />
-          <span className="text-label font-semibold text-text">{c.label}</span>
-        </div>
+        <TileHeader icon={<BulbIcon />} title={c.label} />
         <OfflinePill />
       </div>
     );
@@ -52,24 +50,23 @@ export function LightTile({ entry }: { entry: EntityEntry }) {
           : "border-tile-border bg-tile-fill"
       }`}
     >
-      {/* Header — tap toggles on/off */}
-      <button
-        type="button"
-        onClick={c.toggle}
-        aria-label={c.on ? `Éteindre ${c.label}` : `Allumer ${c.label}`}
-        className="flex min-h-[44px] items-center gap-2 text-left"
-      >
-        <BulbIcon on={c.on} />
-        <span className="text-label font-semibold text-text">{c.label}</span>
-        <span className="flex-1" />
-        <span
-          className={`text-meta tabular-nums ${
-            c.on ? "text-accent-lights" : "text-text-muted"
-          }`}
-        >
-          {status}
-        </span>
-      </button>
+      {/* Header — shared tile template (icon + title positioned like every tile);
+          tapping the title toggles on/off, status sits in the right slot. */}
+      <TileHeader
+        icon={<BulbIcon />}
+        title={c.label}
+        onOpen={c.toggle}
+        openLabel={c.on ? `Éteindre ${c.label}` : `Allumer ${c.label}`}
+        right={
+          <span
+            className={`text-meta tabular-nums ${
+              c.on ? "text-accent-lights" : "text-text-muted"
+            }`}
+          >
+            {status}
+          </span>
+        }
+      />
 
       {c.supportsBrightness ? (
         <div className={`flex flex-col gap-1.5 ${dim}`}>
@@ -140,8 +137,8 @@ export function LightTile({ entry }: { entry: EntityEntry }) {
   );
 }
 
-/** Bulb glyph; amber when on, muted when off. */
-function BulbIcon({ on }: { on: boolean }) {
+/** Bulb glyph; colour is owned by TileHeader (muted, like every tile icon). */
+function BulbIcon() {
   return (
     <svg
       width={18}
@@ -153,7 +150,6 @@ function BulbIcon({ on }: { on: boolean }) {
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden
-      className={on ? "text-accent-lights" : "text-text-muted"}
     >
       <path d="M9 18h6M10 21h4M12 2a7 7 0 0 0-4 12c.6.6 1 1.3 1 2h6c0-.7.4-1.4 1-2a7 7 0 0 0-4-12z" />
     </svg>
