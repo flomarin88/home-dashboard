@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   listRooms,
   getRoom,
+  roomsOnFloor,
   roomSensors,
   sensor,
   lights,
@@ -30,11 +31,20 @@ describe("rooms", () => {
     expect(getRoom("chambre_parents").kid).toBe(false);
   });
 
-  it("assigns floors — salon at RDC (0), the bedrooms upstairs (1)", () => {
-    expect(getRoom("salon").floor).toBe(0);
-    expect(getRoom("chambre_parents").floor).toBe(1);
-    expect(getRoom("nathan").floor).toBe(1);
-    expect(getRoom("gaspard").floor).toBe(1);
+  it("assigns floors — salon at RDC, the bedrooms upstairs", () => {
+    expect(getRoom("salon").floor).toBe("rdc");
+    expect(getRoom("chambre_parents").floor).toBe("etage1");
+    expect(getRoom("nathan").floor).toBe("etage1");
+    expect(getRoom("gaspard").floor).toBe("etage1");
+  });
+
+  it("groups rooms into the right floor baskets", () => {
+    expect(roomsOnFloor("rdc").map((r) => r.id)).toEqual(["salon"]);
+    expect(roomsOnFloor("etage1").map((r) => r.id)).toEqual([
+      "chambre_parents",
+      "gaspard",
+      "nathan",
+    ]);
   });
 });
 

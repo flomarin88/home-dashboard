@@ -188,7 +188,8 @@ const VACUUM: readonly EntityEntry[] = [
  * Climate (FR6) — the upstairs A/C, Story 2.6. REAL entity_id (Florian's HA,
  * 2026-07-18): a Daikin Onecta unit. A single device covering the étage, no
  * canonical room; `room: 'chambre_parents'` (floor 1) is a required-field
- * default, not meaningful — the tile shows `FloorPill floor={1}` directly.
+ * default, not meaningful — the climate device is placed on the étage directly
+ * by the home layout, not via this room field.
  *
  * Onecta is a rate-limited CLOUD integration (polled, not push): ambient temp is
  * exposed on a dedicated sensor, read as a fallback when the climate entity's

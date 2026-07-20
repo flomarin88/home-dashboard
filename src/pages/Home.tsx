@@ -1,20 +1,33 @@
 import { RoomSensorCard } from "../widgets/RoomSensorCard";
-import { LightTile } from "../widgets/LightTile";
 import { VacuumTile } from "../widgets/VacuumTile";
 import { ClimateTile } from "../widgets/ClimateTile";
-import { listRooms, lights, vacuum, climate } from "../entities";
+import {
+  FLOOR_ORDER,
+  FLOOR_LABEL,
+  roomsOnFloor,
+  vacuum,
+  climate,
+} from "../entities";
 import { isConfigured } from "../hakit";
 
 /**
- * Home — the composed landscape kiosk tiles (Story 1.3, UX-DR11 / AD-10).
+ * Home — the composed landscape kiosk tiles, grouped by floor (moule
+ * "pièce d'abord, étage en en-tête léger").
  *
- * Content only: the ground + top bar are owned by `KioskShell` (App.tsx). Tiles
- * only — no titled section chrome — in IA order: Ambiance, then a two-column
- * lower band: left = Éclairage + Aspirateur (Volets to come); right = the wide
- * Climatisation card (UX redesign gives it ~55% so the setpoint, icon'd modes
- * and segmented Vitesse/Oscillation breathe). Fits the 1024×768 kiosk with no
- * scroll (memory: target-device-and-layout). HA widgets render only under the
- * provider; unconfigured, the shell still shows (AD-6/NFR4).
+ * Content only: the ground + top bar are owned by `KioskShell` (App.tsx). Each
+ * floor (`FLOOR_ORDER`, top → bottom = étage then RDC) gets a discreet heading,
+ * then its room cards (`roomsOnFloor`) — the tappable atom that opens the room
+ * detail. Devices sit under their floor: Climatisation heads the étage, the
+ * Aspirateur closes the RDC (kept as a tile so `/aspirateur` stays reachable).
+ * The placeholder Salon light is not shown yet — it returns later as a status
+ * glyph inside the Salon card (backfill).
+ *
+ * Reverses the earlier "tiles only — no titled section chrome" decision
+ * (UX-DR11 / AD-10) on purpose — see TD-8. Targets the 1024×768 kiosk with no
+ * scroll (memory: target-device-and-layout); the still-full Climatisation card
+ * is the tight spot until it is reduced to a compact temperature tile with its
+ * own detail page (Intent B). HA widgets render only under the provider;
+ * unconfigured, the shell still shows (AD-6/NFR4).
  */
 export function Home() {
   if (!isConfigured) {
@@ -27,25 +40,27 @@ export function Home() {
   const climateEntry = climate();
   return (
     <div className="flex flex-col gap-grid-gap">
-      {/* Ambiance — 4 room sensor tiles */}
-      <div className="grid grid-cols-2 gap-tile-gap md:grid-cols-4">
-        {listRooms().map((r) => (
-          <RoomSensorCard key={r.id} room={r.id} />
-        ))}
-      </div>
+      {FLOOR_ORDER.map((floor) => (
+        <section key={floor} className="flex flex-col gap-tile-gap">
+          <h2 className="text-caption font-semibold uppercase tracking-wide text-text-muted">
+            {FLOOR_LABEL[floor]}
+          </h2>
 
-      {/* Lower band: left column (éclairage + aspirateur) | wide climate card */}
-      <div className="grid gap-grid-gap md:grid-cols-[1fr_1.3fr]">
-        <div className="flex flex-col gap-grid-gap">
-          <div className="grid grid-cols-2 gap-tile-gap">
-            {lights().map((entry) => (
-              <LightTile key={entry.entityId} entry={entry} />
+          {floor === "etage1" && climateEntry ? (
+            <ClimateTile entry={climateEntry} />
+          ) : null}
+
+          <div className="grid grid-cols-3 gap-tile-gap">
+            {roomsOnFloor(floor).map((r) => (
+              <RoomSensorCard key={r.id} room={r.id} />
             ))}
           </div>
-          {vacuumEntry ? <VacuumTile entry={vacuumEntry} /> : null}
-        </div>
-        {climateEntry ? <ClimateTile entry={climateEntry} /> : <div />}
-      </div>
+
+          {floor === "rdc" && vacuumEntry ? (
+            <VacuumTile entry={vacuumEntry} />
+          ) : null}
+        </section>
+      ))}
     </div>
   );
 }

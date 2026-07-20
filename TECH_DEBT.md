@@ -151,3 +151,26 @@ Resolved: eyeballed on the wall iPad against live HA — the lower band fits wit
 - **Payback trigger:** next time the dashboard runs against live HA on the iPad — confirm the
   lower band fits with no scroll. If it overflows, reduce row heights (mode chips `min-h-[56px]`,
   segments `min-h-[48px]`) or the inter-row `gap-3` on the climate card before anything else.
+
+## TD-8 — Home regrouped by floor: section chrome reversed + no-scroll at risk until climate is compacted · severity: medium (temporary)
+
+_Source: U1 rework (2026-07-20) — floor pills replaced by a floor-grouped home
+("pièce d'abord, étage en en-tête léger"). Intent A of a two-part change._
+
+- **What:** `Home` now renders two discreet floor headings ("1er étage", "RDC")
+  with room cards grouped under each (`roomsOnFloor`), replacing the per-tile
+  `FloorPill` (deleted). This **reverses the "tiles only — no titled section
+  chrome" decision (UX-DR11 / AD-10)**, on purpose. The Climatisation card is
+  still the **full control surface** (setpoint + 5 mode chips + Vitesse +
+  Oscillation) placed at the top of the étage, so the **no-scroll invariant at
+  1024×768** (memory: target-device-and-layout) is at risk until it is reduced.
+- **Why deferred:** owner chose to lay the reversible structural "mould" first
+  (Intent A), then compact `ClimateTile` to temperature-only with a dedicated
+  `/climatisation` detail page (Intent B, per the provided mock) — which is what
+  frees the vertical room.
+- **Payback trigger:** Intent B (compact `ClimateTile` + `/climatisation` detail
+  page). On landing it, re-confirm no-scroll on the wall iPad. If A ships before
+  B, eyeball the iPad first; if it overflows, reduce the climate card rows (as
+  TD-7) or drop it below the room row. Also open then: the RDC row shows a lone
+  Salon card at 1/3 width (`grid-cols-3`) — revisit the grid when lights/glyphs
+  backfill.

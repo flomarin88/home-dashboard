@@ -4,7 +4,6 @@ import type { EntityName } from "@hakit/core";
 import type { EntityEntry } from "../entities";
 import { useOptimisticControl } from "../hakit/useOptimisticControl";
 import { climateModel, type ClimateModeTarget } from "../state/control-model";
-import { FloorPill } from "../ui/FloorPill";
 import { OfflinePill } from "../ui/OfflinePill";
 import {
   hvacModeLabel,
@@ -207,7 +206,6 @@ export function ClimateTile({ entry }: { entry: EntityEntry }) {
           <StatePill mode={mode} />
         ) : null}
         <span className="flex-1" />
-        <FloorPill floor={1} />
         <PowerToggle on={!isOff} onToggle={togglePower} />
       </div>
 
@@ -383,15 +381,13 @@ function PowerToggle({ on, onToggle }: { on: boolean; onToggle: () => void }) {
 
 function Header() {
   return (
-    <div className="flex items-center justify-between gap-2">
+    <div className="flex items-center gap-2">
       <span className="flex items-center gap-2">
         <ClimateIcon />
         <span className="text-label font-semibold text-text">
           Climatisation
         </span>
       </span>
-      {/* The A/C unit lives on the étage (floor 1). */}
-      <FloorPill floor={1} />
     </div>
   );
 }

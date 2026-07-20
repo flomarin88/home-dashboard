@@ -5,7 +5,6 @@ import type { EntityEntry } from "../entities";
 import { useOptimisticControl } from "../hakit/useOptimisticControl";
 import { vacuumModel } from "../state/control-model";
 import { OfflinePill } from "../ui/OfflinePill";
-import { FloorPill } from "../ui/FloorPill";
 import {
   vacuumStatusLabel,
   parseBattery,
@@ -123,13 +122,11 @@ export function VacuumTile({ entry }: { entry: EntityEntry }) {
 
 function Header() {
   return (
-    <div className="flex items-center justify-between gap-2">
+    <div className="flex items-center gap-2">
       <span className="flex items-center gap-2">
         <VacuumIcon />
         <span className="text-label font-semibold text-text">Aspirateur</span>
       </span>
-      {/* The robot lives on the RDC (floor 0). */}
-      <FloorPill floor={0} />
     </div>
   );
 }
