@@ -3,11 +3,14 @@ import type { EntityName } from "@hakit/core";
 import { RoomSensorCard } from "../widgets/RoomSensorCard";
 import { VacuumTile } from "../widgets/VacuumTile";
 import { ClimateTile } from "../widgets/ClimateTile";
+import { LightTile } from "../widgets/LightTile";
 import { parseTemp } from "../widgets/climate-status";
 import {
   FLOOR_ORDER,
   FLOOR_LABEL,
   roomsOnFloor,
+  getRoom,
+  lights,
   vacuum,
   climate,
 } from "../entities";
@@ -46,6 +49,7 @@ export function Home() {
 function HomeContent() {
   const vacuumEntry = vacuum();
   const climateEntry = climate();
+  const lightEntries = lights();
   // The upstairs A/C setpoint — the étage rooms' reference line (the RDC uses a
   // static 26 °C instead, below).
   const climateEntity = useEntity(
@@ -69,7 +73,7 @@ function HomeContent() {
               + aspirateur (2 col). Device tiles are peers of the room cards. */}
           <div
             className={`grid gap-tile-gap ${
-              floor === "etage1" ? "grid-cols-4" : "grid-cols-2"
+              floor === "etage1" ? "grid-cols-4" : "grid-cols-3"
             }`}
           >
             {floor === "etage1" && climateEntry ? (
@@ -89,6 +93,12 @@ function HomeContent() {
             {floor === "rdc" && vacuumEntry ? (
               <VacuumTile entry={vacuumEntry} />
             ) : null}
+
+            {lightEntries
+              .filter((l) => getRoom(l.room).floor === floor)
+              .map((l) => (
+                <LightTile key={l.entityId} entry={l} />
+              ))}
           </div>
         </section>
       ))}

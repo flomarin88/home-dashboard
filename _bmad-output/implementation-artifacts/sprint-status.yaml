@@ -64,7 +64,7 @@ development_status:
   epic-2: in-progress
   2-1-infra-de-controle-optimiste-convergence: done
   2-2-undo-des-actions-a-fort-impact: done
-  2-3-eclairage-allumer-eteindre-piece-groupe: ready-for-dev
+  2-3-eclairage-allumer-eteindre-piece-groupe: review
   2-4-eclairage-intensite-couleur: backlog
   2-5-volets-ouvrir-fermer-position: backlog
   2-6-climatisation-etage: done

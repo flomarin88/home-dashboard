@@ -19,6 +19,9 @@ import { DeviceTile } from "../ui/DeviceTile";
 export function LightTile({ entry }: { entry: EntityEntry }) {
   const id = entry.entityId as EntityName;
   const room = getRoom(entry.room);
+  // A light may live in a non-canonical room (e.g. the Bureau); its own `label`
+  // wins, else the sensor room's label (Story 2.3).
+  const label = entry.label ?? room.label;
   const { displayState, send, isStale, failed } = useOptimisticControl(
     id,
     lightModel,
@@ -26,12 +29,7 @@ export function LightTile({ entry }: { entry: EntityEntry }) {
 
   if (isStale) {
     return (
-      <DeviceTile
-        domain="lights"
-        label={room.label}
-        state="stale"
-        kid={room.kid}
-      />
+      <DeviceTile domain="lights" label={label} state="stale" kid={room.kid} />
     );
   }
 
@@ -42,7 +40,7 @@ export function LightTile({ entry }: { entry: EntityEntry }) {
   return (
     <DeviceTile
       domain="lights"
-      label={room.label}
+      label={label}
       state={on ? "on" : "default"}
       value={failed ? "Échec" : on ? "Allumé" : "Éteint"}
       kid={room.kid}

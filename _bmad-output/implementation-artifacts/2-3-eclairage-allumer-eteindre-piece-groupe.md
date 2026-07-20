@@ -1,6 +1,6 @@
 # Story 2.3: Éclairage — allumer/éteindre (pièce + master)
 
-Status: ready-for-dev
+Status: review
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -121,8 +121,24 @@ Ils ne se matérialisent **qu'avec le master** (première situation « 2 widgets
 
 ### Agent Model Used
 
+Claude Opus 4.8 (implémentation inline, 2026-07-20)
+
 ### Debug Log References
 
 ### Completion Notes List
 
+- **Périmètre A + B livré** (décision Q1 : master/undo/chambres reportés) :
+  - `light.salon` (placeholder) → **`light.bureau_elgato`** réel dans `LIGHTS`, `label: "Bureau"`, `room: "salon"` (défaut requis → étage RDC correct). `assertNoPlaceholders` repasse vert.
+  - `EntityEntry` gagne `label?: string` ; `LightTile` lit `entry.label ?? getRoom(room).label` (découplé des 4 pièces-capteurs).
+  - Accueil : tuile éclairage Bureau rendue dans la **rangée RDC** (`grid-cols-3` : Salon · Aspirateur · Bureau), filtrée par étage (`getRoom(l.room).floor`).
+- **AC1** satisfait pour la lumière disponible (on/off optimiste + convergence, infra 2.1). **AC2** (chambres 56px) et **AC3** (master + undo) **descoped** → story de suivi (aucune autre entité lumière ; décision Florian Q1/Q3).
+- Vérifs : typecheck · lint · **219 tests** (+2) · prettier · oxlint. **No-scroll RDC à 3 tuiles = à valider device.**
+- Reporté : master « Toutes les lumières », undo trigger, 2 deferred findings (#1 failed partagé, #2 closure undo), device-proof undo de 2.2.
+
 ### File List
+
+- `src/entities/mapping.ts` (UPDATE — LIGHTS réel + `EntityEntry.label`)
+- `src/entities/mapping.test.ts` (UPDATE — test lumière réelle + guard placeholder à zéro)
+- `src/widgets/LightTile.tsx` (UPDATE — label découplé)
+- `src/widgets/LightTile.test.tsx` (UPDATE — test label Bureau)
+- `src/pages/Home.tsx` (UPDATE — rendu tuile éclairage RDC, grid-cols-3)

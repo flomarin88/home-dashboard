@@ -168,6 +168,13 @@ describe("lights mapping (FR2)", () => {
       true,
     );
   });
+
+  it("maps the real Bureau light (not a placeholder) with its display label (Story 2.3)", () => {
+    const bureau = lights().find((l) => l.entityId === "light.bureau_elgato");
+    expect(bureau).toBeDefined();
+    expect(bureau?.label).toBe("Bureau");
+    expect(bureau?.placeholder).toBeUndefined();
+  });
 });
 
 describe("vacuum mapping (FR10)", () => {
@@ -199,15 +206,15 @@ describe("climate mapping (FR6, Story 2.6)", () => {
 });
 
 describe("placeholder guard", () => {
-  it("has exactly one known placeholder — light.salon, pending Florian real HA id (Story 2.1)", () => {
-    // Sensors are real since 1.5; 2.1 adds ONE deliberate light placeholder.
-    // This documents the interim state AND still catches any unexpected/forgotten
+  it("has no placeholder entity_ids left — the last one (the light) became real in 2.3", () => {
+    // Sensors real since 1.5; the deliberate light placeholder (2.1) became the
+    // real Bureau light in 2.3. Still catches any unexpected/forgotten
     // placeholder (incl. a sensor regressing to placeholder).
     const placeholders = ENTITIES.filter((e) => e.placeholder).map(
       (e) => e.entityId,
     );
-    expect(placeholders).toEqual(["light.salon"]);
-    expect(() => assertNoPlaceholders()).toThrow(/light\.salon/);
+    expect(placeholders).toEqual([]);
+    expect(() => assertNoPlaceholders()).not.toThrow();
   });
 
   it("throws while any placeholder entity_id remains", () => {

@@ -23,6 +23,9 @@ export interface EntityEntry {
   readonly domain: EntityDomain;
   /** HA service for control (e.g. 'light.toggle'); null for read-only. */
   readonly service: string | null;
+  /** Display label override for a device NOT tied to a canonical sensor room
+   *  (e.g. a light in the Bureau); falls back to `getRoom(room).label`. */
+  readonly label?: string;
   /** Set for sensor entities. */
   readonly measure?: Measure;
   /** True while `entityId` is a placeholder awaiting Florian's real HA id. */
@@ -152,16 +155,18 @@ const SENSORS: readonly EntityEntry[] = [
 /**
  * Lights (FR2) — Story 2.1 wires the first tile (vertical slice); Story 2.3
  * fills the rest (per-room + master). Control entities declare their HA
- * `service`. PLACEHOLDER entity_id until Florian provides the real HA light id
- * (assertNoPlaceholders flags it until then, on purpose).
+ * `service`. REAL entity_id (Florian's HA, 2026-07-20): the office PC light
+ * (Elgato Key Light). No canonical sensor room — `room: 'salon'` is a
+ * required-field default whose RDC floor is correct for placement; `label:
+ * 'Bureau'` drives the tile display (Story 2.3).
  */
 const LIGHTS: readonly EntityEntry[] = [
   {
-    entityId: "light.salon",
+    entityId: "light.bureau_elgato",
     room: "salon",
     domain: "light",
     service: "light.toggle",
-    placeholder: true,
+    label: "Bureau",
   },
 ];
 

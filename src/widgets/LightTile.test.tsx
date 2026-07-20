@@ -52,6 +52,11 @@ describe("LightTile (Story 2.1 vertical slice)", () => {
     expect(hass.turnOn).toHaveBeenCalledOnce();
   });
 
+  it("uses the entry's own label for a light outside a sensor room (Bureau, Story 2.3)", () => {
+    render(<LightTile entry={{ ...ENTRY, label: "Bureau" }} />);
+    expect(screen.getByText("Bureau")).toBeInTheDocument();
+  });
+
   it('offline: renders a non-interactive "Hors ligne" tile (AD-6)', () => {
     hass.connectionStatus = "disconnected";
     render(<LightTile entry={ENTRY} />);
