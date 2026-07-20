@@ -218,6 +218,23 @@ export function roomSensors(room: RoomId): EntityEntry[] {
   return ENTITIES.filter((e) => e.room === room && e.domain === "sensor");
 }
 
+/**
+ * Per-room battery sensor (REAL ids, Florian's HA 2026-07-20). The bedroom
+ * Netatmo modules run on cells; the Salon's main indoor station is mains-powered,
+ * so its tile borrows the paired outdoor module's battery (AD-7).
+ */
+const ROOM_BATTERY: Readonly<Record<RoomId, string>> = {
+  salon: "sensor.interieur_exterieur_batterie",
+  chambre_parents: "sensor.interieur_thermometre_parents_batterie",
+  gaspard: "sensor.interieur_thermometre_gaspard_batterie",
+  nathan: "sensor.interieur_thermometre_nathan_batterie",
+};
+
+/** The battery sensor entity_id for a room's module. */
+export function roomBattery(room: RoomId): string {
+  return ROOM_BATTERY[room];
+}
+
 /** All mapped lights (FR2). Feature stories append to LIGHTS above (AD-7). */
 export function lights(): EntityEntry[] {
   return ENTITIES.filter((e) => e.domain === "light");

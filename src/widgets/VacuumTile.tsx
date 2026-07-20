@@ -1,15 +1,13 @@
+import type { ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
-import { useEntity, useService } from "@hakit/core";
+import { useService } from "@hakit/core";
 import type { EntityName } from "@hakit/core";
 import type { EntityEntry } from "../entities";
 import { useOptimisticControl } from "../hakit/useOptimisticControl";
 import { vacuumModel } from "../state/control-model";
 import { OfflinePill } from "../ui/OfflinePill";
-import {
-  vacuumStatusLabel,
-  parseBattery,
-  batteryColorClass,
-} from "./vacuum-status";
+import { BatteryPill } from "../ui/BatteryPill";
+import { vacuumStatusLabel } from "./vacuum-status";
 
 /**
  * VacuumTile (FR10, UX-DR17) — the Roborock control cluster: status (icon +
@@ -27,10 +25,6 @@ import {
  */
 export function VacuumTile({ entry }: { entry: EntityEntry }) {
   const id = entry.entityId as EntityName;
-  // Fall back to the vacuum id so the hooks are always called with a valid name;
-  // battery then simply reads as "—" and the start button press is skipped.
-  const batteryId = (entry.batteryEntityId ?? entry.entityId) as EntityName;
-  const batterySensor = useEntity(batteryId, { returnNullIfNotFound: true });
   const buttonSvc = useService("button");
   const navigate = useNavigate();
   const { displayState, send, isStale, failed } = useOptimisticControl(
@@ -38,7 +32,6 @@ export function VacuumTile({ entry }: { entry: EntityEntry }) {
     vacuumModel,
   );
 
-  const battery = parseBattery(batterySensor?.state);
   // Tapping the info area opens the detail page (Story 5.3); the action buttons
   // are siblings (not nested), so pressing them never navigates.
   const openDetail = () => navigate("/aspirateur");
@@ -54,7 +47,7 @@ export function VacuumTile({ entry }: { entry: EntityEntry }) {
           onClick={openDetail}
           className="flex flex-col gap-2 text-left"
         >
-          <Header />
+          <Header battery={<BatteryPill entityId={entry.batteryEntityId} />} />
           <OfflinePill />
         </button>
       </div>
@@ -83,18 +76,14 @@ export function VacuumTile({ entry }: { entry: EntityEntry }) {
         aria-label="Aspirateur — ouvrir le détail"
         className="flex flex-col gap-2 text-left"
       >
-        <Header />
-        <div className="flex items-center justify-between gap-2">
-          <span className="flex items-center gap-1.5 text-meta text-text">
-            <StatusIcon state={state} />
-            {failed ? "Échec" : vacuumStatusLabel(displayState)}
-          </span>
-          <span
-            className={`flex items-center gap-1 text-meta tabular-nums ${batteryColorClass(battery)}`}
-          >
-            <BatteryIcon charging={docked} />
-            {battery ?? "—"} %
-          </span>
+        <Header
+          battery={
+            <BatteryPill entityId={entry.batteryEntityId} charging={docked} />
+          }
+        />
+        <div className="flex items-center gap-1.5 text-meta text-text">
+          <StatusIcon state={state} />
+          {failed ? "Échec" : vacuumStatusLabel(displayState)}
         </div>
       </button>
 
@@ -120,13 +109,15 @@ export function VacuumTile({ entry }: { entry: EntityEntry }) {
   );
 }
 
-function Header() {
+function Header({ battery }: { battery?: ReactNode }) {
   return (
     <div className="flex items-center gap-2">
       <span className="flex items-center gap-2">
         <VacuumIcon />
         <span className="text-label font-semibold text-text">Aspirateur</span>
       </span>
+      <span className="flex-1" />
+      {battery}
     </div>
   );
 }
@@ -181,17 +172,6 @@ function StatusIcon({ state }: { state: string }) {
   return (
     <svg {...svgProps} className="text-security-ok">
       <path d="M13 2 3 14h7l-1 8 10-12h-7z" />
-    </svg>
-  );
-}
-
-/** Battery glyph; colour comes from the parent's batteryColorClass. */
-function BatteryIcon({ charging }: { charging: boolean }) {
-  return (
-    <svg {...svgProps}>
-      <rect x="2" y="7" width="16" height="10" rx="2" />
-      <line x1="20" y1="10" x2="20" y2="14" />
-      {charging ? <path d="M11 9l-2 4h3l-2 4" /> : null}
     </svg>
   );
 }

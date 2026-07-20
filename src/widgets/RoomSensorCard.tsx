@@ -2,12 +2,13 @@ import { useNavigate } from "react-router-dom";
 import { useHistory } from "@hakit/core";
 import type { EntityName } from "@hakit/core";
 import type { RoomId, Measure } from "../entities";
-import { roomSensors, getRoom } from "../entities";
+import { roomSensors, getRoom, roomBattery } from "../entities";
 import { useEntityValue } from "../hakit/useEntityValue";
 import { formatSensorValue, co2ColorClass } from "./room-sensor-format";
 import { DropletIcon, Co2Icon, RoomIcon } from "./WeatherIcon";
 import { Sparkline } from "./Sparkline";
 import { OfflinePill } from "../ui/OfflinePill";
+import { BatteryPill } from "../ui/BatteryPill";
 import { Skeleton } from "../ui/Skeleton";
 import { TEMPERATURE_THRESHOLD_C, SPARKLINE_HOURS } from "../config";
 
@@ -70,6 +71,8 @@ export function RoomSensorCard({ room }: { room: RoomId }) {
           <RoomIcon kind={getRoom(room).kind} size={14} />
           {getRoom(room).label}
         </span>
+        <span className="flex-1" />
+        <BatteryPill entityId={roomBattery(room)} />
       </div>
 
       <div className="flex h-8 items-center">

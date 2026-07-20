@@ -3,7 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useHistory } from "@hakit/core";
 import type { EntityName } from "@hakit/core";
 import { isConfigured } from "../hakit";
-import { ROOMS, sensor } from "../entities";
+import { ROOMS, sensor, roomBattery } from "../entities";
 import type { Room, RoomId, Measure } from "../entities";
 import { useEntityValue } from "../hakit/useEntityValue";
 import {
@@ -11,6 +11,7 @@ import {
   co2ColorClass,
   co2Color,
 } from "../widgets/room-sensor-format";
+import { BatteryPill } from "../ui/BatteryPill";
 import {
   SPARKLINE_HOURS,
   TEMP_REFERENCE_LINES,
@@ -111,6 +112,8 @@ export function RoomDetailContent({ room }: { room: Room }) {
       <div className="flex items-center gap-3">
         <BackLink />
         <h1 className="text-title font-bold">{room.label}</h1>
+        <span className="flex-1" />
+        <BatteryPill entityId={roomBattery(room.id)} />
       </div>
 
       <div className="grid min-h-0 flex-1 grid-cols-2 grid-rows-2 gap-grid-gap">

@@ -38,6 +38,7 @@ vi.mock("@hakit/core", () => ({
         last_changed,
         attributes: { unit_of_measurement: "%" },
       };
+    if (id.includes("batterie")) return { state: "75", last_changed };
     return null;
   },
   useHistory: () => ({
@@ -113,6 +114,11 @@ describe("RoomDetail (Story 6.2 → room history)", () => {
     expect(screen.getByText(/620\s*ppm/).className).toContain(
       "text-security-ok",
     );
+  });
+
+  it("shows the module battery level in the header", () => {
+    renderPage();
+    expect(screen.getByText(/75 %/)).toBeInTheDocument();
   });
 
   it("back link navigates home", () => {

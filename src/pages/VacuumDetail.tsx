@@ -10,12 +10,8 @@ import type {
 } from "../entities";
 import { useOptimisticControl } from "../hakit/useOptimisticControl";
 import { vacuumModel } from "../state/control-model";
-import {
-  vacuumStatusLabel,
-  parseBattery,
-  batteryColorClass,
-  consumableLabel,
-} from "../widgets/vacuum-status";
+import { vacuumStatusLabel, consumableLabel } from "../widgets/vacuum-status";
+import { BatteryPill } from "../ui/BatteryPill";
 
 /**
  * VacuumDetail — deep page for the Roborock (Story 5.3, AD-10). The rich data
@@ -52,11 +48,6 @@ export function VacuumDetailContent({
   const { displayState, send, isStale } = useOptimisticControl(id, vacuumModel);
   const buttonSvc = useService("button");
 
-  const battery = parseBattery(
-    useEntity((entry.batteryEntityId ?? entry.entityId) as EntityName, {
-      returnNullIfNotFound: true,
-    })?.state,
-  );
   const mapEntity = useEntity(detail.mapEntityId as EntityName, {
     returnNullIfNotFound: true,
   });
@@ -80,7 +71,14 @@ export function VacuumDetailContent({
 
   return (
     <div className="flex h-full flex-col gap-grid-gap overflow-hidden">
-      <BackLink />
+      <div className="flex items-center gap-3">
+        <BackLink />
+        <span className="flex-1" />
+        <BatteryPill
+          entityId={entry.batteryEntityId}
+          charging={charging === "on"}
+        />
+      </div>
 
       <div className="grid min-h-0 flex-1 grid-cols-3 grid-rows-1 gap-grid-gap">
         {/* Left 2/3 — map */}
@@ -117,10 +115,6 @@ export function VacuumDetailContent({
           <Tile>
             <span className="text-meta text-text">
               {vacuumStatusLabel(displayState)}
-              {" · "}
-              <span className={`tabular-nums ${batteryColorClass(battery)}`}>
-                {battery ?? "—"} %
-              </span>
               {charging === "on" ? " · En charge" : ""}
             </span>
             <div className="flex gap-tile-gap">

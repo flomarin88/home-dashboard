@@ -29,6 +29,8 @@ vi.mock("@hakit/core", () => ({
         last_changed,
         attributes: { unit_of_measurement: "%" },
       };
+    if (id.includes("batterie"))
+      return { state: "80", last_changed, attributes: {} };
     return null;
   },
   useHistory: () => ({
@@ -86,6 +88,11 @@ describe("RoomSensorCard", () => {
     renderCard("nathan");
     expect(screen.getByTestId("room-icon-bedroom")).toBeInTheDocument();
     expect(screen.queryByTestId("room-icon-living")).toBeNull();
+  });
+
+  it("shows the module battery level top-right", () => {
+    renderCard();
+    expect(screen.getByText(/80 %/)).toBeInTheDocument();
   });
 
   it("navigates to the room detail route on tap", () => {
