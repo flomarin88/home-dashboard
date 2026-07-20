@@ -13,7 +13,7 @@ import { WeatherIcon, DropletIcon } from "../widgets/WeatherIcon";
 // Lazy so Recharts is code-split off the home warm-start bundle (shared chunk
 // with the room-detail charts; AD-9 / PWA precache stays lean).
 const SensorHistoryChart = lazy(() => import("../widgets/SensorHistoryChart"));
-import { parseBattery, batteryColorClass } from "../widgets/vacuum-status";
+import { BatteryPill } from "../ui/BatteryPill";
 import {
   trendArrow,
   trendColorClass,
@@ -52,7 +52,6 @@ export function WeatherDetail() {
 export function WeatherDetailContent({ cfg }: { cfg: WeatherConfig }) {
   const temp = useEntityValue(cfg.tempEntityId as EntityName);
   const humidity = useEntityValue(cfg.humidityEntityId as EntityName);
-  const battery = useEntityValue(cfg.batteryEntityId as EntityName);
   const trend = useEntityValue(cfg.trendEntityId as EntityName);
   const condition = useEntityValue(
     (cfg.conditionEntityId ?? cfg.tempEntityId) as EntityName,
@@ -65,7 +64,6 @@ export function WeatherDetailContent({ cfg }: { cfg: WeatherConfig }) {
     .map((h) => ({ t: (h.lc ?? h.lu) * 1000, value: Number(h.s) }))
     .filter((d) => Number.isFinite(d.value) && Number.isFinite(d.t));
 
-  const bat = parseBattery(battery.value);
   const arrow = trendArrow(trend.value);
   const hasCondition = Boolean(cfg.conditionEntityId);
   const forecastId = cfg.forecastEntityId as WeatherEntityId | undefined;
@@ -77,7 +75,10 @@ export function WeatherDetailContent({ cfg }: { cfg: WeatherConfig }) {
       <div className="grid min-h-0 flex-1 grid-cols-2 gap-grid-gap">
         {/* Left column — Actuel + Historique (real Netatmo data). */}
         <div className="flex min-h-0 flex-col gap-grid-gap overflow-hidden">
-          <Tile title="Actuel">
+          <Tile
+            title="Actuel"
+            right={<BatteryPill entityId={cfg.batteryEntityId} />}
+          >
             {hasCondition ? (
               <div className="flex items-center gap-2">
                 <WeatherIcon condition={condition.value} size={28} />
@@ -114,16 +115,6 @@ export function WeatherDetailContent({ cfg }: { cfg: WeatherConfig }) {
               >
                 <DropletIcon size={16} />
                 {formatSensorValue(humidity.value, 0)} %
-              </span>
-              <span>
-                Batterie{" "}
-                <span
-                  className={
-                    battery.isStale ? "text-stale-text" : batteryColorClass(bat)
-                  }
-                >
-                  {bat ?? "—"} %
-                </span>
               </span>
             </div>
           </Tile>
@@ -261,10 +252,12 @@ function HourlyForecast({ weatherId }: { weatherId: WeatherEntityId }) {
 /** A frosted tile with an optional heading. */
 function Tile({
   title,
+  right,
   children,
   className = "",
 }: {
   title?: string;
+  right?: ReactNode;
   children: ReactNode;
   className?: string;
 }) {
@@ -272,10 +265,16 @@ function Tile({
     <div
       className={`flex flex-col gap-2 overflow-hidden rounded-md border border-tile-border bg-tile-fill p-4 ${className}`}
     >
-      {title ? (
-        <span className="text-label font-semibold text-text-muted">
-          {title}
-        </span>
+      {title || right ? (
+        <div className="flex items-center gap-2">
+          {title ? (
+            <span className="text-label font-semibold text-text-muted">
+              {title}
+            </span>
+          ) : null}
+          <span className="flex-1" />
+          {right}
+        </div>
       ) : null}
       {children}
     </div>

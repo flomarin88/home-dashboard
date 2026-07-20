@@ -3,6 +3,7 @@ import {
   listRooms,
   getRoom,
   roomsOnFloor,
+  roomBattery,
   roomSensors,
   sensor,
   lights,
@@ -45,6 +46,19 @@ describe("rooms", () => {
       "gaspard",
       "nathan",
     ]);
+  });
+
+  it("maps battery sensors for battery-powered rooms, none for the mains Salon", () => {
+    expect(roomBattery("salon")).toBeUndefined();
+    expect(roomBattery("nathan")).toBe(
+      "sensor.interieur_thermometre_nathan_batterie",
+    );
+    expect(roomBattery("gaspard")).toBe(
+      "sensor.interieur_thermometre_gaspard_batterie",
+    );
+    expect(roomBattery("chambre_parents")).toBe(
+      "sensor.interieur_thermometre_parents_batterie",
+    );
   });
 });
 

@@ -90,9 +90,14 @@ describe("RoomSensorCard", () => {
     expect(screen.queryByTestId("room-icon-living")).toBeNull();
   });
 
-  it("shows the module battery level top-right", () => {
-    renderCard();
+  it("shows the module battery top-right for a battery-powered room", () => {
+    renderCard("nathan"); // bedroom Netatmo module runs on cells
     expect(screen.getByText(/80 %/)).toBeInTheDocument();
+  });
+
+  it("shows no battery for the mains-powered Salon", () => {
+    renderCard("salon");
+    expect(screen.queryByLabelText(/Batterie/)).toBeNull();
   });
 
   it("navigates to the room detail route on tap", () => {

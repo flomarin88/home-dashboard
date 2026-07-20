@@ -116,8 +116,14 @@ describe("RoomDetail (Story 6.2 → room history)", () => {
     );
   });
 
-  it("shows the module battery level in the header", () => {
-    renderPage();
+  it("shows the module battery level in the header (battery-powered module)", () => {
+    render(
+      <MemoryRouter>
+        <RoomDetailContent
+          room={{ id: "nathan", label: "Nathan", kid: true }}
+        />
+      </MemoryRouter>,
+    );
     expect(screen.getByText(/75 %/)).toBeInTheDocument();
   });
 

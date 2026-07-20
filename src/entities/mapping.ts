@@ -219,19 +219,20 @@ export function roomSensors(room: RoomId): EntityEntry[] {
 }
 
 /**
- * Per-room battery sensor (REAL ids, Florian's HA 2026-07-20). The bedroom
- * Netatmo modules run on cells; the Salon's main indoor station is mains-powered,
- * so its tile borrows the paired outdoor module's battery (AD-7).
+ * Per-room battery sensor (REAL ids, Florian's HA 2026-07-20). Only the bedroom
+ * Netatmo modules run on cells; the Salon is the main indoor station on mains
+ * power → NO battery (omitted, its tile shows none). The paired OUTDOOR module's
+ * battery (`sensor.interieur_exterieur_batterie`) belongs to the weather, not a
+ * room — it lives on `/meteo` (WeatherConfig.batteryEntityId).
  */
-const ROOM_BATTERY: Readonly<Record<RoomId, string>> = {
-  salon: "sensor.interieur_exterieur_batterie",
+const ROOM_BATTERY: Partial<Record<RoomId, string>> = {
   chambre_parents: "sensor.interieur_thermometre_parents_batterie",
   gaspard: "sensor.interieur_thermometre_gaspard_batterie",
   nathan: "sensor.interieur_thermometre_nathan_batterie",
 };
 
-/** The battery sensor entity_id for a room's module. */
-export function roomBattery(room: RoomId): string {
+/** The battery sensor entity_id for a room's module, or undefined (mains-powered). */
+export function roomBattery(room: RoomId): string | undefined {
   return ROOM_BATTERY[room];
 }
 

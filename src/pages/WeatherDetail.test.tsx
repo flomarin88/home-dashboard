@@ -146,6 +146,7 @@ describe("WeatherDetail (Story 6.2)", () => {
     expect(screen.getByText(/13\.2\s*°C/)).toBeInTheDocument();
     expect(screen.getByText(/↓/)).toBeInTheDocument();
     expect(screen.getByText(/81\s*%/)).toBeInTheDocument(); // humidity (icon + value)
+    expect(screen.getByText(/75 %/)).toBeInTheDocument(); // outdoor module battery pill
     // Chart is lazy-loaded (Recharts on the route) — await its mount.
     expect(
       await screen.findByRole("img", { name: /Historique de la température/i }),
