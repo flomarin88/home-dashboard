@@ -6,6 +6,7 @@ import {
   conditionLabel,
   forecastDayLabel,
   forecastHourLabel,
+  formatSunTime,
 } from "./weather-format";
 
 describe("trendArrow", () => {
@@ -69,5 +70,15 @@ describe("forecast date labels", () => {
     expect(forecastDayLabel(null)).toBe("");
     expect(forecastHourLabel("nope")).toBe("");
     expect(forecastHourLabel(undefined)).toBe("");
+  });
+
+  it("formats a sun timestamp as HHhMM (TZ-agnostic shape)", () => {
+    expect(formatSunTime("2026-07-17T18:12:00+00:00")).toMatch(/^\d{2}h\d{2}$/);
+  });
+
+  it("returns — for an absent or invalid sun timestamp (never blank)", () => {
+    expect(formatSunTime("nope")).toBe("—");
+    expect(formatSunTime(null)).toBe("—");
+    expect(formatSunTime(undefined)).toBe("—");
   });
 });

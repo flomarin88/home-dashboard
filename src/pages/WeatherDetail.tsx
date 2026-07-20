@@ -8,7 +8,12 @@ import { weatherConfig } from "../entities";
 import type { WeatherConfig } from "../entities";
 import { useEntityValue } from "../hakit/useEntityValue";
 import { formatSensorValue } from "../widgets/room-sensor-format";
-import { WeatherIcon, DropletIcon } from "../widgets/WeatherIcon";
+import {
+  WeatherIcon,
+  DropletIcon,
+  SunriseIcon,
+  SunsetIcon,
+} from "../widgets/WeatherIcon";
 
 // Lazy so Recharts is code-split off the home warm-start bundle (shared chunk
 // with the room-detail charts; AD-9 / PWA precache stays lean).
@@ -20,6 +25,7 @@ import {
   conditionLabel,
   forecastDayLabel,
   forecastHourLabel,
+  formatSunTime,
 } from "../widgets/weather-format";
 import { SPARKLINE_HOURS, TEMP_REFERENCE_LINES } from "../config";
 
@@ -53,6 +59,8 @@ export function WeatherDetailContent({ cfg }: { cfg: WeatherConfig }) {
   const temp = useEntityValue(cfg.tempEntityId as EntityName);
   const humidity = useEntityValue(cfg.humidityEntityId as EntityName);
   const trend = useEntityValue(cfg.trendEntityId as EntityName);
+  const sunrise = useEntityValue(cfg.sunriseEntityId as EntityName);
+  const sunset = useEntityValue(cfg.sunsetEntityId as EntityName);
   const condition = useEntityValue(
     (cfg.conditionEntityId ?? cfg.tempEntityId) as EntityName,
   );
@@ -115,6 +123,16 @@ export function WeatherDetailContent({ cfg }: { cfg: WeatherConfig }) {
               >
                 <DropletIcon size={16} />
                 {formatSensorValue(humidity.value, 0)} %
+              </span>
+            </div>
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-meta tabular-nums text-text-muted">
+              <span className="inline-flex items-center gap-1">
+                <SunriseIcon size={16} />
+                {formatSunTime(sunrise.value)}
+              </span>
+              <span className="inline-flex items-center gap-1">
+                <SunsetIcon size={16} />
+                {formatSunTime(sunset.value)}
               </span>
             </div>
           </Tile>

@@ -74,6 +74,12 @@ vi.mock("@hakit/core", () => ({
         last_changed,
         attributes: { unit_of_measurement: "%" },
       };
+    if (id.includes("sun_next"))
+      return {
+        state: "2026-07-17T18:12:00+00:00",
+        last_changed,
+        attributes: {},
+      };
     return null;
   },
   useHistory: () => ({
@@ -147,6 +153,7 @@ describe("WeatherDetail (Story 6.2)", () => {
     expect(screen.getByText(/↓/)).toBeInTheDocument();
     expect(screen.getByText(/81\s*%/)).toBeInTheDocument(); // humidity (icon + value)
     expect(screen.getByText(/75 %/)).toBeInTheDocument(); // outdoor module battery pill
+    expect(screen.getAllByText(/\d{2}h\d{2}/)).toHaveLength(2); // sunrise + sunset
     // Chart is lazy-loaded (Recharts on the route) — await its mount.
     expect(
       await screen.findByRole("img", { name: /Historique de la température/i }),

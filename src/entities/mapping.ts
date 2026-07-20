@@ -397,6 +397,10 @@ export interface WeatherConfig {
   readonly humidityEntityId: string;
   readonly batteryEntityId: string;
   readonly trendEntityId: string;
+  /** `sensor.sun_next_rising` — next sunrise, ISO timestamp state. */
+  readonly sunriseEntityId: string;
+  /** `sensor.sun_next_setting` — next sunset, ISO timestamp state. */
+  readonly sunsetEntityId: string;
   /** `weather.*` — drives the condition icon (state = condition). */
   readonly conditionEntityId?: string;
   /** `weather.*` — daily + hourly forecast (usually same entity as condition). */
@@ -408,6 +412,8 @@ const WEATHER: WeatherConfig = {
   humidityEntityId: "sensor.interieur_exterieur_humidite",
   batteryEntityId: "sensor.interieur_exterieur_batterie",
   trendEntityId: "sensor.interieur_exterieur_temperature_trend",
+  sunriseEntityId: "sensor.sun_next_rising",
+  sunsetEntityId: "sensor.sun_next_setting",
   // HA weather integration (Task 0, provided by Florian 2026-07-17): condition +
   // daily/hourly forecast come from one `weather.*` entity.
   conditionEntityId: "weather.forecast_home",

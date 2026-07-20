@@ -90,6 +90,27 @@ export function forecastHourLabel(iso: string | null | undefined): string {
   return `${HOUR_FMT.format(d).replace(/\D/g, "")} h`;
 }
 
+const TIME_FMT = new Intl.DateTimeFormat("fr-FR", {
+  hour: "2-digit",
+  minute: "2-digit",
+  hour12: false,
+});
+
+/**
+ * A timestamp sensor's ISO state (e.g. `sensor.sun_next_setting`) → local time
+ * "HHhMM" (e.g. "20h12"); '—' if invalid/absent (never blank). Uses
+ * `formatToParts` so the "h" separator is stable across ICU versions.
+ */
+export function formatSunTime(iso: string | null | undefined): string {
+  if (iso == null) return "—";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "—";
+  const parts = TIME_FMT.formatToParts(d);
+  const h = parts.find((p) => p.type === "hour")?.value ?? "";
+  const m = parts.find((p) => p.type === "minute")?.value ?? "";
+  return `${h}h${m}`;
+}
+
 export type ConditionCategory =
   "sun" | "cloud" | "rain" | "snow" | "fog" | "thermo";
 
