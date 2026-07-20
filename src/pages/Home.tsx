@@ -16,18 +16,18 @@ import { isConfigured } from "../hakit";
  *
  * Content only: the ground + top bar are owned by `KioskShell` (App.tsx). Each
  * floor (`FLOOR_ORDER`, top → bottom = étage then RDC) gets a discreet heading,
- * then its room cards (`roomsOnFloor`) — the tappable atom that opens the room
- * detail. Devices sit under their floor: Climatisation heads the étage, the
- * Aspirateur closes the RDC (kept as a tile so `/aspirateur` stays reachable).
- * The placeholder Salon light is not shown yet — it returns later as a status
- * glyph inside the Salon card (backfill).
+ * then a single grid of its tiles on one row: the étage is [Climatisation,
+ * Parents, Gaspard, Nathan] (4 columns), the RDC is [Salon, Aspirateur] (2
+ * columns). Room cards are the tappable atom → room detail; the compact
+ * ClimateTile and the VacuumTile sit as peers of the room cards (the vacuum is
+ * kept on the home so `/aspirateur` stays reachable). The placeholder Salon
+ * light is not shown yet — it returns later as a status glyph inside the Salon
+ * card (backfill).
  *
  * Reverses the earlier "tiles only — no titled section chrome" decision
- * (UX-DR11 / AD-10) on purpose — see TD-8. Targets the 1024×768 kiosk with no
- * scroll (memory: target-device-and-layout); the still-full Climatisation card
- * is the tight spot until it is reduced to a compact temperature tile with its
- * own detail page (Intent B). HA widgets render only under the provider;
- * unconfigured, the shell still shows (AD-6/NFR4).
+ * (UX-DR11 / AD-10) on purpose — see TD-8. Fits the 1024×768 kiosk with no
+ * scroll (memory: target-device-and-layout). HA widgets render only under the
+ * provider; unconfigured, the shell still shows (AD-6/NFR4).
  */
 export function Home() {
   if (!isConfigured) {
@@ -46,19 +46,25 @@ export function Home() {
             {FLOOR_LABEL[floor]}
           </h2>
 
-          {floor === "etage1" && climateEntry ? (
-            <ClimateTile entry={climateEntry} />
-          ) : null}
+          {/* One row per floor: étage = clim + 3 chambres (4 col), RDC = salon
+              + aspirateur (2 col). Device tiles are peers of the room cards. */}
+          <div
+            className={`grid gap-tile-gap ${
+              floor === "etage1" ? "grid-cols-4" : "grid-cols-2"
+            }`}
+          >
+            {floor === "etage1" && climateEntry ? (
+              <ClimateTile entry={climateEntry} />
+            ) : null}
 
-          <div className="grid grid-cols-3 gap-tile-gap">
             {roomsOnFloor(floor).map((r) => (
               <RoomSensorCard key={r.id} room={r.id} />
             ))}
-          </div>
 
-          {floor === "rdc" && vacuumEntry ? (
-            <VacuumTile entry={vacuumEntry} />
-          ) : null}
+            {floor === "rdc" && vacuumEntry ? (
+              <VacuumTile entry={vacuumEntry} />
+            ) : null}
+          </div>
         </section>
       ))}
     </div>

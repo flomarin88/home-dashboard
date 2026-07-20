@@ -180,5 +180,10 @@ _Source: U1 rework (2026-07-20) — floor pills replaced by a floor-grouped home
   detail page, over a shared `useClimate` hook. The étage section is now short,
   so the home no-scroll pressure is largely relieved. **Still to confirm on the
   wall iPad:** no-scroll on BOTH the home and the new detail page. **Remaining:**
-  B2 = the Mode/Vitesse 24 h timeline on the detail page (fan-mode attribute
-  history feasibility to verify).
+  B2 = the Mode/Vitesse 24 h timeline on the detail page — feasibility confirmed
+  (`entityHistory[].a.fan_mode` with `minimalResponse:false`); residual real-HA
+  density risk only (Onecta is a polled cloud entity).
+- **Progress (Intent C, 2026-07-20):** the home is now one row per floor — étage
+  = [Clim, Parents, Gaspard, Nathan] (4 col), RDC = [Salon, Aspirateur] (2 col).
+  The lone-Salon-at-1/3 concern above is resolved. New device-check item: the
+  compact ClimateTile at 1/4 width (its −/+ stepper) — confirm it reads well.
