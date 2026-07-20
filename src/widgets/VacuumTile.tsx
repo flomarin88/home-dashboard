@@ -1,4 +1,3 @@
-import type { ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { useService } from "@hakit/core";
 import type { EntityName } from "@hakit/core";
@@ -7,6 +6,7 @@ import { useOptimisticControl } from "../hakit/useOptimisticControl";
 import { vacuumModel } from "../state/control-model";
 import { OfflinePill } from "../ui/OfflinePill";
 import { BatteryPill } from "../ui/BatteryPill";
+import { TileHeader } from "../ui/TileHeader";
 import { vacuumStatusLabel } from "./vacuum-status";
 
 /**
@@ -47,7 +47,11 @@ export function VacuumTile({ entry }: { entry: EntityEntry }) {
           onClick={openDetail}
           className="flex flex-col gap-2 text-left"
         >
-          <Header battery={<BatteryPill entityId={entry.batteryEntityId} />} />
+          <TileHeader
+            icon={<VacuumIcon />}
+            title="Aspirateur"
+            right={<BatteryPill entityId={entry.batteryEntityId} />}
+          />
           <OfflinePill />
         </button>
       </div>
@@ -76,8 +80,10 @@ export function VacuumTile({ entry }: { entry: EntityEntry }) {
         aria-label="Aspirateur — ouvrir le détail"
         className="flex flex-col gap-2 text-left"
       >
-        <Header
-          battery={
+        <TileHeader
+          icon={<VacuumIcon />}
+          title="Aspirateur"
+          right={
             <BatteryPill entityId={entry.batteryEntityId} charging={docked} />
           }
         />
@@ -105,19 +111,6 @@ export function VacuumTile({ entry }: { entry: EntityEntry }) {
           </button>
         ) : null}
       </div>
-    </div>
-  );
-}
-
-function Header({ battery }: { battery?: ReactNode }) {
-  return (
-    <div className="flex items-center gap-2">
-      <span className="flex items-center gap-2">
-        <VacuumIcon />
-        <span className="text-label font-semibold text-text">Aspirateur</span>
-      </span>
-      <span className="flex-1" />
-      {battery}
     </div>
   );
 }

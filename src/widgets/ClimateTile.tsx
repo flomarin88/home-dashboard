@@ -3,7 +3,8 @@ import type { EntityEntry } from "../entities";
 import { useClimate, type ClimateState } from "./useClimate";
 import { SetpointStepper, ClimateIcon, PowerToggle } from "./ClimateControls";
 import { OfflinePill } from "../ui/OfflinePill";
-import { hvacModeLabel, fanLabel, formatSetpoint } from "./climate-status";
+import { TileHeader } from "../ui/TileHeader";
+import { hvacModeLabel, fanLabel } from "./climate-status";
 
 /**
  * ClimateTile (FR6, Story 2.6 → Intent B) — the compact home tile for the
@@ -26,12 +27,7 @@ export function ClimateTile({ entry }: { entry: EntityEntry }) {
         data-domain="climate"
         className="flex flex-col gap-2 rounded-md border border-dashed border-stale bg-tile-fill px-4 py-3 text-stale-text"
       >
-        <div className="flex items-center gap-2">
-          <ClimateIcon />
-          <span className="text-label font-semibold text-text">
-            Climatisation
-          </span>
-        </div>
+        <TileHeader icon={<ClimateIcon />} title="Climatisation" />
         <OfflinePill />
       </div>
     );
@@ -42,24 +38,15 @@ export function ClimateTile({ entry }: { entry: EntityEntry }) {
       data-domain="climate"
       className="flex flex-col gap-3 rounded-md border border-tile-border bg-tile-fill px-4 py-3"
     >
-      {/* Header — title taps through to /climatisation; power toggle top-right
-          (siblings, never nested, so tapping the toggle doesn't navigate). */}
-      <div className="flex items-center gap-2">
-        <button
-          type="button"
-          onClick={() => navigate("/climatisation")}
-          aria-label="Ouvrir le détail de la climatisation"
-          className="flex min-h-[44px] flex-1 items-center gap-2 text-left"
-        >
-          <ClimateIcon />
-          <span className="text-label font-semibold text-text">
-            Climatisation
-          </span>
-          <span className="flex-1" />
-          <Chevron />
-        </button>
-        <PowerToggle on={!c.isOff} onToggle={c.togglePower} />
-      </div>
+      {/* Header — shared tile template: title taps through to /climatisation,
+          power toggle in the top-right slot (siblings, never nested). */}
+      <TileHeader
+        icon={<ClimateIcon />}
+        title="Climatisation"
+        onOpen={() => navigate("/climatisation")}
+        openLabel="Ouvrir le détail de la climatisation"
+        right={<PowerToggle on={!c.isOff} onToggle={c.togglePower} />}
+      />
 
       {/* Temperature — the only thing the tile controls */}
       {c.hasSetpoint ? (
@@ -74,29 +61,16 @@ export function ClimateTile({ entry }: { entry: EntityEntry }) {
         </div>
       )}
 
-      {/* Read-only footer: running summary + ambient (set on the detail page) */}
-      <div className="flex items-center justify-between gap-2 border-t border-tile-border pt-2 text-meta text-text-muted">
-        <span className="inline-flex items-center gap-1.5">
-          <span
-            className={`h-1.5 w-1.5 rounded-full ${
-              c.isOff
-                ? "bg-stale"
-                : "bg-accent-climate shadow-[0_0_6px_var(--color-accent-climate)]"
-            }`}
-          />
-          <span className="font-semibold text-text">{statusSummary(c)}</span>
-          <span className="rounded border border-tile-border px-1 text-caption text-text-muted">
-            lecture
-          </span>
-        </span>
-        {c.ambient != null ? (
-          <span className="tabular-nums">
-            Ambiant{" "}
-            <span className="font-semibold text-text">
-              {formatSetpoint(c.ambient)}°
-            </span>
-          </span>
-        ) : null}
+      {/* Read-only running summary (mode · speed) — set on the detail page */}
+      <div className="flex items-center gap-1.5 border-t border-tile-border pt-2 text-meta text-text-muted">
+        <span
+          className={`h-1.5 w-1.5 rounded-full ${
+            c.isOff
+              ? "bg-stale"
+              : "bg-accent-climate shadow-[0_0_6px_var(--color-accent-climate)]"
+          }`}
+        />
+        <span className="font-semibold text-text">{statusSummary(c)}</span>
       </div>
     </div>
   );
@@ -110,23 +84,4 @@ function statusSummary(c: ClimateState): string {
   if (fan == null) return label;
   const speed = /^\d+$/.test(fan) ? `Vitesse ${fan}` : fanLabel(fan);
   return `${label} · ${speed}`;
-}
-
-function Chevron() {
-  return (
-    <svg
-      width={18}
-      height={18}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={2}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden
-      className="text-text-muted"
-    >
-      <path d="M9 6l6 6-6 6" />
-    </svg>
-  );
 }

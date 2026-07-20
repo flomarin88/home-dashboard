@@ -73,12 +73,12 @@ describe("ClimateTile — compact home tile (Intent B)", () => {
     hass.setSwingMode.mockClear();
   });
 
-  it("shows the setpoint, a read-only mode·speed summary, and ambient", () => {
+  it("shows the setpoint and a read-only mode·speed summary (no 'lecture' / ambient)", () => {
     render(<ClimateTile entry={ENTRY} />);
     expect(screen.getByText("22")).toBeInTheDocument(); // setpoint
     expect(screen.getByText("Froid · Auto")).toBeInTheDocument(); // read-only
-    expect(screen.getByText("lecture")).toBeInTheDocument();
-    expect(screen.getByText("21.4°")).toBeInTheDocument(); // ambient
+    expect(screen.queryByText("lecture")).toBeNull();
+    expect(screen.queryByText(/Ambiant/)).toBeNull();
   });
 
   it("keeps mode/speed/oscillation on the detail, but the power toggle is on the tile", () => {
