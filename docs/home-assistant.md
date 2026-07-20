@@ -217,6 +217,79 @@ le front ne fait que refléter. Si tu changes l'`entity_id`, mets à jour le map
 
 ---
 
+## Arrosage — plantes 1×/jour (Story 7.1)
+
+La tuile plante **reflète** un compteur HA (0 = à arroser, 1 = arrosé aujourd'hui) et
+**incrémente** ce compteur au tap. Le _rituel « 1×/jour » et la remise à zéro
+quotidienne_ vivent **dans HA** (AD-4). L'app n'a **aucune persistance propre** et
+**ne planifie rien** (FR-8). Même moule que les Tortues, avec `maximum: 1`.
+
+### 1. Un helper `counter`
+
+**Paramètres → Appareils et services → Helpers → Créer un helper → Compteur** :
+
+- **Plantes arrosées** → `counter.plantes_arrosees` — **minimum 0**, **maximum 1**, **pas 1**,
+  valeur initiale **0**.
+
+Équivalent YAML :
+
+```yaml
+counter:
+  plantes_arrosees:
+    name: Plantes arrosées
+    minimum: 0
+    maximum: 1
+    step: 1
+    initial: 0
+```
+
+Le `maximum: 1` fait qu'un `counter.increment` au-delà de 1 est un **no-op** (HA clampe) —
+garde-fou même si le bouton désactivé de l'app échouait.
+
+> Alternative : un `input_boolean.plantes_arrosees` (`off`/`on`) convient aussi ; le tap
+> bascule `on` et le reset repasse `off`. Le `counter` est retenu pour rester homogène
+> avec les Tortues. Si tu choisis l'`input_boolean`, adapte le contrat d'interface et le
+> mapping en conséquence.
+
+### 2. Une automation « Reset arrosage minuit »
+
+Remet le compteur à 0 chaque nuit (le « schéma horaire » côté HA, AD-4) :
+
+```yaml
+automation:
+  - alias: Reset arrosage minuit
+    trigger:
+      - platform: time
+        at: "00:00:00"
+    action:
+      - service: counter.reset
+        target:
+          entity_id: counter.plantes_arrosees
+```
+
+### Contrat d'interface (⚠️ le code du dashboard en dépend)
+
+`counter.plantes_arrosees` — `state` ∈ :
+
+| state           | tuile (`src/widgets/` — clone `TurtleTile`, `maximum: 1`)  |
+| --------------- | ---------------------------------------------------------- |
+| `"0"`           | fond vide (à arroser) ; tap → `counter.increment`          |
+| `"1"`           | fond plein, **désactivée** (arrosé, jusqu'au reset minuit) |
+| `unavailable`/… | obsolescence (atténuée, non interactive — AD-6)            |
+
+Le tap n'appelle **que** `counter.increment` (service HA, AD-4) ; **HA recalcule** l'état,
+le front ne fait que refléter (reflect-only, pas d'optimiste). Si tu changes l'`entity_id`,
+mets à jour le mapping (`src/entities/mapping.ts`).
+
+### 3. Appliquer & tester
+
+- **Recharger** : Outils de dév → YAML → **Recharger Compteur** et **Recharger Automation**
+  (ou redémarrer HA) ; helpers créés via l'UI : pas de rechargement.
+- **Tester** : Outils de dév → Actions → `counter.increment` sur `counter.plantes_arrosees` →
+  l'état passe `0 → 1` (la tuile se remplit, puis se désactive) ; `counter.reset` → retour à `0`.
+
+---
+
 ## Climatisation — étage (Story 2.6)
 
 **Aucun setup HA custom requis** : contrairement aux poubelles/tortues, la clim est une
