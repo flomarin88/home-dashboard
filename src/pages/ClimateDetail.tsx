@@ -53,7 +53,9 @@ export function ClimateDetailContent({ entry }: { entry: EntityEntry }) {
       <div className="flex items-center gap-3">
         <BackLink />
         <h1 className="flex items-center gap-2 text-title font-bold">
-          <ClimateIcon />
+          <span className="text-accent-climate">
+            <ClimateIcon />
+          </span>
           Climatisation · Étage
         </h1>
         {c.failed ? (

@@ -285,7 +285,6 @@ export function ClimateIcon() {
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden
-      className="text-accent-climate"
     >
       <rect x="2" y="4" width="20" height="9" rx="2" />
       <path d="M6 17v1M10 17v2M14 17v1M18 17v2" />

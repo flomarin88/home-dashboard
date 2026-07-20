@@ -81,22 +81,14 @@ describe("ClimateTile — compact home tile (Intent B)", () => {
     expect(screen.queryByText(/Ambiant/)).toBeNull();
   });
 
-  it("keeps mode/speed/oscillation on the detail, but the power toggle is on the tile", () => {
+  it("keeps mode/speed/oscillation/power on the detail — none on the tile", () => {
     render(<ClimateTile entry={ENTRY} />);
     expect(screen.queryByRole("group", { name: "Mode" })).toBeNull();
     expect(screen.queryByRole("group", { name: "Vitesse" })).toBeNull();
     expect(screen.queryByRole("group", { name: "Oscillation" })).toBeNull();
     expect(
-      screen.getByRole("button", { name: /éteindre/i }),
-    ).toBeInTheDocument();
-  });
-
-  it("the power toggle turns the unit off from the tile", () => {
-    render(<ClimateTile entry={ENTRY} />);
-    fireEvent.click(screen.getByRole("button", { name: /éteindre/i }));
-    expect(hass.setHvacMode).toHaveBeenCalledWith({
-      serviceData: { hvac_mode: "off" },
-    });
+      screen.queryByRole("button", { name: /éteindre|allumer/i }),
+    ).toBeNull();
   });
 
   it("opens the detail page when the header is tapped", () => {

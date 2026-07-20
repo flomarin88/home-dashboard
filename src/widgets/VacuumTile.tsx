@@ -129,7 +129,7 @@ const svgProps = {
 
 function VacuumIcon() {
   return (
-    <svg {...svgProps} width={18} height={18} className="text-accent-vacuum">
+    <svg {...svgProps} width={18} height={18}>
       <circle cx="12" cy="12" r="9" />
       <circle cx="12" cy="12" r="3" />
     </svg>

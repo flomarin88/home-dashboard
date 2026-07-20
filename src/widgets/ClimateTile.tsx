@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import type { EntityEntry } from "../entities";
 import { useClimate, type ClimateState } from "./useClimate";
-import { SetpointStepper, ClimateIcon, PowerToggle } from "./ClimateControls";
+import { SetpointStepper, ClimateIcon } from "./ClimateControls";
 import { OfflinePill } from "../ui/OfflinePill";
 import { TileHeader } from "../ui/TileHeader";
 import { hvacModeLabel, fanLabel } from "./climate-status";
@@ -38,14 +38,13 @@ export function ClimateTile({ entry }: { entry: EntityEntry }) {
       data-domain="climate"
       className="flex flex-col gap-3 rounded-md border border-tile-border bg-tile-fill px-4 py-3"
     >
-      {/* Header — shared tile template: title taps through to /climatisation,
-          power toggle in the top-right slot (siblings, never nested). */}
+      {/* Header — shared tile template: title taps through to /climatisation.
+          Power (like mode/speed) is set on the detail page, not the tile. */}
       <TileHeader
         icon={<ClimateIcon />}
         title="Climatisation"
         onOpen={() => navigate("/climatisation")}
         openLabel="Ouvrir le détail de la climatisation"
-        right={<PowerToggle on={!c.isOff} onToggle={c.togglePower} />}
       />
 
       {/* Temperature — the only thing the tile controls */}

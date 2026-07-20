@@ -24,7 +24,8 @@ export function TileHeader({
 }) {
   const inner = (
     <>
-      {icon}
+      {/* All tile-header icons render muted; the title keeps the tile's text. */}
+      <span className="shrink-0 text-text-muted">{icon}</span>
       <span className="truncate">{title}</span>
     </>
   );
