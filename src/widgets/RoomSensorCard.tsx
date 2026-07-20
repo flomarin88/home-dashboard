@@ -5,7 +5,7 @@ import type { RoomId, Measure } from "../entities";
 import { roomSensors, getRoom, roomBattery } from "../entities";
 import { useEntityValue } from "../hakit/useEntityValue";
 import { formatSensorValue, co2ColorClass } from "./room-sensor-format";
-import { DropletIcon, Co2Icon, RoomIcon } from "./WeatherIcon";
+import { DropletIcon, Co2Icon, NoiseIcon, RoomIcon } from "./WeatherIcon";
 import { Sparkline } from "./Sparkline";
 import { OfflinePill } from "../ui/OfflinePill";
 import { BatteryPill } from "../ui/BatteryPill";
@@ -34,6 +34,9 @@ export function RoomSensorCard({ room }: { room: RoomId }) {
   const temperature = useEntityValue(idFor("temperature"));
   const co2 = useEntityValue(idFor("co2"));
   const humidity = useEntityValue(idFor("humidity"));
+  const noise = useEntityValue(idFor("noise"));
+  // Only the Salon has a sonomètre; other rooms omit the dB reading.
+  const hasNoise = sensors.some((s) => s.measure === "noise");
 
   // 24h temperature history for the sparkline (compressed HA shape { s: state }).
   const { entityHistory } = useHistory(idFor("temperature"), {
@@ -102,6 +105,12 @@ export function RoomSensorCard({ room }: { room: RoomId }) {
               <DropletIcon size={12} />
               {formatSensorValue(humidity.value, 0)} %
             </span>
+            {hasNoise ? (
+              <span className="inline-flex items-center gap-1">
+                <NoiseIcon size={12} />
+                {formatSensorValue(noise.value, 0)} {noise.unit ?? "dB"}
+              </span>
+            ) : null}
           </span>
         )}
       </div>

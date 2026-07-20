@@ -29,6 +29,12 @@ vi.mock("@hakit/core", () => ({
         last_changed,
         attributes: { unit_of_measurement: "%" },
       };
+    if (id.includes("noise"))
+      return {
+        state: "42",
+        last_changed,
+        attributes: { unit_of_measurement: "dB" },
+      };
     if (id.includes("batterie"))
       return { state: "80", last_changed, attributes: {} };
     return null;
@@ -98,6 +104,16 @@ describe("RoomSensorCard", () => {
   it("shows no battery for the mains-powered Salon", () => {
     renderCard("salon");
     expect(screen.queryByLabelText(/Batterie/)).toBeNull();
+  });
+
+  it("shows the noise level (dB) for the Salon's sonomètre", () => {
+    renderCard("salon");
+    expect(screen.getByText(/42 dB/)).toBeInTheDocument();
+  });
+
+  it("omits the noise reading for a bedroom (no sonomètre)", () => {
+    renderCard("nathan");
+    expect(screen.queryByText(/dB/)).toBeNull();
   });
 
   it("navigates to the room detail route on tap", () => {
