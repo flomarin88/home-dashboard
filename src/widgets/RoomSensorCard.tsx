@@ -122,7 +122,9 @@ export function RoomSensorCard({
         )}
       </div>
 
-      <div className="mt-1 h-8">
+      {/* Grows to fill the rest of the card — the room cards stretch to the
+          row height (set by the taller Climatisation / Aspirateur tiles). */}
+      <div className="mt-1 min-h-[2rem] flex-1">
         {loading ? (
           <Skeleton className="h-full w-full" />
         ) : offline ? (
