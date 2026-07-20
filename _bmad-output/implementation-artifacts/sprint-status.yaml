@@ -65,7 +65,7 @@ development_status:
   2-1-infra-de-controle-optimiste-convergence: done
   2-2-undo-des-actions-a-fort-impact: done
   2-3-eclairage-allumer-eteindre-piece-groupe: review
-  2-4-eclairage-intensite-couleur: backlog
+  2-4-eclairage-intensite-couleur: review  # impl inline (paliers + presets temp) 2026-07-20; story doc à backfiller
   2-5-volets-ouvrir-fermer-position: backlog
   2-6-climatisation-etage: done
   2-7-robot-aspirateur-roborock: done
