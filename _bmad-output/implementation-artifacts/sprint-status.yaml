@@ -44,6 +44,7 @@
 generated: 2026-07-13
 last_updated: 2026-07-20
 # EPIC 1 (Fondation) DONE — stories 1.1-1.6 done (2026-07-15). Epic-1 retrospective optional. Next: epic-2 (pilotage).
+# v2 (2026-07-20): epics 7 (Arrosage) + 8 (Courses/NutriClaude) ajoutés au backlog depuis epics.md. Aucun fichier story v2 encore créé. Task 0 hors-repo requis avant epic-8.
 project: home-dashboard
 project_key: NOKEY
 tracking_system: file-system
@@ -97,6 +98,19 @@ development_status:
   6-3-nourrir-les-tortues: done  # done 2026-07-18 — HA Task 0 (counter+automation) + device-proof validated (Florian)
   6-4-composition-barre-superieure: done  # done 2026-07-18 — device-proof validated (Florian); un-fix follow-on is a new story
   epic-6-retrospective: optional
+
+  # Epic 7 — Arrosage des plantes (v2, coordination familiale)
+  epic-7: backlog
+  7-1-tuile-arrosage: backlog
+  epic-7-retrospective: optional
+
+  # Epic 8 — Courses : surface kiosque NutriClaude (v2)
+  epic-8: backlog
+  8-1-seam-nutriclaude-tuile-courses: backlog
+  8-2-page-detail-courses-liste-par-rayon: backlog
+  8-3-pointer-un-article: backlog
+  8-4-vider-le-panier: backlog
+  epic-8-retrospective: optional
 
 # Retrospective action items (see epic-1-retro-2026-07-15.md)
 action_items:

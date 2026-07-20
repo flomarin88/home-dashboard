@@ -5,6 +5,12 @@ inputDocuments:
   - architecture/architecture-home-dashboard-2026-07-12/ARCHITECTURE-SPINE.md
   - ux-designs/ux-home-dashboard-2026-07-12/DESIGN.md
   - ux-designs/ux-home-dashboard-2026-07-12/EXPERIENCE.md
+v2StepsCompleted: [step-01-validate-prerequisites, step-02-design-epics, step-03-create-stories, step-04-final-validation]
+v2InputDocuments:
+  - prds/prd-home-dashboard-2026-07-20/prd.md
+  - architecture/architecture-home-dashboard-2026-07-20/ARCHITECTURE-DELTA-V2.md
+  - ux-designs/ux-home-dashboard-2026-07-20/UX-DELTA-V2.md
+  - spikes/spike-nutricloud-kiosk-2026-07-20.md
 ---
 
 # Home Dashboard - Epic Breakdown
@@ -503,3 +509,244 @@ So that j'ai le suivi complet du Roborock sans ouvrir son app.
 **Given** les capteurs Roborock mappés
 **When** une valeur est indisponible/obsolète
 **Then** elle relève du **pattern d'obsolescence** (AD-6) — jamais de blanc
+
+---
+
+# Home Dashboard v2 — Epic Breakdown
+
+## Overview
+
+Cette section décompose le périmètre **Home Dashboard v2** — la **couche coordination familiale** — en epics et stories implémentables, à partir du PRD v2, de l'Architecture Delta v2 (AD-12…AD-15) et de l'UX Delta v2 (UX-DR18…UX-DR22). v2 **hérite** de tout le socle v1 (Epics 1-6, design system Glass Gradient, infra optimiste/pending Epic 2, pattern d'obsolescence, `TopBarSlots`) et n'ajoute que le neuf.
+
+v2 livre **deux rituels partagés** de natures différentes : **Courses** (surface kiosque read-write sur **NutriClaude/Supabase**, 2ᵉ système de vérité borné, seam isolé `src/nutriclaude/`) et **Arrosage** (pur **HA-natif**, moule tortue de la Story 6.3). Le fil commun : le kiosque est la **vitre unique de la coordination familiale**, que l'état vive dans HA ou dans NutriClaude. Après v2, Florian ne oublie plus **ni le lait ni les plantes**, d'un geste d'enfant depuis la cuisine.
+
+> **Nommage :** l'app nutrition = **NutriClaude** (nom canonique) ; son code interne la nomme **NutriCloud**. Supabase project `ywoubvebmlhtomwgouci`.
+
+## Requirements Inventory (v2)
+
+### Functional Requirements
+
+_(Feature Courses — surface NutriClaude)_
+
+FR-1: **Tuile Courses (accueil)** — afficher le nombre d'Articles **à acheter** (`status = pending`), un aperçu des **derniers ajouts** + **qui** (`added_by`), reflet quasi-temps réel (Realtime) ; fallback « Hors ligne » ; tap → page détail.
+FR-2: **Page détail — liste par Rayon** — Articles à acheter **groupés par Rayon** (`grocery_list_by_aisle`) avec libellé, quantité/unité, provenance ; Articles **pris** distincts (section panier) ; fallback « Autres » pour un Rayon inconnu.
+FR-3: **Pointer un Article (read-write)** — tap → `status = bought` en **optimiste** (retour < 200 ms) puis **convergence** sur l'écho Realtime ; rollback sur échec ; changement **partagé** au foyer.
+FR-4: **Vider le panier (action à fort impact)** — **supprime** tous les Articles `bought` (delete direct sous RLS) ; **toast Undo 6-8 s** restaurant l'état précédent.
+FR-5: **Refléter les ajouts multi-canaux NutriClaude** — un Article ajouté hors kiosque (Siri, Google Home, iOS, Claude/MCP, app web) apparaît sur le kiosque en quasi-temps réel avec sa **provenance** ; l'app **n'implémente aucun de ces canaux**.
+
+_(Feature Arrosage — HA-natif)_
+
+FR-6: **Tuile Arrosage (barre supérieure)** — une tuile plante dans `TopBarSlots` affiche un **niveau de remplissage** reflétant l'état HA (**vide** = à faire, **plein** = fait) ; état jamais porté par la couleur seule ; obsolescence → AD-6.
+FR-7: **Marquer « arrosé »** — tap (≥ 56px) → **service HA** (`counter.increment` ou bascule `input_boolean`) ; la tuile **reflète** le compteur (pattern **reflect-only** des tortues, pas d'optimiste) ; au **quota atteint** le geste est **désactivé**.
+FR-8: **Reset quotidien (dépendance HA)** — le reset à minuit vit dans une **automation HA** ; l'app ne planifie rien ; création compteur + automation = **Task 0 HA** (hors app).
+
+### Non-Functional Requirements
+
+_(Aucun NFR neuf en v2 — les NFR v1 s'appliquent et sont étendus.)_
+
+NFR1: **Rapidité** — retour visuel de pilotage **< 200 ms** (pointer un Article en optimiste).
+NFR2: **Simplicité / enfants** — cibles tactiles **≥ 48px** (Courses) / **≥ 56px** (geste Arrosage).
+NFR4: **Robustesse** — jamais de blanc + indicateur d'obsolescence ; **étendu à une source non-HA** (NutriClaude injoignable / JWT expiré).
+NFR5: **Réseau** — NutriClaude/Supabase = source **cloud** ⇒ Courses en obsolescence si internet coupé (même classe que Netatmo/Arlo).
+NFR6: **Réversibilité** — **undo** (~6-8 s) sur « Vider le panier ».
+
+### Additional Requirements
+
+_(from Architecture Delta v2 — AD-12…AD-15, amendements AD-1/AD-2, Task 0, bords durs)_
+
+- **[AD-1 amendé — borné]** HA reste la vérité unique pour **toute la domotique + l'Arrosage** ; la feature **Courses** consomme un **2ᵉ système de vérité** (NutriClaude/Supabase), contexte borné déjà possédé par une app dédiée. **Aucun backend propre au dashboard** n'est créé — on est **client** d'un backend existant.
+- **[AD-2 amendé — 2ᵉ exception]** Le seam **`src/nutriclaude/`** (client `@supabase/supabase-js`) accède à NutriClaude. **Jamais fusionné** avec `src/hakit/` ; les deux couches d'état restent séparées (pas de store commun).
+- **[AD-12]** Source Courses : `public.grocery_list_items` (RLS foyer). Lecture = vue `grocery_list_by_aisle` (pending, `security_invoker`) + table filtrée `status='bought'`. Écriture = `update status→bought` (pointer) et `delete` des `bought` (vider). **Pas de cache persistant** (miroir AD-3). Seam isolé.
+- **[AD-13]** Auth : compte **« cuisine » dédié** membre du foyer ; login **email+password** une fois ; session (**refresh token**) en **secret runtime gitignoré, non bundlé** (extension AD-8) ; **clé `anon` + URL uniquement**, **jamais `service_role`**.
+- **[AD-14]** Optimiste + obsolescence **découplés du transport** : Courses = optimistic UI dans la **couche state** (réutilise Epic 2), **convergence via Supabase Realtime** + refetch ; obsolescence = perte Realtime / échec refresh JWT → indicateur **« Hors ligne »**, jamais de blanc.
+- **[AD-15]** Pattern **« rituel partagé »** (généralisation Epic 6) : **lire** un état partagé → **rendre** en tuile (défaut / actif / **stale**) → **faire avancer** via un service. **Transport pluggable** : `@hakit`/HA (Arrosage) ou `@supabase`/NutriClaude (Courses). Composants communs : tuile, toast Undo, indicateur d'obsolescence, planchers a11y.
+- **[Task 0 — hors-repo, préalables]** HA : entité compteur Arrosage (`counter.plantes_arrosees` 0..1 ou `input_boolean`) + automation reset minuit. NutriClaude : activer Realtime sur `grocery_list_items` ; créer + onboarder le compte « cuisine » dans le foyer ; fournir `SUPABASE_URL` + `anon key` + identifiants cuisine (secret runtime gitignoré).
+- **[Bords durs Courses]** La RPC `generate_grocery_list_from_menu` **supprime tout le pending** puis régénère → traiter la liste pending comme **remplaçable en bloc** ; un pointage optimiste peut viser une ligne disparue → **converger vers la vérité serveur**. **Pas d'`updated_at`** ⇒ convergence par refetch/Realtime, pas par timestamp. **Fallback polling 15-30 s** si Realtime pose problème.
+
+### UX Design Requirements
+
+_(from UX Delta v2 — numérotation continue après UX-DR17 de v1)_
+
+UX-DR18: **Token `accent-courses = #ff6faf` (rose)** — accent neuf, **non-vert** (vert réservé sécurité) ; usage identique aux autres accents (teinte de tuile « à acheter », glow léger, icône panier, chrome des contrôles Courses), jamais décoratif. **Arrosage n'a pas d'accent** — son état est porté par le niveau de remplissage.
+UX-DR19: **Tuile Courses (accueil)** — tuile givrée `{components.device-tile}`, teintée `accent-courses` si liste non vide ; **grand compteur** N (tabular-nums) + « à acheter » ; **aperçu des derniers Articles** + **provenance** (qui + horodatage relatif) ; chevron → détail. Obsolescence = `{components.device-tile-stale}` (bordure dashed + pill « Hors ligne » + dernier compteur), **jamais de blanc ni de spinner**. Placement = tuile de **coordination** groupée avec l'Ambiance.
+UX-DR20: **Page détail Courses (`/courses`)** — en-tête fil d'Ariane + **chip « N à acheter · M pris »** (tabular-nums) + bouton **« Vider le panier »** ; corps **groupé par Rayon** (`{components.section-card}`, en-tête restant/total) ; **scroll vertical toléré** (exception no-scroll pour page profonde) ; **ligne d'Article** = case ≥48px + libellé + quantité/unité + provenance ; Articles **pris** barrés en section « panier » ; **`{components.undo-toast}`** sur vider ; stale → interactions destructives désactivées. **Retrait de la barre « voix » du mock**.
+UX-DR21: **Provenance** = **personne** (`added_by`, prénom `display_name`) + **icône recette** si `recipe_id` ; **pas** de badge canal voix/note (correction du mock) ; **pas d'avatar** en v2.
+UX-DR22: **Tuile Arrosage (barre supérieure)** — **clone du moule `TurtleTile`** (Story 6.3) avec `maximum: 1`, dans `TopBarSlots` ; état = **niveau de remplissage** bas→haut (vide→plein) + icône plante lisible, **pas de texte de statut**, `aria-label` ; geste **≥56px** si `!done && !stale` → service HA ; **disabled** à plein jusqu'au reset ; **reflect-only** (pas d'optimiste) ; obsolescence → non-interactive.
+
+### FR Coverage Map (v2)
+
+FR-6: Epic 7 — Tuile Arrosage (remplissage, reflet HA)
+FR-7: Epic 7 — Marquer « arrosé » (service HA, reflect-only)
+FR-8: Epic 7 — Reset quotidien (automation HA, Task 0)
+FR-1: Epic 8 — Tuile Courses (accueil) : lecture, compteur pending, Realtime, obsolescence
+FR-2: Epic 8 — Page détail par Rayon
+FR-3: Epic 8 — Pointer un Article (write optimiste + convergence)
+FR-4: Epic 8 — Vider le panier (delete + undo)
+FR-5: Epic 8 — Reflet des ajouts multi-canaux (Realtime + provenance)
+
+## Epic List (v2)
+
+### Epic 7: Arrosage des plantes
+Une **tuile plante** dans la barre supérieure qui se remplit d'un tap et se réarme chaque jour via automation HA — le rituel d'arrosage quotidien visible et actionnable, sur le **moule prouvé des tortues** (Story 6.3). Pur HA-natif, reflect-only. Après cet epic, Florian voit d'un coup d'œil si l'arrosage du jour est fait et le valide d'un doigt ; le pattern « rituel partagé » (AD-15) est re-validé côté HA.
+**FRs covered:** FR-6, FR-7, FR-8
+
+### Epic 8: Courses — coordination au kiosque (surface NutriClaude)
+Le kiosque devient la **vitre read-write** de la liste de courses du foyer : voir ce qui reste à acheter, pointer d'un doigt, vider le panier — en consommant **directement** NutriClaude/Supabase, **isolément** de HA (seam isolé `src/nutriclaude/`, auth compte « cuisine », adapter optimiste/stale hors-@hakit). Après cet epic, la liste partagée du foyer se consulte et s'avance depuis la cuisine, sans rouvrir le téléphone.
+**FRs covered:** FR-1, FR-2, FR-3, FR-4, FR-5
+
+## Epic 7: Arrosage des plantes
+
+Le rituel d'arrosage quotidien, pur HA-natif, sur le moule prouvé des tortues (Story 6.3). Une tuile plante dans la barre supérieure reflète l'état HA, se valide d'un tap, se désactive au quota, et se réarme via automation HA.
+
+### Story 7.1: Tuile Arrosage (barre supérieure)
+
+_Rituel HA-natif quotidien, clone du moule `TurtleTile` (Story 6.3) avec `maximum: 1`. Reflect-only._
+
+As a Florian,
+I want une tuile plante dans la barre supérieure qui se remplit quand l'arrosage du jour est fait et se réarme chaque jour,
+So that je vois d'un coup d'œil si j'ai arrosé et je le valide d'un doigt en passant, sans y penser.
+
+**Acceptance Criteria:**
+
+**Given** l'entité HA compteur (`counter.plantes_arrosees` 0..1, ou `input_boolean`) + l'automation de reset minuit **créées côté HA (Task 0, hors app)**
+**When** l'accueil s'affiche
+**Then** une **tuile plante** s'insère dans `TopBarSlots` (Story 6.4), aux côtés de météo/tortues, **visible en permanence**, réutilisant la structure `TurtleTile`/`BinTile` (radius, `backdrop-blur`, icône SVG locale)
+
+**Given** l'état HA du compteur
+**When** la tuile se rend
+**Then** son **fond se remplit de bas en haut** — **vide** (0 = à arroser) → **plein** (1 = arrosé) — avec l'**icône plante** lisible par-dessus ; l'état est **jamais porté par la couleur seule** (UX-DR14/UX-DR22), **pas de texte de statut**, `aria-label` = « Arrosage : à faire / fait »
+
+**Given** l'arrosage du jour **pas encore fait** et l'entité **non obsolète**
+**When** je tape la tuile (cible **≥ 56px**, geste enfant NFR2)
+**Then** un **service HA** est appelé (`counter.increment` sur `counter.plantes_arrosees`, ou bascule `input_boolean`) et la tuile **reflète** le compteur en **reflect-only** (pattern des tortues — écho HA < 1 s, **pas d'optimiste local**)
+
+**Given** le compteur au **quota (plein, = 1)**
+**When** la tuile se rend
+**Then** le geste est **désactivé** (`disabled`) et la tuile **reste visible pleine** jusqu'au **reset minuit** (automation HA — l'**app ne planifie rien**, FR-8)
+
+**Given** l'entité `unavailable`/`unknown`/déconnectée
+**When** la tuile se rend
+**Then** elle passe **non interactive** (via `useEntityValue`/`isStale`) selon le pattern d'obsolescence (AD-6) — jamais de blanc
+
+## Epic 8: Courses — coordination au kiosque (surface NutriClaude)
+
+Le kiosque devient la vitre read-write de la liste de courses du foyer. Ce contexte borné (nutrition) vit dans NutriClaude/Supabase — un 2ᵉ système de vérité, consommé directement via un seam isolé `src/nutriclaude/`, jamais fusionné avec la couche HA. Les stories procèdent en tranches verticales : fonder le seam + auth + lecture (tuile), puis la page détail en lecture, puis l'écriture (pointer), puis l'action destructive (vider le panier).
+
+> **Task 0 (hors-repo, préalable à cet epic) :** activer Realtime sur `grocery_list_items` (publication `supabase_realtime`) ; créer + onboarder le compte « cuisine » dans le foyer ; fournir au kiosque `SUPABASE_URL` + `anon key` + identifiants cuisine (secret runtime gitignoré).
+
+### Story 8.1: Seam NutriClaude & tuile Courses (lecture)
+
+_Tracer bullet : établit le seam isolé, l'auth compte « cuisine », le chemin de lecture Realtime, et la tuile d'accueil. Livre le coup d'œil (FR-1) et le reflet multi-canaux (FR-5) sur la tuile. Fonde AD-12/AD-13/AD-14._
+
+As a Florian,
+I want une tuile Courses sur l'accueil qui reflète en quasi-temps réel le nombre d'Articles à acheter du foyer et les derniers ajouts,
+So that je vois d'un coup d'œil ce qu'il reste à acheter sans rouvrir mon téléphone.
+
+**Acceptance Criteria:**
+
+**Given** un seam isolé `src/nutriclaude/` (client `@supabase/supabase-js`) **jamais fusionné** avec `src/hakit/` (AD-2, 2ᵉ exception) et le **compte « cuisine »** onboardé dans le foyer (Task 0 NutriClaude)
+**When** l'app démarre
+**Then** le client Supabase s'authentifie **une fois** (email+password), persiste la **session (refresh token)** depuis un **secret runtime gitignoré, non bundlé** (AD-13/AD-8), en **`anon key` + URL uniquement** (jamais `service_role`)
+**And** aucun secret n'apparaît dans le bundle ni dans le dépôt
+
+**Given** la RLS foyer active (`grocery_all`, `household_id = current_household_id()`)
+**When** la tuile lit l'état
+**Then** elle affiche un **grand compteur N** d'Articles `pending` (`{typography.numeric-lg}`, tabular-nums) + label « à acheter », borné au foyer par la RLS
+
+**Given** des Articles présents
+**When** la tuile se rend
+**Then** elle est **teintée `accent-courses` (#ff6faf)** si la liste est non vide (neutre si vide), montre l'**icône panier**, un **aperçu des derniers Articles** (ex. « Poivrons, Lait, Café +9 ») et la **provenance de la dernière maj** = *qui* (`added_by`, prénom) + horodatage relatif
+**And** un **chevron** ouvre la page détail (AD-10)
+
+**Given** un Article ajouté **hors kiosque** (Siri, Google Home, iOS/Shortcut, Claude/MCP, app web NutriClaude)
+**When** l'écho **Realtime** arrive (abonnement sur `grocery_list_items` ; **fallback polling 15-30 s** si Realtime indisponible)
+**Then** le compteur et l'aperçu se mettent à jour en **quasi-temps réel** avec la provenance — **sans** que l'app implémente aucun de ces canaux (FR-5)
+
+**Given** NutriClaude **injoignable** (réseau coupé, JWT expiré, perte de l'abonnement Realtime)
+**When** la tuile se rend
+**Then** elle applique `{components.device-tile-stale}` — **dernier compteur connu** + **pill « Hors ligne »** primaire, **jamais de blanc ni de spinner** (équivalent AD-6 pour source non-HA, AD-14)
+
+### Story 8.2: Page détail « Courses » — liste par Rayon (lecture)
+
+_Page profonde (AD-10) en lecture seule : tous les Articles groupés par Rayon, section panier pour les pris. Reflète les ajouts multi-canaux (FR-5) sur la page._
+
+As a Florian,
+I want une page détail qui liste tous les Articles groupés par Rayon,
+So that je vois précisément ce qu'il reste à acheter, organisé comme mon parcours en magasin.
+
+**Acceptance Criteria:**
+
+**Given** la tuile Courses (Story 8.1) et le seam NutriClaude
+**When** je tape la tuile
+**Then** une **page détail `/courses`** s'ouvre (navigation un niveau, AD-10) avec un **en-tête** = fil d'Ariane « ‹ Accueil · Liste de courses » + **chip de progression** « N à acheter · M pris » (tabular-nums)
+**And** un retour ramène à l'accueil
+
+**Given** des Articles `pending`
+**When** la page se rend
+**Then** ils sont **groupés par Rayon** via la vue `grocery_list_by_aisle` (déjà triée), chaque groupe = **carte de rayon** (`{components.section-card}`) avec en-tête (icône + nom + **restant/total**)
+**And** chaque **ligne** montre le libellé + **quantité/unité** si présentes (tabular-nums) + **provenance** = prénom (`added_by`, `display_name`) + **icône recette** si `recipe_id` (pas de badge canal, pas d'avatar — UX-DR21)
+
+**Given** des Articles `bought`
+**When** la page se rend
+**Then** ils apparaissent **barrés**, atténués, regroupés en **section « panier »** en fin de groupe (lus sur `grocery_list_items` filtré `status='bought'`)
+
+**Given** un Article dont le Rayon est inconnu
+**When** la page se rend
+**Then** il tombe dans un groupe **« Autres »** — pas d'erreur, pas de blanc
+
+**Given** la liste dépasse 1024×768
+**When** la page se rend
+**Then** un **scroll vertical est toléré** sur cette page profonde (exception au no-scroll, qui reste strict sur l'accueil)
+
+**Given** un ajout hors kiosque (Realtime) ou NutriClaude injoignable
+**When** la page est ouverte
+**Then** elle **reflète** les nouveaux Articles en quasi-temps réel (FR-5) ; si injoignable → état **stale** (dernier état + pill « Hors ligne »)
+
+### Story 8.3: Pointer un Article (write optimiste + convergence)
+
+_Introduit le chemin d'écriture et l'adapter optimiste hors-@hakit (AD-14). Réutilise la couche state d'Epic 2, transport Supabase._
+
+As a Florian,
+I want cocher un Article d'un tap depuis le kiosque pour le marquer pris,
+So that je fais avancer la liste partagée du foyer sans rouvrir mon téléphone.
+
+**Acceptance Criteria:**
+
+**Given** la page détail `/courses` (Story 8.2) avec des Articles `pending`
+**When** je tape un Article (ligne ou case, cible **≥ 48px**)
+**Then** il passe **`bought`** en **optimiste** (retour visuel **< 200 ms**, NFR1) via l'adapter de la **couche state** (réutilise l'infra Epic 2, transport = Supabase, **pas @hakit** — AD-14)
+**And** l'état **converge** ensuite sur l'écho **Realtime** / refetch
+
+**Given** l'écriture `update({status:'bought'}).eq('id', …)` sous RLS foyer
+**When** elle réussit
+**Then** le changement est **partagé** — il apparaît sur les autres surfaces NutriClaude du foyer
+
+**Given** l'écriture échoue (timeout, erreur réseau, ou ligne disparue suite à une régénération `generate_grocery_list_from_menu`)
+**When** la convergence détecte l'échec
+**Then** l'état optimiste est **rollback vers la vérité serveur** (pas d'assumption destructive) et l'échec est **signalé** ; un pointage visant une ligne supprimée converge sans casser
+
+### Story 8.4: Vider le panier (action à fort impact + undo)
+
+_Action destructive bornée foyer avec fenêtre d'undo, sur le pattern de la Story 2.2. Delete direct sous RLS (pas d'Edge Function côté NutriClaude)._
+
+As a Florian,
+I want retirer d'un geste tous les Articles pris,
+So that je nettoie la liste après les courses sans cocher-supprimer un par un.
+
+**Acceptance Criteria:**
+
+**Given** la page détail avec des Articles `bought` (section panier)
+**When** je tape **« Vider le panier »**
+**Then** un **toast Undo 6-8 s** (`{components.undo-toast}`, « Annuler » ≥52px, compte à rebours — NFR6, Story 2.2) s'affiche et **couvre** l'action
+
+**Given** la fenêtre d'undo **écoulée sans annulation**
+**When** elle expire
+**Then** l'écriture **`delete().eq('status','bought')`** bornée foyer part (delete direct sous RLS ; **pas d'Edge Function**) et supprime tous les Articles `bought`
+
+**Given** je tape **« Annuler »** pendant la fenêtre
+**When** l'undo se déclenche
+**Then** l'état précédent est **restauré** (compensation côté couche state avant flush, ou snapshot local restauré) — **aucun delete n'est parti**
+
+**Given** NutriClaude injoignable (page en état stale)
+**When** la page se rend
+**Then** l'action destructive « Vider le panier » est **désactivée** (interactions non destructives seules)

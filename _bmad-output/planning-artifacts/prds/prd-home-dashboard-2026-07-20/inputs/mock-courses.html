@@ -1,0 +1,239 @@
+<!-- Mock fourni par Florian le 2026-07-20 — input de design pour la feature Courses (v2).
+     Tuile Accueil (compteur + peek + badge provenance) + page Détail (liste par rayon,
+     pointage tactile, sources voix/note iOS, "Vider le panier"). Sert d'input à l'étape UX (bmad-ux). -->
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1024, height=768, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Liste de courses — tuile + détail</title>
+<style>
+  :root{
+    --g-indigo:#1a1140; --g-teal:#122a3a; --g-magenta:#251034;
+    --card:rgba(255,255,255,.06); --card-bd:rgba(255,255,255,.12);
+    --tile:rgba(255,255,255,.04); --tile-bd:rgba(255,255,255,.10);
+    --text:#f2f4fa; --muted:#aab3c8; --muted2:#7d849c;
+    --list:#5fd39a; --list-soft:rgba(95,211,154,.14); --list-bd:rgba(95,211,154,.5);
+    --amber:#ffb23e; --blue:#4aa3ff;
+    --r-md:14px; --r-lg:20px; --r-sm:9px;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;}
+  body{font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:#000;display:flex;flex-direction:column;align-items:center;gap:22px;padding:22px 0;}
+  .num{font-variant-numeric:tabular-nums;}
+  .tabs{display:flex;gap:8px;}
+  .tabs button{background:#1a1533;color:#cdd2e8;border:1px solid #2c2e4a;border-radius:10px;padding:8px 16px;font-size:13px;cursor:pointer;}
+  .tabs button.on{background:var(--list);color:#04231a;border-color:var(--list);font-weight:700;}
+  .frame{width:1024px;height:768px;position:relative;overflow:hidden;border-radius:14px;color:var(--text);user-select:none;
+    background-color:var(--g-indigo);
+    background-image:radial-gradient(1200px 800px at 15% 8%, rgba(88,66,168,.35), transparent 60%),
+      radial-gradient(1000px 720px at 85% 92%, rgba(74,26,96,.45), transparent 60%),
+      linear-gradient(135deg,var(--g-indigo),var(--g-teal) 50%,var(--g-magenta));
+    padding:18px 20px;display:flex;flex-direction:column;}
+  .screen{display:none;flex-direction:column;height:100%;}
+  .screen.active{display:flex;}
+
+  /* top bar */
+  .topbar{display:flex;align-items:center;gap:12px;margin-bottom:14px;}
+  .clock .h{font-size:30px;font-weight:600;letter-spacing:-.02em;line-height:1;}
+  .clock .d{font-size:12px;color:var(--muted);margin-top:3px;}
+  .pill{display:flex;align-items:center;gap:8px;height:44px;padding:0 13px;background:var(--card);border:1px solid var(--card-bd);border-radius:14px;font-size:13px;}
+  .pill .sub{color:var(--muted);font-size:11px;}
+  .spacer{flex:1;}
+  .chip{display:flex;align-items:center;gap:9px;height:44px;padding:0 15px;border-radius:14px;border:1px solid var(--card-bd);background:var(--card);font-size:13px;}
+  .chip .dot{width:9px;height:9px;border-radius:50%;background:var(--muted2);}
+
+  /* ---------- HOME (context + tile) ---------- */
+  .home-body{flex:1;display:flex;flex-direction:column;gap:14px;min-height:0;}
+  .sect-h{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:2px;}
+  .grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;}
+  .mini-tile{background:var(--tile);border:1px solid var(--tile-bd);border-radius:var(--r-md);padding:11px 13px;}
+  .mini-tile .nm{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px;}
+  .mini-tile .tp{font-size:22px;font-weight:600;margin-top:2px;}
+  .mini-tile .mt{font-size:11px;color:var(--muted);margin-top:1px;}
+
+  /* the shopping tile (compact, ~236px cell) */
+  .courses-tile{background:var(--card);border:1px solid var(--list-bd);border-radius:var(--r-md);padding:14px;cursor:pointer;
+    box-shadow:0 0 22px var(--list-soft);display:flex;flex-direction:column;transition:.2s;position:relative;}
+  .courses-tile:hover{box-shadow:0 0 30px rgba(95,211,154,.25);}
+  .ct-head{display:flex;align-items:center;gap:9px;}
+  .ct-ic{width:30px;height:30px;border-radius:9px;background:var(--list-soft);color:var(--list);display:flex;align-items:center;justify-content:center;flex:none;}
+  .ct-title{font-size:14px;font-weight:600;flex:1;}
+  .ct-chev{color:var(--muted2);}
+  .ct-count{display:flex;align-items:baseline;gap:8px;margin:10px 0 8px;}
+  .ct-count .n{font-size:40px;font-weight:700;color:var(--list);line-height:1;letter-spacing:-.02em;}
+  .ct-count .lab{font-size:13px;color:var(--muted);}
+  .ct-peek{font-size:12px;color:var(--muted);line-height:1.5;border-top:1px solid var(--tile-bd);padding-top:9px;}
+  .ct-peek b{color:var(--text);font-weight:600;}
+  .ct-src{display:flex;align-items:center;gap:7px;font-size:11px;color:var(--muted2);margin-top:9px;}
+  .ct-src svg{opacity:.8;}
+
+  /* ---------- DETAIL ---------- */
+  .crumb{display:flex;align-items:center;gap:10px;font-size:14px;margin-bottom:6px;}
+  .crumb .back{color:var(--muted);cursor:pointer;display:flex;align-items:center;gap:5px;}
+  .crumb .cur{font-weight:600;}
+  .crumb .prog{margin-left:6px;font-size:12px;color:var(--list);background:var(--list-soft);padding:4px 11px;border-radius:20px;font-weight:600;}
+  .crumb .clear{margin-left:auto;font-size:13px;color:var(--muted);background:var(--card);border:1px solid var(--card-bd);border-radius:10px;padding:9px 14px;cursor:pointer;display:flex;align-items:center;gap:7px;}
+  .voice-hint{display:flex;align-items:center;gap:14px;font-size:12px;color:var(--muted);margin-bottom:12px;}
+  .voice-hint .vh{display:inline-flex;align-items:center;gap:7px;background:var(--tile);border:1px solid var(--tile-bd);border-radius:10px;padding:6px 11px;}
+  .voice-hint .vh svg{color:var(--list);}
+  .voice-hint code{color:var(--text);font-family:inherit;}
+
+  .detail-grid{flex:1;display:grid;grid-template-columns:repeat(3,1fr);gap:14px;min-height:0;align-content:start;grid-auto-rows:min-content;}
+  .cat-card{background:var(--card);border:1px solid var(--card-bd);border-radius:var(--r-lg);padding:12px 14px;box-shadow:0 8px 30px rgba(0,0,0,.25);}
+  .cat-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+  .cat-head .t{font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);display:flex;align-items:center;gap:7px;}
+  .cat-head .c{font-size:11px;color:var(--muted2);}
+  .items{display:flex;flex-direction:column;gap:6px;}
+  .item{display:flex;align-items:center;gap:11px;min-height:48px;padding:6px 8px;border-radius:10px;cursor:pointer;transition:.15s;}
+  .item:active{background:rgba(255,255,255,.04);}
+  .cbox{width:26px;height:26px;border-radius:8px;border:2px solid var(--muted2);flex:none;display:flex;align-items:center;justify-content:center;color:#04231a;transition:.15s;}
+  .cbox svg{opacity:0;}
+  .item .lbl{flex:1;font-size:15px;color:var(--text);}
+  .item .qty{font-size:12px;color:var(--muted2);}
+  .item .src{color:var(--muted2);flex:none;}
+  .item.done .cbox{background:var(--list);border-color:var(--list);}
+  .item.done .cbox svg{opacity:1;}
+  .item.done .lbl{color:var(--muted2);text-decoration:line-through;}
+  .item.done .qty,.item.done .src{opacity:.5;}
+  .done-sep{font-size:10.5px;color:var(--muted2);text-transform:uppercase;letter-spacing:.05em;margin:10px 2px 4px;}
+  .hint{position:absolute;bottom:8px;right:14px;font-size:10px;color:var(--muted2);}
+</style>
+</head>
+<body>
+<div class="tabs">
+  <button id="tab-home" class="on" onclick="show('home')">① Accueil — tuile</button>
+  <button id="tab-detail" onclick="show('detail')">② Détail — pointage</button>
+</div>
+
+<div class="frame">
+  <!-- ================= HOME ================= -->
+  <div class="screen active" id="home">
+    <div class="topbar">
+      <div class="clock"><div class="h num">17:05</div><div class="d">Lundi 20 Juillet</div></div>
+      <div class="pill"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#ffb23e" stroke-width="2"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2M12 20v2M4 12H2M22 12h-2M5 5l1.5 1.5M17.5 17.5 19 19M19 5l-1.5 1.5M6.5 17.5 5 19"/></svg><span class="num"><b>29.9°</b></span><span class="sub">Ext.</span></div>
+      <div class="spacer"></div>
+      <div class="chip"><span class="dot"></span>Désarmé</div>
+      <div class="chip">Caméras</div>
+    </div>
+
+    <div class="home-body">
+      <div>
+        <div class="sect-h">RDC</div>
+        <div class="grid4">
+          <div class="mini-tile"><div class="nm">Salon</div><div class="tp num">25.1°</div><div class="mt num">CO₂ 650 · 42%</div></div>
+          <div class="mini-tile"><div class="nm">Cuisine</div><div class="tp num">24.6°</div><div class="mt num">CO₂ 690 · 45%</div></div>
+          <!-- ★ Tuile Liste de courses -->
+          <div class="courses-tile" onclick="show('detail')">
+            <div class="ct-head">
+              <span class="ct-ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5h2l2.4 12.4a1 1 0 0 0 1 .8h8.2a1 1 0 0 0 1-.8L21 8H7"/><circle cx="10" cy="21" r="1"/><circle cx="18" cy="21" r="1"/></svg></span>
+              <span class="ct-title">Courses</span>
+              <span class="ct-chev"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg></span>
+            </div>
+            <div class="ct-count"><span class="n num" id="homeN">12</span><span class="lab">à acheter</span></div>
+            <div class="ct-peek">Derniers ajouts : <b>Poivrons</b>, <b>Lait</b>, <b>Café</b> +9</div>
+            <div class="ct-src">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>
+              maj vocale il y a 2 min
+            </div>
+          </div>
+          <div class="mini-tile"><div class="nm">Bureau</div><div class="tp">Éteint</div><div class="mt">Lumière</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= DETAIL ================= -->
+  <div class="screen" id="detail">
+    <div class="topbar">
+      <div class="clock"><div class="h num">17:05</div><div class="d">Lundi 20 Juillet</div></div>
+      <div class="pill"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#ffb23e" stroke-width="2"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2M12 20v2M4 12H2M22 12h-2M5 5l1.5 1.5M17.5 17.5 19 19M19 5l-1.5 1.5M6.5 17.5 5 19"/></svg><span class="num"><b>29.9°</b></span><span class="sub">Ext.</span></div>
+      <div class="spacer"></div>
+      <div class="chip"><span class="dot"></span>Désarmé</div>
+      <div class="chip">Caméras</div>
+    </div>
+
+    <div class="crumb">
+      <span class="back" onclick="show('home')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 6l-6 6 6 6"/></svg>Accueil</span>
+      <span class="cur">Liste de courses</span>
+      <span class="prog" id="prog">12 à acheter · 3 pris</span>
+      <button class="clear" onclick="clearBought()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg>Vider le panier</button>
+    </div>
+
+    <div class="voice-hint">
+      <span class="vh"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg><code>« Ok Google, ajoute des poivrons »</code></span>
+      <span class="vh"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2"><path d="M4 4h16v16H4z"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>Note partagée iOS synchronisée</span>
+    </div>
+
+    <div class="detail-grid" id="grid"></div>
+    <div class="hint">Toucher un article = acheté</div>
+  </div>
+</div>
+
+<script>
+  // category → items [{name, qty, src:'voice'|'note', done}]
+  const DATA=[
+    {cat:'Fruits & légumes', icon:'leaf', items:[
+      {n:'Poivrons', q:'x3', s:'voice'},{n:'Tomates', q:'', s:'voice'},{n:'Bananes', q:'', s:'note'},
+      {n:'Salade', q:'', s:'note'},{n:'Citrons', q:'x4', s:'voice', done:true}]},
+    {cat:'Frais', icon:'milk', items:[
+      {n:'Lait', q:'x2', s:'voice'},{n:'Yaourts', q:'', s:'note'},{n:'Beurre', q:'', s:'voice', done:true},{n:'Œufs', q:'', s:'note'}]},
+    {cat:'Épicerie', icon:'box', items:[
+      {n:'Café', q:'', s:'voice'},{n:'Pâtes', q:'x2', s:'note'},{n:'Riz', q:'', s:'note'},{n:'Huile d’olive', q:'', s:'voice', done:true}]},
+    {cat:'Maison', icon:'home', items:[
+      {n:'Éponges', q:'', s:'note'},{n:'Sacs poubelle', q:'', s:'voice'}]},
+  ];
+
+  const ICON={
+    leaf:'<path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6"/>',
+    milk:'<path d="M8 2h8M8 2l-1 4v14a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V6l-1-4M7 9h10"/>',
+    box:'<path d="M21 8 12 3 3 8l9 5 9-5zM3 8v8l9 5 9-5V8"/>',
+    home:'<path d="M3 10 12 3l9 7M5 9v11h14V9"/>',
+  };
+  const SRC={
+    voice:'<path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/>',
+    note:'<path d="M4 4h16v16H4z"/><path d="M8 8h8M8 12h8M8 16h5"/>',
+  };
+
+  function render(){
+    const grid=document.getElementById('grid'); grid.innerHTML='';
+    DATA.forEach((c,ci)=>{
+      const remaining=c.items.filter(i=>!i.done).length;
+      const card=document.createElement('div'); card.className='cat-card';
+      card.innerHTML=`<div class="cat-head"><span class="t"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--list)" stroke-width="2">${ICON[c.icon]}</svg>${c.cat}</span><span class="c num">${remaining}/${c.items.length}</span></div>`;
+      const wrap=document.createElement('div'); wrap.className='items';
+      // sort: not-done first, done last
+      const order=[...c.items].sort((a,b)=>(a.done===b.done)?0:(a.done?1:-1));
+      let sepAdded=false;
+      order.forEach(it=>{
+        const realIdx=c.items.indexOf(it);
+        if(it.done && !sepAdded){ const sep=document.createElement('div'); sep.className='done-sep'; sep.textContent='Dans le panier'; wrap.appendChild(sep); sepAdded=true; }
+        const row=document.createElement('div'); row.className='item'+(it.done?' done':'');
+        row.innerHTML=`<span class="cbox"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg></span>
+          <span class="lbl">${it.n}</span>${it.q?`<span class="qty num">${it.q}</span>`:''}
+          <span class="src"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">${SRC[it.s]}</svg></span>`;
+        row.onclick=()=>{ it.done=!it.done; render(); };
+        wrap.appendChild(row);
+      });
+      card.appendChild(wrap); grid.appendChild(card);
+    });
+    updateCounts();
+  }
+  function updateCounts(){
+    const all=DATA.flatMap(c=>c.items);
+    const toBuy=all.filter(i=>!i.done).length, bought=all.filter(i=>i.done).length;
+    document.getElementById('prog').textContent=`${toBuy} à acheter · ${bought} pris`;
+    document.getElementById('homeN').textContent=toBuy;
+  }
+  function clearBought(){ DATA.forEach(c=>c.items=c.items.filter(i=>!i.done)); render(); }
+
+  function show(w){
+    document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+    document.getElementById(w).classList.add('active');
+    document.getElementById('tab-home').classList.toggle('on',w==='home');
+    document.getElementById('tab-detail').classList.toggle('on',w==='detail');
+  }
+  render();
+</script>
+</body>
+</html>
