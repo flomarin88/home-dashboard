@@ -124,8 +124,6 @@ export function WeatherDetailContent({ cfg }: { cfg: WeatherConfig }) {
                 <DropletIcon size={16} />
                 {formatSensorValue(humidity.value, 0)} %
               </span>
-            </div>
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-meta tabular-nums text-text-muted">
               <span className="inline-flex items-center gap-1">
                 <SunriseIcon size={16} />
                 {formatSunTime(sunrise.value)}
