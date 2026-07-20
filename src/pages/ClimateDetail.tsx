@@ -12,6 +12,7 @@ import {
   StatePill,
   PowerToggle,
 } from "../widgets/ClimateControls";
+import { ClimateTimeline } from "../widgets/ClimateTimeline";
 import { OfflinePill } from "../ui/OfflinePill";
 import { SPARKLINE_HOURS } from "../config";
 
@@ -77,21 +78,29 @@ export function ClimateDetailContent({ entry }: { entry: EntityEntry }) {
           <Tile>
             <ClimateControls c={c} />
           </Tile>
-          <Tile>
-            <div className="flex items-baseline justify-between gap-2">
-              <span className="text-label font-semibold text-text-muted">
-                Température · 24 h
-              </span>
-              {c.ambient != null ? (
-                <span className="text-label font-semibold tabular-nums text-accent-climate">
-                  {c.ambient}°C
+          <div className="flex min-h-0 flex-col gap-grid-gap">
+            <Tile className="min-h-0 flex-1">
+              <div className="flex items-baseline justify-between gap-2">
+                <span className="text-label font-semibold text-text-muted">
+                  Température · 24 h
                 </span>
-              ) : null}
-            </div>
-            <div className="min-h-0 flex-1">
-              <TempHistory entry={entry} setpoint={c.setpointValue} />
-            </div>
-          </Tile>
+                {c.ambient != null ? (
+                  <span className="text-label font-semibold tabular-nums text-accent-climate">
+                    {c.ambient}°C
+                  </span>
+                ) : null}
+              </div>
+              <div className="min-h-0 flex-1">
+                <TempHistory entry={entry} setpoint={c.setpointValue} />
+              </div>
+            </Tile>
+            <Tile>
+              <span className="text-label font-semibold text-text-muted">
+                Mode &amp; vitesse · 24 h
+              </span>
+              <TimelineCard entry={entry} />
+            </Tile>
+          </div>
         </div>
       )}
     </div>
@@ -132,6 +141,28 @@ function TempHistory({
       />
     </Suspense>
   );
+}
+
+/** The Mode/Vitesse 24 h bands, from the climate entity's OWN history — one call
+ * carries the mode (state `s`) and the fan speed (attribute `a.fan_mode`).
+ * `minimalResponse:false` keeps attributes on every row so the Vitesse band has
+ * data (Onecta is polled → the history is coarse; the bands degrade gracefully). */
+function TimelineCard({ entry }: { entry: EntityEntry }) {
+  const id = entry.entityId as EntityName;
+  const { entityHistory } = useHistory(id, {
+    hoursToShow: SPARKLINE_HOURS,
+    minimalResponse: false,
+    significantChangesOnly: false,
+  });
+  const points = entityHistory
+    .map((h) => {
+      const a = h.a as { fan_mode?: string } | undefined;
+      return { t: (h.lc ?? h.lu) * 1000, mode: h.s, fan: a?.fan_mode ?? null };
+    })
+    .filter((p) => Number.isFinite(p.t));
+  const endMs = Date.now();
+  const startMs = endMs - SPARKLINE_HOURS * 3600 * 1000;
+  return <ClimateTimeline points={points} startMs={startMs} endMs={endMs} />;
 }
 
 /** A frosted tile container (no titled section chrome). */

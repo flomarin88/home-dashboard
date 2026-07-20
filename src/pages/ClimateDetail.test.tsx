@@ -205,8 +205,13 @@ describe("ClimateDetail (Intent B)", () => {
   it("renders the 24 h temperature history chart", async () => {
     renderPage();
     expect(
-      await screen.findByRole("img", { name: /Historique/i }),
+      await screen.findByRole("img", { name: /Température/i }),
     ).toBeInTheDocument();
+  });
+
+  it("renders the Mode & vitesse timeline section", () => {
+    renderPage();
+    expect(screen.getByText(/Mode & vitesse · 24 h/)).toBeInTheDocument();
   });
 
   it("back link navigates home", () => {

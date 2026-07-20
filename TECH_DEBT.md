@@ -187,3 +187,10 @@ _Source: U1 rework (2026-07-20) — floor pills replaced by a floor-grouped home
   = [Clim, Parents, Gaspard, Nathan] (4 col), RDC = [Salon, Aspirateur] (2 col).
   The lone-Salon-at-1/3 concern above is resolved. New device-check item: the
   compact ClimateTile at 1/4 width (its −/+ stepper) — confirm it reads well.
+- **Progress (Intent B2, 2026-07-20):** the Mode/Vitesse 24 h timeline shipped on
+  the detail page (`ClimateTimeline`, from `useHistory(climateId,
+{minimalResponse:false})`). The detail's right column is now two stacked tiles
+  (Température chart + timeline) — add to the device check: no-scroll on the
+  detail page. The Vitesse band's real density depends on how often HA recorded
+  `fan_mode` changes on the polled Onecta entity — it degrades to fewer segments,
+  never blank.
