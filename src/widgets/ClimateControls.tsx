@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import type { ClimateState } from "./useClimate";
 import type { ClimateModeTarget } from "../state/control-model";
 import {
@@ -74,7 +75,8 @@ export function ClimateControls({ c }: { c: ClimateState }) {
           label="Vitesse"
           values={c.fanModes}
           current={c.fanValue}
-          render={fanLabel}
+          render={fanRender}
+          ariaLabelFor={fanLabel}
           onSelect={c.commitFan}
           disabled={c.isOff}
         />
@@ -140,13 +142,17 @@ function Segmented({
   values,
   current,
   render,
+  ariaLabelFor,
   onSelect,
   disabled,
 }: {
   label: string;
   values: readonly string[];
   current: string | null;
-  render: (v: string) => string;
+  render: (v: string) => ReactNode;
+  /** Accessible name per segment when `render` returns an icon (else the text
+   * content is the name). */
+  ariaLabelFor?: (v: string) => string;
   onSelect: (v: string) => void;
   disabled: boolean;
 }) {
@@ -164,6 +170,7 @@ function Segmented({
               type="button"
               disabled={disabled}
               onClick={() => onSelect(v)}
+              aria-label={ariaLabelFor ? ariaLabelFor(v) : undefined}
               className={`inline-flex min-h-[48px] min-w-0 flex-1 items-center justify-center rounded-sm border px-2 text-meta font-semibold ${
                 active
                   ? "border-accent-climate/50 bg-accent-climate/15 text-accent-climate"
@@ -176,6 +183,53 @@ function Segmented({
         })}
       </div>
     </div>
+  );
+}
+
+/** Fan-speed segment content: icons for the wordy modes (Auto / Silencieux),
+ * digits for the numeric speeds — keeps 7 segments legible in the narrow
+ * column. The accessible name is preserved via `ariaLabelFor={fanLabel}`. */
+function fanRender(v: string): ReactNode {
+  if (v === "Auto" || v === "auto") return <FanAutoIcon />;
+  if (v === "Quiet" || v === "quiet") return <FanQuietIcon />;
+  return fanLabel(v);
+}
+
+/** "Auto" fan speed — the auto zigzag (same language as the Auto hvac mode). */
+function FanAutoIcon() {
+  return (
+    <svg
+      width={18}
+      height={18}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <path d="M4 18 9 6l5 12M5.5 14h7M15 6h4M17 6v12M15 18h4" />
+    </svg>
+  );
+}
+
+/** "Silencieux" (Quiet) — a crescent moon, the AC remote's sleep/quiet glyph. */
+function FanQuietIcon() {
+  return (
+    <svg
+      width={18}
+      height={18}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" />
+    </svg>
   );
 }
 
