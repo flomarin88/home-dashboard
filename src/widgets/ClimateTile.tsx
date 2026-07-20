@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import type { EntityEntry } from "../entities";
 import { useClimate, type ClimateState } from "./useClimate";
-import { SetpointStepper, ClimateIcon } from "./ClimateControls";
+import { SetpointStepper, ClimateIcon, PowerToggle } from "./ClimateControls";
 import { OfflinePill } from "../ui/OfflinePill";
 import { hvacModeLabel, fanLabel, formatSetpoint } from "./climate-status";
 
@@ -42,20 +42,24 @@ export function ClimateTile({ entry }: { entry: EntityEntry }) {
       data-domain="climate"
       className="flex flex-col gap-3 rounded-md border border-tile-border bg-tile-fill px-4 py-3"
     >
-      {/* Header — tap to open the full controls on /climatisation */}
-      <button
-        type="button"
-        onClick={() => navigate("/climatisation")}
-        aria-label="Ouvrir le détail de la climatisation"
-        className="flex min-h-[44px] items-center gap-2 text-left"
-      >
-        <ClimateIcon />
-        <span className="text-label font-semibold text-text">
-          Climatisation
-        </span>
-        <span className="flex-1" />
-        <Chevron />
-      </button>
+      {/* Header — title taps through to /climatisation; power toggle top-right
+          (siblings, never nested, so tapping the toggle doesn't navigate). */}
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() => navigate("/climatisation")}
+          aria-label="Ouvrir le détail de la climatisation"
+          className="flex min-h-[44px] flex-1 items-center gap-2 text-left"
+        >
+          <ClimateIcon />
+          <span className="text-label font-semibold text-text">
+            Climatisation
+          </span>
+          <span className="flex-1" />
+          <Chevron />
+        </button>
+        <PowerToggle on={!c.isOff} onToggle={c.togglePower} />
+      </div>
 
       {/* Temperature — the only thing the tile controls */}
       {c.hasSetpoint ? (
