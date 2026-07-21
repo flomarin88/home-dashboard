@@ -14,8 +14,15 @@ export function formatPreview(
   pendingCount: number,
   maxShown = 3,
 ): string {
-  if (pendingCount <= 0 || names.length === 0) return "";
-  const shown = names.slice(0, maxShown);
+  if (pendingCount <= 0) return "";
+  // Drop blank names (a null DB name coerces to "") so the join never yields a
+  // dangling ", ,". Clamp the shown count to pendingCount: the count and the
+  // preview come from two separate reads and can briefly disagree, which would
+  // otherwise make `remaining` negative (a silently dropped "+N") or list more
+  // names than the headline claims are pending.
+  const nonEmpty = names.filter((n) => n.trim().length > 0);
+  if (nonEmpty.length === 0) return "";
+  const shown = nonEmpty.slice(0, Math.min(maxShown, pendingCount));
   const remaining = pendingCount - shown.length;
   const head = shown.join(", ");
   return remaining > 0 ? `${head} +${remaining}` : head;

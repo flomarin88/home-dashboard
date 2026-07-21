@@ -106,7 +106,7 @@ development_status:
 
   # Epic 8 — Courses : surface kiosque NutriClaude (v2)
   epic-8: in-progress
-  8-1-seam-nutriclaude-tuile-courses: review  # dev 2026-07-21 ; 248 tests verts ; reste Task 0 NutriClaude + device-proof (Florian)
+  8-1-seam-nutriclaude-tuile-courses: done  # review 2026-07-21 : 7 patchs appliqués, 257 tests verts ; reste Task 0 NutriClaude + device-proof (Florian)
   8-2-page-detail-courses-liste-par-rayon: backlog
   8-3-pointer-un-article: backlog
   8-4-vider-le-panier: backlog

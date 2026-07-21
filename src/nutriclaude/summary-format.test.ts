@@ -23,6 +23,21 @@ describe("formatPreview", () => {
   it("respects a custom maxShown", () => {
     expect(formatPreview(["A", "B", "C"], 5, 1)).toBe("A +4");
   });
+
+  it("never shows more names than the count (clamps a transient count<names skew)", () => {
+    // Preview read returned 3 rows but the count read says 2 pending.
+    expect(formatPreview(["A", "B", "C"], 2)).toBe("A, B");
+  });
+
+  it("drops blank names so the join has no dangling comma", () => {
+    expect(formatPreview(["Poivrons", "", "Café"], 3)).toBe(
+      "Poivrons, Café +1",
+    );
+  });
+
+  it("is empty when every known name is blank", () => {
+    expect(formatPreview(["", "   "], 2)).toBe("");
+  });
 });
 
 describe("formatRelativeTime", () => {

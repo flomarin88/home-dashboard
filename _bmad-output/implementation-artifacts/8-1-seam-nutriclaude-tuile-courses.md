@@ -4,7 +4,7 @@ baseline_commit: 54e239b0d1cc4404bab155e33bcd7b6f836a5a91
 
 # Story 8.1: Seam NutriClaude & tuile Courses (lecture)
 
-Status: review
+Status: done
 
 <!-- Ultimate context engine analysis completed - comprehensive developer guide created (2026-07-20). -->
 <!-- Tracer bullet d'Epic 8 : établit le 2ᵉ backend (NutriClaude/Supabase) derrière un seam isolé, en LECTURE, et le rend visible via la tuile Courses de l'accueil. Les écritures (pointer/vider) sont les stories 8.3/8.4. -->
@@ -190,3 +190,29 @@ claude-opus-4-8 (Liza Pairing, dev-story workflow) — 2026-07-21
 - `src/vite-env.d.ts` (typage vars env NutriClaude)
 - `vite.config.ts` (garde secret AD-13)
 - `.env.example` (config publique Supabase + note mot de passe)
+
+### Review Findings
+
+<!-- Code review 2026-07-21 (bmad-code-review, Opus) — 3 couches : Blind Hunter · Edge Case Hunter · Acceptance Auditor. D1 vérifié, D2 descope, D3 → patch. 6 patchs appliqués + gates verts (tsc/oxlint/vitest 257). 4 findings écartés comme bruit. -->
+
+**Patchs appliqués (2026-07-21) — 257 tests verts, 0 régression :**
+
+- [x] [Review][Patch] Race refetch hors-ordre écrasait `lastGood` avec des données périmées → garde de séquence monotone (+ debounce Realtime 300 ms + coalescing double sign-in dans `client.ts`) [src/nutriclaude/useGrocerySummary.ts:49-98]
+- [x] [Review][Patch] Regex d'isolation trop faible (ratait `import()` dynamique / chemins profonds / alias) → extraction des specifiers + refs robustes [src/nutriclaude/isolation.test.ts]
+- [x] [Review][Patch] Couche `queries.ts` non testée (AC9 voulait un client Supabase mocké) → nouveau `queries.test.ts` (5 cas : mapping, coercion null, vide, 2 erreurs) [src/nutriclaude/queries.test.ts]
+- [x] [Review][Patch] `formatPreview` : `remaining` négatif si compteur < noms → clamp `shown ≤ pendingCount` + filtre des noms vides [src/nutriclaude/summary-format.ts:12]
+- [x] [Review][Patch] Erreurs fetch/auth avalées → `console.warn` (une fois par panne) [src/nutriclaude/useGrocerySummary.ts:72]
+- [x] [Review][Patch] Code mort `nutriclaude/stale.ts` (jamais importé ; l'`OfflinePill` passe par `hakit/stale`, UI partagée — l'isolation n'était pas rompue) → supprimé [src/nutriclaude/stale.ts]
+- [x] [Review][Patch] Tuile Courses invisible si HA non configuré (D3) → découplée dans `Home.tsx` (branche non-configurée rend aussi la tuile) [src/pages/Home.tsx:41]
+
+**Différés (voir `deferred-work.md`) :**
+
+- [x] [Review][Defer] Sécurité RLS `grocery_all` — **vérifiée saine 2026-07-21** (RLS on + policy unique scopée `household_id = current_household_id()` + fonction `null` pour anon/sans-profil, SECURITY DEFINER search_path épinglé). Durcissement `to authenticated` recommandé ; ré-auditer avant les écritures 8.3/8.4 (policy FOR ALL) (D1) — deferred, verified
+- [x] [Review][Defer] Provenance `added_by`/« qui » (AC4, AC6) → Story 8.2 (join `profiles`) — descope accepté par Florian (D2) [src/nutriclaude/queries.ts:36] — deferred, descoped
+- [x] [Review][Defer] Session révoquée/expirée → « Hors ligne » perpétuel ; recovery re-auth appartient à la story d'auth prod [src/nutriclaude/client.ts] — deferred
+- [x] [Review][Defer] Garde `vite.config` = denylist de 2 noms codés en dur ; durcissement générique hors scope [vite.config.ts:27] — deferred
+- [x] [Review][Defer] Perte du canal Realtime non gérée (subscribe sans callback statut) ; le polling 20 s couvre pour l'instant [src/nutriclaude/useGrocerySummary.ts:83] — deferred
+
+**Écartés (bruit)** : temps relatif « gelé » (re-render à chaque poll) · `pendingCount` brut (count Supabase ≥ 0) · timestamp futur (clamp `Math.max(0,…)` intentionnel) · « 0 à acheter » offline (l'`OfflinePill` désambiguïse).
+
+**Fichiers touchés par la revue** : `useGrocerySummary.ts`, `client.ts`, `summary-format.ts`, `isolation.test.ts`, `queries.test.ts` (neuf), `summary-format.test.ts`, `pages/Home.tsx`, `pages/Home.test.tsx` ; **supprimé** `stale.ts`.

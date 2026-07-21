@@ -47,20 +47,28 @@ export function useGrocerySummary(): GrocerySummaryValue {
     }
 
     let mounted = true;
+    // Monotonic request token: refetch fires from three uncoordinated sources
+    // (initial, Realtime events, polling). A slow, out-of-order resolution must
+    // never overwrite a newer one's result (would show a count older than one
+    // already displayed), so only the latest-issued request commits.
+    let latestSeq = 0;
+    // Warn once per outage, not on every 20 s poll, so the kiosk console keeps
+    // a usable signal (misconfig / expired token / RLS denial all look alike).
+    let warned = false;
 
     const refetch = async () => {
+      const seq = ++latestSeq;
       try {
         const ok = await ensureNutriSession();
+        if (!mounted || seq !== latestSeq) return;
         if (!ok) {
           // Session couldn't be established → settled as offline (not "loading").
-          if (mounted) {
-            setIsStale(true);
-            setEverRead(true);
-          }
+          setIsStale(true);
+          setEverRead(true);
           return;
         }
         const summary = await getGrocerySummary(client);
-        if (!mounted) return;
+        if (!mounted || seq !== latestSeq) return;
         lastGood.current = {
           pendingCount: summary.pendingCount,
           lastAdded: summary.lastAdded,
@@ -68,11 +76,16 @@ export function useGrocerySummary(): GrocerySummaryValue {
         };
         setIsStale(false);
         setEverRead(true);
+        warned = false;
         forceRender((n) => n + 1);
-      } catch {
-        if (mounted) {
-          setIsStale(true);
-          setEverRead(true);
+      } catch (err) {
+        if (!mounted || seq !== latestSeq) return;
+        setIsStale(true);
+        setEverRead(true);
+        if (!warned) {
+          warned = true;
+          // Rule 14: surface the cause instead of silently degrading to "Hors ligne".
+          console.warn("nutriclaude: grocery summary refetch failed", err);
         }
       }
     };
@@ -80,18 +93,26 @@ export function useGrocerySummary(): GrocerySummaryValue {
     void refetch();
 
     // Realtime convergence (activated by Task 0) + polling baseline until then.
+    // Coalesce Realtime bursts (a bulk insert or menu regen fires many events)
+    // into a single trailing refetch instead of stampeding the query layer.
+    let debounce: ReturnType<typeof setTimeout> | undefined;
+    const scheduleRefetch = () => {
+      if (debounce != null) clearTimeout(debounce);
+      debounce = setTimeout(() => void refetch(), 300);
+    };
     const channel = client
       .channel("grocery-summary")
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "grocery_list_items" },
-        () => void refetch(),
+        scheduleRefetch,
       )
       .subscribe();
     const timer = setInterval(() => void refetch(), POLL_MS);
 
     return () => {
       mounted = false;
+      if (debounce != null) clearTimeout(debounce);
       clearInterval(timer);
       void client.removeChannel(channel);
     };

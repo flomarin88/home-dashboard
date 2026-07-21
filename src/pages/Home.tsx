@@ -39,8 +39,19 @@ import { TEMPERATURE_THRESHOLD_C } from "../config";
  */
 export function Home() {
   if (!isConfigured) {
+    // NutriClaude is an isolated seam (AD-12): the Courses tile has no HA
+    // dependency, so it stays visible even when HA is unconfigured — otherwise
+    // its "degraded, never blank" contract (AC2/AC7) would be unobservable
+    // whenever HA is down.
     return (
-      <p className="text-meta text-text-muted">Home Assistant non configuré.</p>
+      <div className="flex flex-col gap-grid-gap">
+        <p className="text-meta text-text-muted">
+          Home Assistant non configuré.
+        </p>
+        <div className="grid grid-cols-3 gap-tile-gap">
+          <CoursesTile />
+        </div>
+      </div>
     );
   }
   return <HomeContent />;

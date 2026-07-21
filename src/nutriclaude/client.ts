@@ -39,18 +39,31 @@ export function getNutriClient(): SupabaseClient | null {
  * then a prod build with no persisted session simply stays in the degraded
  * "Hors ligne" state — never blank.
  */
+let sessionInFlight: Promise<boolean> | null = null;
+
 export async function ensureNutriSession(): Promise<boolean> {
   const c = getNutriClient();
   if (c == null) return false;
 
-  const { data } = await c.auth.getSession();
-  if (data.session != null) return true;
+  // Coalesce concurrent callers (initial refetch + a Realtime/poll refetch on a
+  // cold start): without this both could see no session and each fire a
+  // duplicate signInWithPassword. Cleared once settled so the next call re-checks.
+  if (sessionInFlight != null) return sessionInFlight;
+  sessionInFlight = (async () => {
+    const { data } = await c.auth.getSession();
+    if (data.session != null) return true;
 
-  const email = import.meta.env.VITE_NUTRICLAUDE_CUISINE_EMAIL;
-  const password = import.meta.env.VITE_NUTRICLAUDE_CUISINE_PASSWORD;
-  if (email && password) {
-    const { error } = await c.auth.signInWithPassword({ email, password });
-    return error == null;
+    const email = import.meta.env.VITE_NUTRICLAUDE_CUISINE_EMAIL;
+    const password = import.meta.env.VITE_NUTRICLAUDE_CUISINE_PASSWORD;
+    if (email && password) {
+      const { error } = await c.auth.signInWithPassword({ email, password });
+      return error == null;
+    }
+    return false;
+  })();
+  try {
+    return await sessionInFlight;
+  } finally {
+    sessionInFlight = null;
   }
-  return false;
 }
