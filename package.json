@@ -24,6 +24,7 @@
     "@emotion/styled": "^11.14.1",
     "@hakit/components": "6.0.2",
     "@hakit/core": "6.0.2",
+    "@supabase/supabase-js": "^2.110.7",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "react-router-dom": "^7.18.1",

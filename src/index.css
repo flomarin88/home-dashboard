@@ -29,6 +29,7 @@
   --color-accent-shutters: #4aa3ff;
   --color-accent-climate: #35e0d8;
   --color-accent-vacuum: #a06bff;
+  --color-accent-courses: #ff6faf; /* v2 Courses (UX-DR18) — rose, non-vert (vert réservé sécurité) */
   --color-security-ok: #38d17a;
   --color-security-alert: #ff5d5d;
 
@@ -120,6 +121,9 @@ body {
 }
 .device-tile[data-domain="security"] {
   --tile-accent: var(--color-security-ok);
+}
+.device-tile[data-domain="courses"] {
+  --tile-accent: var(--color-accent-courses);
 }
 
 .device-tile[data-state="on"] {

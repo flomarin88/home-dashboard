@@ -42,7 +42,7 @@
 # - Retrospective appends its action items to action_items; sprint-status surfaces open ones
 
 generated: 2026-07-13
-last_updated: 2026-07-20
+last_updated: 2026-07-21
 # EPIC 1 (Fondation) DONE — stories 1.1-1.6 done (2026-07-15). Epic-1 retrospective optional. Next: epic-2 (pilotage).
 # v2 (2026-07-20): epics 7 (Arrosage) + 8 (Courses/NutriClaude) ajoutés au backlog depuis epics.md. Aucun fichier story v2 encore créé. Task 0 hors-repo requis avant epic-8.
 project: home-dashboard
@@ -106,7 +106,7 @@ development_status:
 
   # Epic 8 — Courses : surface kiosque NutriClaude (v2)
   epic-8: in-progress
-  8-1-seam-nutriclaude-tuile-courses: ready-for-dev  # contexté 2026-07-20 (tracer bullet seam+lecture+tuile)
+  8-1-seam-nutriclaude-tuile-courses: review  # dev 2026-07-21 ; 248 tests verts ; reste Task 0 NutriClaude + device-proof (Florian)
   8-2-page-detail-courses-liste-par-rayon: backlog
   8-3-pointer-un-article: backlog
   8-4-vider-le-panier: backlog

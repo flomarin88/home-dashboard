@@ -1,6 +1,10 @@
+---
+baseline_commit: 54e239b0d1cc4404bab155e33bcd7b6f836a5a91
+---
+
 # Story 8.1: Seam NutriClaude & tuile Courses (lecture)
 
-Status: ready-for-dev
+Status: review
 
 <!-- Ultimate context engine analysis completed - comprehensive developer guide created (2026-07-20). -->
 <!-- Tracer bullet d'Epic 8 : établit le 2ᵉ backend (NutriClaude/Supabase) derrière un seam isolé, en LECTURE, et le rend visible via la tuile Courses de l'accueil. Les écritures (pointer/vider) sont les stories 8.3/8.4. -->
@@ -25,27 +29,27 @@ so that je vois d'un coup d'œil ce qu'il reste à acheter sans rouvrir mon tél
 
 ## Tasks / Subtasks
 
-- [ ] **Tâche 1 — Dépendance + seam config (AC: 1, 2)**
-  - [ ] `npm i @supabase/supabase-js` (v2, `^2.45` confirmé côté NutriClaude par le spike ; prendre la dernière 2.x stable).
-  - [ ] Créer `src/nutriclaude/config.ts` : `resolveNutriConfig({ url, anonKey, isProd })` pur → `{ supabaseUrl, supabaseAnonKey, isConfigured }`, appliqué à `import.meta.env.VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY`. Exporter `nutriIsConfigured`. **Ne jamais** lire ou référencer `service_role`.
-  - [ ] `src/nutriclaude/index.ts` (barrel) — exports publics du seam. Vérifier **zéro import** de/vers `src/hakit/`.
-- [ ] **Tâche 2 — Client + session cuisine (AC: 3)**
-  - [ ] `src/nutriclaude/client.ts` : singleton `createClient(url, anonKey, { auth: { persistSession: true, autoRefreshToken: true } })`.
-  - [ ] Bootstrap de session : `signInWithPassword` avec les identifiants cuisine (dev : `.env.local`). Exposer un statut de connexion (connecté / non authentifié / erreur) consommable par le hook d'obsolescence.
-  - [ ] Étendre le garde de `vite.config.ts` (bloc `command === "build"`) : `loadEnv(..., "VITE_NUTRICLAUDE")` puis **throw** si `VITE_NUTRICLAUDE_CUISINE_PASSWORD` est défini pour un build prod (message calqué sur le garde `VITE_HA_TOKEN`).
-  - [ ] `.env.example` : ajouter `VITE_SUPABASE_URL` + `VITE_SUPABASE_ANON_KEY` (config publique) + un **commentaire** disant que le mot de passe cuisine ne se met **pas** en `VITE_…` pour un build prod (login de setup one-time ; cf. `docs/nutriclaude.md`).
-- [ ] **Tâche 3 — Lecture + Realtime/polling (AC: 4, 5)**
-  - [ ] `src/nutriclaude/queries.ts` : `getGrocerySummary()` → `{ pendingCount, lastAdded: {name, addedBy, createdAt}[] }`. Compteur via `.select('id',{count:'exact',head:true}).eq('status','pending')` ; aperçu via `.select('name, added_by, created_at').eq('status','pending').order('created_at',{ascending:false}).limit(N)`. **Résoudre `added_by` → prénom** (voir Question ouverte n°2).
-  - [ ] `src/nutriclaude/useGrocerySummary.ts` : hook renvoyant `{ pendingCount, lastAdded, since, isStale, loading }` (**forme miroir de `EntityValue`**). Abonnement Realtime (`supabase.channel(...).on('postgres_changes', { table:'grocery_list_items' }, refetch)`) **+ fallback polling** 15-30 s ; dernier bon état en **ref éphémère**.
-  - [ ] `src/nutriclaude/stale.ts` (ou réutiliser `formatSince` de `hakit/stale`) : `isStale` pour source non-HA = déconnecté Realtime **ou** échec JWT/fetch. **NE PAS importer depuis `hakit/`** si ça crée un couplage ; dupliquer `formatSince` si besoin (petite fonction).
-- [ ] **Tâche 4 — Token accent + tuile (AC: 6, 7, 8)**
-  - [ ] `src/index.css` : ajouter `--color-accent-courses: #ff6faf` dans `@theme` + la règle `.device-tile[data-domain="courses"]`.
-  - [ ] `src/widgets/CoursesTile.tsx` : **cloner la structure de `RoomSensorCard`** (device-tile, 3 états, `TileHeader`, `Skeleton`, `OfflinePill`, `tabular-nums`). `onOpen` → `navigate('/courses')` (la route est livrée en 8.2 ; en 8.1, un placeholder de route ou un no-op documenté suffit — **ne pas** 404). Teinte active via `data-domain="courses"` quand `pendingCount > 0`.
-  - [ ] Placement accueil : tuile de **coordination groupée avec l'Ambiance** (UX-DR19, défaut ajustable) — l'insérer dans `src/pages/Home.tsx`. Monter le provider/contexte NutriClaude indépendamment de `HakitProvider` (voir Question ouverte n°3).
-- [ ] **Tâche 5 — Tests + gates (AC: 9)**
-  - [ ] Tests purs : `resolveNutriConfig` (dev/prod, avec/sans secret) ; formatage du résumé (compteur, « +N », horodatage relatif).
-  - [ ] Test tuile : client Supabase **mocké** → 3 états (loading / offline avec dernier connu + pill / live avec compteur + aperçu) ; teinte active seulement si `pendingCount > 0`.
-  - [ ] Lancer `npm run typecheck` + `oxlint` + build **sans** `.env.local` + `vitest` → tout vert, 0 régression.
+- [x] **Tâche 1 — Dépendance + seam config (AC: 1, 2)**
+  - [x] `npm i @supabase/supabase-js` (v2, `^2.45` confirmé côté NutriClaude par le spike ; prendre la dernière 2.x stable).
+  - [x] Créer `src/nutriclaude/config.ts` : `resolveNutriConfig({ url, anonKey, isProd })` pur → `{ supabaseUrl, supabaseAnonKey, isConfigured }`, appliqué à `import.meta.env.VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY`. Exporter `nutriIsConfigured`. **Ne jamais** lire ou référencer `service_role`.
+  - [x] `src/nutriclaude/index.ts` (barrel) — exports publics du seam. Vérifier **zéro import** de/vers `src/hakit/`.
+- [x] **Tâche 2 — Client + session cuisine (AC: 3)**
+  - [x] `src/nutriclaude/client.ts` : singleton `createClient(url, anonKey, { auth: { persistSession: true, autoRefreshToken: true } })`.
+  - [x] Bootstrap de session : `signInWithPassword` avec les identifiants cuisine (dev : `.env.local`). Exposer un statut de connexion (connecté / non authentifié / erreur) consommable par le hook d'obsolescence.
+  - [x] Étendre le garde de `vite.config.ts` (bloc `command === "build"`) : `loadEnv(..., "VITE_NUTRICLAUDE")` puis **throw** si `VITE_NUTRICLAUDE_CUISINE_PASSWORD` est défini pour un build prod (message calqué sur le garde `VITE_HA_TOKEN`).
+  - [x] `.env.example` : ajouter `VITE_SUPABASE_URL` + `VITE_SUPABASE_ANON_KEY` (config publique) + un **commentaire** disant que le mot de passe cuisine ne se met **pas** en `VITE_…` pour un build prod (login de setup one-time ; cf. `docs/nutriclaude.md`).
+- [x] **Tâche 3 — Lecture + Realtime/polling (AC: 4, 5)**
+  - [x] `src/nutriclaude/queries.ts` : `getGrocerySummary()` → `{ pendingCount, lastAdded: {name, addedBy, createdAt}[] }`. Compteur via `.select('id',{count:'exact',head:true}).eq('status','pending')` ; aperçu via `.select('name, added_by, created_at').eq('status','pending').order('created_at',{ascending:false}).limit(N)`. **Résoudre `added_by` → prénom** (voir Question ouverte n°2).
+  - [x] `src/nutriclaude/useGrocerySummary.ts` : hook renvoyant `{ pendingCount, lastAdded, since, isStale, loading }` (**forme miroir de `EntityValue`**). Abonnement Realtime (`supabase.channel(...).on('postgres_changes', { table:'grocery_list_items' }, refetch)`) **+ fallback polling** 15-30 s ; dernier bon état en **ref éphémère**.
+  - [x] `src/nutriclaude/stale.ts` (ou réutiliser `formatSince` de `hakit/stale`) : `isStale` pour source non-HA = déconnecté Realtime **ou** échec JWT/fetch. **NE PAS importer depuis `hakit/`** si ça crée un couplage ; dupliquer `formatSince` si besoin (petite fonction).
+- [x] **Tâche 4 — Token accent + tuile (AC: 6, 7, 8)**
+  - [x] `src/index.css` : ajouter `--color-accent-courses: #ff6faf` dans `@theme` + la règle `.device-tile[data-domain="courses"]`.
+  - [x] `src/widgets/CoursesTile.tsx` : **cloner la structure de `RoomSensorCard`** (device-tile, 3 états, `TileHeader`, `Skeleton`, `OfflinePill`, `tabular-nums`). `onOpen` → `navigate('/courses')` (la route est livrée en 8.2 ; en 8.1, un placeholder de route ou un no-op documenté suffit — **ne pas** 404). Teinte active via `data-domain="courses"` quand `pendingCount > 0`.
+  - [x] Placement accueil : tuile de **coordination groupée avec l'Ambiance** (UX-DR19, défaut ajustable) — l'insérer dans `src/pages/Home.tsx`. Monter le provider/contexte NutriClaude indépendamment de `HakitProvider` (voir Question ouverte n°3).
+- [x] **Tâche 5 — Tests + gates (AC: 9)**
+  - [x] Tests purs : `resolveNutriConfig` (dev/prod, avec/sans secret) ; formatage du résumé (compteur, « +N », horodatage relatif).
+  - [x] Test tuile : client Supabase **mocké** → 3 états (loading / offline avec dernier connu + pill / live avec compteur + aperçu) ; teinte active seulement si `pendingCount > 0`.
+  - [x] Lancer `npm run typecheck` + `oxlint` + build **sans** `.env.local` + `vitest` → tout vert, 0 régression.
 
 ## Dev Notes
 
@@ -128,10 +132,61 @@ Vitest + Testing Library (setup `src/test/setup.ts`, 223 tests verts aujourd'hui
 
 ### Agent Model Used
 
-_(à remplir par l'agent dev)_
+claude-opus-4-8 (Liza Pairing, dev-story workflow) — 2026-07-21
 
 ### Debug Log References
 
+- `npx vitest run` → 40 fichiers / 248 tests verts (223 existants + 25 neufs, 0 régression).
+- `npm run typecheck` (`tsc -b --noEmit`) → vert.
+- `npx oxlint` → aucun warning sur les fichiers neufs (seuls warnings pré-existants : `_bmad/wds/*`, `vitest.config.ts`).
+- **Build token-less** (`.env.local` déplacé puis restauré — Exploratory Op) → exit 0, `dist/` + SW générés. Le garde AD-8 bloque bien le build quand `VITE_HA_TOKEN` est présent (comportement voulu).
+- Self-review sécurité : `service_role` absent du code (uniquement en commentaires « jamais utilisé ») ; zéro import croisé `nutriclaude`↔`hakit` (aussi vérifié par `isolation.test.ts`).
+
 ### Completion Notes List
 
+- Seam `src/nutriclaude/` créé, isolé de `src/hakit/` (AD-2 2ᵉ exception / AD-12), avec resolver de config pur (`resolveNutriConfig`, miroir de `resolveHassConfig`), client singleton Supabase, hook `useGrocerySummary` (forme miroir de `EntityValue`, obsolescence AD-6/AD-14), lecture `getGrocerySummary`, et `isolation.test.ts` qui **fait échouer le build** en cas d'import croisé.
+- Tuile `CoursesTile` clonée sur `RoomSensorCard` (3 états loading/offline/live, `TileHeader`/`OfflinePill`/`Skeleton`, tabular-nums), teintée `accent-courses` (#ff6faf, token ajouté au design system) via le mécanisme `.device-tile[data-domain="courses"]`.
+- **Realtime + polling baseline** : abonnement `postgres_changes` + `setInterval` 20 s (Realtime OFF en prod jusqu'au Task 0 ; le polling assure le reflet quasi-temps réel dès 8.1).
+- Garde secret `vite.config.ts` étendu (AD-13) : throw si `VITE_NUTRICLAUDE_CUISINE_PASSWORD` en build prod. `.env.example` + `vite-env.d.ts` documentent la config publique (URL + anon key) vs le mot de passe dev-only.
+- **Bug corrigé pendant le dev** : `useGrocerySummary` restait `loading` à jamais quand la session échouait (branche `!ok` n'actait pas l'état « settled ») → corrigé + test.
+
+**Écarts au périmètre approuvé (décidés/surfacés en cours) :**
+1. **Pas de `NutriClaudeProvider` React** — le client Supabase est un singleton de module ; il partage déjà client+session entre les stories 8.x. Un provider vide serait du bloat (Rule 6). Isolation garantie par l'absence d'import croisé (testée).
+2. **Provenance sans prénom** (décision Florian) — l'aperçu montre `name` + horodatage relatif ; la résolution `added_by → profiles.display_name` est reportée à 8.2 (Q ouverte n°2).
+3. **Auth prod dev-creds only** (décision Florian) — session via `.env.local` en dev ; l'écran de setup prod one-time est un follow-on (Q ouverte n°1).
+4. **Placement tuile** — dans la 3ᵉ colonne libre de la rangée RDC (Salon + Aspirateur), pour respecter le no-scroll sans ajouter de rangée. Conséquence : la tuile ne rend que quand HA est configuré (coupling de *visibilité* de layout, pas d'état — AD-12 respecté). Découplage visibilité = follow-on possible.
+
+**Reste (hors app, Florian) :** Task 0 NutriClaude (activer Realtime `grocery_list_items`, compte « cuisine » onboardé, `.env.local` avec URL + anon key + creds cuisine) → **preuve device** ; non revendiquée ici.
+
+### Change Log
+
+| Date | Version | Notes |
+| ---- | ------- | ----- |
+| 2026-07-21 | 0.1 | Implémentée (dev-story). Seam `src/nutriclaude/` isolé (config/client/queries/hook/stale/isolation-test), tuile `CoursesTile` (clone `RoomSensorCard`, accent rose), Realtime+polling, garde secret `vite.config` étendu (AD-13), route stub `/courses`, token `accent-courses`. 248 tests verts, typecheck/oxlint/build-token-less verts, 0 régression. Écarts surfacés (pas de provider, prénom→8.2, dev-creds, placement RDC). Reste : Task 0 + preuve device (Florian). → review. |
+
 ### File List
+
+**Nouveaux :**
+- `src/nutriclaude/config.ts`
+- `src/nutriclaude/config.test.ts`
+- `src/nutriclaude/client.ts`
+- `src/nutriclaude/queries.ts`
+- `src/nutriclaude/useGrocerySummary.ts`
+- `src/nutriclaude/useGrocerySummary.test.ts`
+- `src/nutriclaude/stale.ts`
+- `src/nutriclaude/summary-format.ts`
+- `src/nutriclaude/summary-format.test.ts`
+- `src/nutriclaude/isolation.test.ts`
+- `src/nutriclaude/index.ts`
+- `src/widgets/CoursesTile.tsx`
+- `src/widgets/CoursesTile.test.tsx`
+- `src/pages/CoursesDetail.tsx` (stub, remplacé par 8.2)
+
+**Modifiés :**
+- `package.json` / `package-lock.json` (+`@supabase/supabase-js ^2.110.7`)
+- `src/index.css` (token `--color-accent-courses` + règle `.device-tile[data-domain="courses"]`)
+- `src/pages/Home.tsx` (placement `CoursesTile` rangée RDC)
+- `src/App.tsx` (route `/courses`)
+- `src/vite-env.d.ts` (typage vars env NutriClaude)
+- `vite.config.ts` (garde secret AD-13)
+- `.env.example` (config publique Supabase + note mot de passe)

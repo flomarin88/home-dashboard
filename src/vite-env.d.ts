@@ -8,6 +8,14 @@ interface ImportMetaEnv {
   readonly VITE_HA_TOKEN?: string;
   /** Optional entity_id to show live in the connection view (else auto-picked). */
   readonly VITE_HA_WITNESS_ENTITY?: string;
+  /** NutriClaude/Supabase project URL — public config (AD-12). */
+  readonly VITE_SUPABASE_URL?: string;
+  /** Supabase `anon` public key — bounded by RLS; never the service_role key. */
+  readonly VITE_SUPABASE_ANON_KEY?: string;
+  /** Kitchen-account email — dev-only setup login (AD-13). */
+  readonly VITE_NUTRICLAUDE_CUISINE_EMAIL?: string;
+  /** Kitchen-account password — dev-only; never set for a prod build (AD-13). */
+  readonly VITE_NUTRICLAUDE_CUISINE_PASSWORD?: string;
 }
 
 interface ImportMeta {

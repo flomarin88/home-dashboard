@@ -4,6 +4,7 @@ import { RoomSensorCard } from "../widgets/RoomSensorCard";
 import { VacuumTile } from "../widgets/VacuumTile";
 import { ClimateTile } from "../widgets/ClimateTile";
 import { LightTile } from "../widgets/LightTile";
+import { CoursesTile } from "../widgets/CoursesTile";
 import { parseTemp } from "../widgets/climate-status";
 import {
   FLOOR_ORDER,
@@ -93,6 +94,12 @@ function HomeContent() {
             {floor === "rdc" && vacuumEntry ? (
               <VacuumTile entry={vacuumEntry} />
             ) : null}
+
+            {/* Courses (v2) — coordination tile, grouped with the Ambiance room
+                cards (UX-DR19), filling the RDC row's free 3rd column so no row
+                is added (no-scroll). NutriClaude is an isolated seam (AD-12); the
+                tile only shares the layout, not HA state. */}
+            {floor === "rdc" ? <CoursesTile /> : null}
 
             {lightEntries
               .filter((l) => getRoom(l.room).floor === floor)

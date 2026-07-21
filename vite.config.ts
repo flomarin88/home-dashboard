@@ -23,12 +23,23 @@ export default defineConfig(({ command, mode }) => {
   // shippable build must rely on the HA session (same-origin). Fail loudly
   // rather than silently baking a secret into dist/.
   if (command === "build") {
-    const env = loadEnv(mode, process.cwd(), "VITE_HA_TOKEN");
+    const env = loadEnv(mode, process.cwd(), "VITE_");
     if (env.VITE_HA_TOKEN) {
       throw new Error(
         "AD-8: VITE_HA_TOKEN is set for a production build and would be inlined " +
           "into dist/. Unset it and rely on the HA session (same-origin), or " +
           "build in an environment without the token.",
+      );
+    }
+    // AD-13 / T0.5: same guard for the NutriClaude kitchen-account password. The
+    // Supabase URL + anon key ARE public build config (bounded by RLS), but the
+    // password must never be inlined — it is a one-time setup login; only the
+    // persisted session lives at runtime. See docs/nutriclaude.md.
+    if (env.VITE_NUTRICLAUDE_CUISINE_PASSWORD) {
+      throw new Error(
+        "AD-13: VITE_NUTRICLAUDE_CUISINE_PASSWORD is set for a production build " +
+          "and would be inlined into dist/. Unset it; the kitchen session is " +
+          "established by a one-time setup login and then persists.",
       );
     }
   }

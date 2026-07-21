@@ -12,6 +12,7 @@ import { RoomDetail } from "./pages/RoomDetail";
 import { VacuumDetail } from "./pages/VacuumDetail";
 import { WeatherDetail } from "./pages/WeatherDetail";
 import { ClimateDetail } from "./pages/ClimateDetail";
+import { CoursesDetail } from "./pages/CoursesDetail";
 
 function AppRoutes() {
   return (
@@ -21,6 +22,7 @@ function AppRoutes() {
       <Route path="/aspirateur" element={<VacuumDetail />} />
       <Route path="/climatisation" element={<ClimateDetail />} />
       <Route path="/meteo" element={<WeatherDetail />} />
+      <Route path="/courses" element={<CoursesDetail />} />
     </Routes>
   );
 }
