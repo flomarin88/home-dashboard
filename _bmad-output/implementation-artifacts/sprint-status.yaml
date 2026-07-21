@@ -45,6 +45,7 @@ generated: 2026-07-13
 last_updated: 2026-07-21
 # EPIC 1 (Fondation) DONE — stories 1.1-1.6 done (2026-07-15). Epic-1 retrospective optional. Next: epic-2 (pilotage).
 # v2 (2026-07-20): epics 7 (Arrosage) + 8 (Courses/NutriClaude) ajoutés au backlog depuis epics.md. Aucun fichier story v2 encore créé. Task 0 hors-repo requis avant epic-8.
+# v2b (2026-07-21): epic-9 (Consommation élec/eau — flux d'affichage HA read-only) ajouté au backlog via correct-course (sprint-change-proposal-2026-07-21.md). Aucun fichier story créé. Task 0 HA (capteurs conso + HC/HP + prix) requis avant device-proof.
 project: home-dashboard
 project_key: NOKEY
 tracking_system: file-system
@@ -107,10 +108,17 @@ development_status:
   # Epic 8 — Courses : surface kiosque NutriClaude (v2)
   epic-8: in-progress
   8-1-seam-nutriclaude-tuile-courses: done  # review 2026-07-21 : 7 patchs appliqués, 257 tests verts ; reste Task 0 NutriClaude + device-proof (Florian)
-  8-2-page-detail-courses-liste-par-rayon: backlog
+  8-2-page-detail-courses-liste-par-rayon: ready-for-dev  # story contextualisée 2026-07-21 (create-story) ; dépend de Task 0 pour device-proof, mais codable/testable avec mocks
   8-3-pointer-un-article: backlog
   8-4-vider-le-panier: backlog
   epic-8-retrospective: optional
+
+  # Epic 9 — Consommation : flux élec & eau (v2)
+  epic-9: backlog
+  9-1-micro-tuile-electricite-conso-cout: backlog
+  9-2-heures-creuses-pleines: backlog
+  9-3-micro-tuile-eau-saur: backlog
+  epic-9-retrospective: optional
 
 # Retrospective action items (see epic-1-retro-2026-07-15.md)
 action_items:

@@ -540,6 +540,13 @@ FR-6: **Tuile Arrosage (barre supérieure)** — une tuile plante dans `TopBarSl
 FR-7: **Marquer « arrosé »** — tap (≥ 56px) → **service HA** (`counter.increment` ou bascule `input_boolean`) ; la tuile **reflète** le compteur (pattern **reflect-only** des tortues, pas d'optimiste) ; au **quota atteint** le geste est **désactivé**.
 FR-8: **Reset quotidien (dépendance HA)** — le reset à minuit vit dans une **automation HA** ; l'app ne planifie rien ; création compteur + automation = **Task 0 HA** (hors app).
 
+_(Feature Consommation — flux d'affichage, HA read-only)_
+
+FR-E1: **Micro-tuile Électricité** — conso (capteur HA Linky/TotalÉnergies) + **coût du jour** dérivé (`conso × prix`), **HC/HP-aware** ; **reflect-only** ; obsolescence AD-6 ; jamais de blanc.
+FR-E2: **Heures creuses/pleines** — **indicateur de période courante** (depuis HA ; l'app ne calcule **pas** le planning tarifaire — AD-4) ; le **tarif appliqué** au coût suit la période.
+FR-E3: **Micro-tuile Eau (SAUR)** — conso (capteur HA) + **coût du jour** dérivé (`conso × prix/m³`) ; clone du patron FR-E1 ; **reflect-only** ; obsolescence AD-6.
+FR-E4 _(transverse)_: **Source & prix** — conso = **capteurs HA read-only** (Task 0 : vérifier/activer les intégrations par fournisseur) ; prix = helpers HA `input_number` ou config runtime ; **coût = dérivation d'affichage** (pas d'état persisté, AD-1) ; **repli** = seam read-only isolé (exception AD-2 conditionnelle, précédent NutriClaude) si un fournisseur n'a pas d'intégration HA.
+
 ### Non-Functional Requirements
 
 _(Aucun NFR neuf en v2 — les NFR v1 s'appliquent et sont étendus.)_
@@ -562,6 +569,7 @@ _(from Architecture Delta v2 — AD-12…AD-15, amendements AD-1/AD-2, Task 0, b
 - **[AD-15]** Pattern **« rituel partagé »** (généralisation Epic 6) : **lire** un état partagé → **rendre** en tuile (défaut / actif / **stale**) → **faire avancer** via un service. **Transport pluggable** : `@hakit`/HA (Arrosage) ou `@supabase`/NutriClaude (Courses). Composants communs : tuile, toast Undo, indicateur d'obsolescence, planchers a11y.
 - **[Task 0 — hors-repo, préalables]** HA : entité compteur Arrosage (`counter.plantes_arrosees` 0..1 ou `input_boolean`) + automation reset minuit. NutriClaude : activer Realtime sur `grocery_list_items` ; créer + onboarder le compte « cuisine » dans le foyer ; fournir `SUPABASE_URL` + `anon key` + identifiants cuisine (secret runtime gitignoré).
 - **[Bords durs Courses]** La RPC `generate_grocery_list_from_menu` **supprime tout le pending** puis régénère → traiter la liste pending comme **remplaçable en bloc** ; un pointage optimiste peut viser une ligne disparue → **converger vers la vérité serveur**. **Pas d'`updated_at`** ⇒ convergence par refetch/Realtime, pas par timestamp. **Fallback polling 15-30 s** si Realtime pose problème.
+- **[AD-16 — Flux de consommation : lecture HA read-only + coût dérivé]** La conso élec/eau vient de **capteurs HA** (reflet AD-3, obsolescence AD-6, mapping AD-7), **read-only**. Le **coût** est une **dérivation d'affichage** (`conso × prix`), **pas un état persisté** (AD-1). Les **prix** vivent en helpers HA `input_number` ou config runtime. La **période HC/HP courante** vient de HA — l'app **ne calcule pas** le planning tarifaire (AD-4). Source par fournisseur **vérifiée/activée en Task 0** ; **repli** = seam read-only isolé (exception AD-2 conditionnelle, précédent `src/nutriclaude/`) si un fournisseur n'a pas d'intégration HA.
 
 ### UX Design Requirements
 
@@ -572,6 +580,8 @@ UX-DR19: **Tuile Courses (accueil)** — tuile givrée `{components.device-tile}
 UX-DR20: **Page détail Courses (`/courses`)** — en-tête fil d'Ariane + **chip « N à acheter · M pris »** (tabular-nums) + bouton **« Vider le panier »** ; corps **groupé par Rayon** (`{components.section-card}`, en-tête restant/total) ; **scroll vertical toléré** (exception no-scroll pour page profonde) ; **ligne d'Article** = case ≥48px + libellé + quantité/unité + provenance ; Articles **pris** barrés en section « panier » ; **`{components.undo-toast}`** sur vider ; stale → interactions destructives désactivées. **Retrait de la barre « voix » du mock**.
 UX-DR21: **Provenance** = **personne** (`added_by`, prénom `display_name`) + **icône recette** si `recipe_id` ; **pas** de badge canal voix/note (correction du mock) ; **pas d'avatar** en v2.
 UX-DR22: **Tuile Arrosage (barre supérieure)** — **clone du moule `TurtleTile`** (Story 6.3) avec `maximum: 1`, dans `TopBarSlots` ; état = **niveau de remplissage** bas→haut (vide→plein) + icône plante lisible, **pas de texte de statut**, `aria-label` ; geste **≥56px** si `!done && !stale` → service HA ; **disabled** à plein jusqu'au reset ; **reflect-only** (pas d'optimiste) ; obsolescence → non-interactive.
+UX-DR23: **Micro-tuiles Consommation (`TopBarSlots`)** — moule météo/tortue/plante, chip **neutre** (pas d'accent device). **Anatomie (variante B)** : icône + **coût du jour** (€, tabular-nums) en **valeur héros** + **sous-ligne conso** (kWh / m³ sur la tuile) ; pill d'état HC/HP à droite (élec). **Au tap** : popover tarifaire = coût + conso du jour, **les deux prix** (HC & HP) avec le **tarif appliqué marqué** + la **prochaine bascule** (« passage en pleines à HH:MM ») ; **pas de page détail**. **Obsolescence** = dernière valeur connue + **pill « Hors ligne · HH:MM »** (horodatage du dernier relevé), bordure dashed `{colors.stale}`, **jamais de blanc ni de spinner** (AD-6). **Densité (à trancher au build)** : selon l'espace réel des autres slots, **1 chip « Conso » fusionnée** (élec+eau) **ou 2 chips distinctes** ; libellé période responsive (« Creuses/Pleines » si place, « HC/HP » compact sinon).
+UX-DR24: **Indicateur Heures Creuses/Pleines** — **icône lune (Creuses) / soleil (Pleines) + libellé**, sur **pill neutre sans teinte sémantique** : le **vert est proscrit** (réservé sécurité, UX-DR18) et la palette d'accents est saturée → l'état est porté par **icône + mot**, jamais la couleur (UX-DR14). Le **tarif appliqué** au coût **suit la période courante**. **Pas de nouvel accent** de domaine.
 
 ### FR Coverage Map (v2)
 
@@ -583,6 +593,10 @@ FR-2: Epic 8 — Page détail par Rayon
 FR-3: Epic 8 — Pointer un Article (write optimiste + convergence)
 FR-4: Epic 8 — Vider le panier (delete + undo)
 FR-5: Epic 8 — Reflet des ajouts multi-canaux (Realtime + provenance)
+FR-E1: Epic 9 — Micro-tuile Électricité (conso + prix + coût, reflect-only)
+FR-E2: Epic 9 — Heures creuses/pleines (période courante HA + tarif appliqué)
+FR-E3: Epic 9 — Micro-tuile Eau (SAUR, conso + prix + coût)
+FR-E4: Epic 9 — Source HA read-only + prix config + repli seam (transverse)
 
 ## Epic List (v2)
 
@@ -593,6 +607,10 @@ Une **tuile plante** dans la barre supérieure qui se remplit d'un tap et se ré
 ### Epic 8: Courses — coordination au kiosque (surface NutriClaude)
 Le kiosque devient la **vitre read-write** de la liste de courses du foyer : voir ce qui reste à acheter, pointer d'un doigt, vider le panier — en consommant **directement** NutriClaude/Supabase, **isolément** de HA (seam isolé `src/nutriclaude/`, auth compte « cuisine », adapter optimiste/stale hors-@hakit). Après cet epic, la liste partagée du foyer se consulte et s'avance depuis la cuisine, sans rouvrir le téléphone.
 **FRs covered:** FR-1, FR-2, FR-3, FR-4, FR-5
+
+### Epic 9: Consommation — flux élec & eau (coup d'œil coûts)
+Des **micro-tuiles** dans la barre supérieure (moule météo/tortue/plante, Story 6.4) qui reflètent en lecture seule la **conso élec & eau** depuis HA et en dérivent le **coût du jour**, avec l'**état heures creuses/pleines**. Purement **HA-natif read-only** (Story 1.5 comme précédent), *reflect-only*, **zéro nouveau backend** si les capteurs HA existent. Après cet epic, Florian voit d'un coup d'œil ce que consomment élec & eau, à quel tarif, sans quitter l'accueil.
+**FRs covered:** FR-E1, FR-E2, FR-E3, FR-E4
 
 ## Epic 7: Arrosage des plantes
 
@@ -750,3 +768,80 @@ So that je nettoie la liste après les courses sans cocher-supprimer un par un.
 **Given** NutriClaude injoignable (page en état stale)
 **When** la page se rend
 **Then** l'action destructive « Vider le panier » est **désactivée** (interactions non destructives seules)
+
+## Epic 9: Consommation — flux élec & eau (coup d'œil coûts)
+
+Des micro-tuiles dans la barre supérieure reflètent en lecture seule la conso élec & eau depuis HA et en dérivent le coût du jour, avec l'état heures creuses/pleines. Purement HA-natif read-only (Story 1.5 comme précédent), reflect-only, zéro nouveau backend si les capteurs HA existent. Les stories procèdent par tranches : fonder le patron « flux de consommation » (élec), ajouter la conscience tarifaire (HC/HP), puis cloner pour l'eau.
+
+> **Task 0 (hors-repo, préalable à cet epic) :** exposer côté HA les capteurs de conso élec (Enedis / TotalÉnergies) + eau (SAUR / HACS) en **cumul journalier** (`utility_meter` daily ou capteur daily de l'intégration) + la **période HC/HP courante** ; définir les **prix** (helpers HA `input_number` ou config runtime). Repli seam read-only si une intégration est absente.
+>
+> **Réf. design :** `ux-designs/ux-home-dashboard-2026-07-20/inputs/mock-conso-topbar.html` — **variante B** retenue (coût héros + sous-ligne conso, lune/soleil sur pill neutre, popover tarifaire au tap). *Les teintes vertes « Creuses » du mock sont écartées (UX-DR24) — le spec gagne sur le mock.*
+
+### Story 9.1: Micro-tuile Électricité (conso + prix + coût)
+
+_Tracer bullet : fonde le patron « flux de consommation » (lecture HA read-only + coût dérivé + prix config). Reflect-only, AD-16._
+
+As a Florian,
+I want une micro-tuile Électricité qui affiche le coût du jour et la conso reflétés depuis HA,
+So that je vois d'un coup d'œil ce que l'électricité me coûte sans ouvrir d'app.
+
+**Acceptance Criteria:**
+
+**Given** un capteur HA de conso élec (Task 0)
+**When** l'accueil s'affiche
+**Then** une **micro-tuile Électricité** s'insère dans `TopBarSlots` (moule météo/tortue/plante, Story 6.4), **reflect-only** (AD-3), affichant la conso reflétée depuis HA — **pas d'optimiste local**
+
+**Given** les prix définis (helper HA `input_number` ou config runtime)
+**When** la tuile se rend
+**Then** elle affiche (variante B, UX-DR23) le **coût du jour** (`conso × prix`, €, tabular-nums) en **valeur héros** + une **sous-ligne conso** (kWh) **sur la tuile** ; le **prix unitaire** vit **au tap** (popover), pas sur la tuile
+**And** le coût est une **dérivation d'affichage**, jamais un état persisté (AD-1/AD-16)
+
+**Given** le capteur `unavailable`/`unknown` ou le WebSocket perdu
+**When** la tuile se rend
+**Then** elle rend la **dernière valeur connue + indicateur d'obsolescence** (AD-6), **jamais de blanc ni de spinner**
+
+### Story 9.2: Heures creuses / pleines
+
+_Ajoute la conscience tarifaire au patron 9.1 : période courante depuis HA + tarif appliqué._
+
+As a Florian,
+I want voir si je suis en heures creuses ou pleines et que le coût suive le bon tarif,
+So that je sais quand l'électricité est la moins chère et le coût affiché est juste.
+
+**Acceptance Criteria:**
+
+**Given** la période HC/HP courante exposée par HA (Task 0 — l'app **ne calcule pas** le planning tarifaire, AD-4)
+**When** la micro-tuile Électricité se rend
+**Then** un **indicateur de période** (pictogramme + libellé « Creuses » / « Pleines », **jamais la couleur seule**, UX-DR14/UX-DR24) montre l'état courant
+
+**Given** deux prix (€/kWh Heures Creuses & Heures Pleines)
+**When** le coût du jour se calcule
+**Then** le **tarif appliqué suit la période courante** ; **au tap**, un **popover** montre les **deux prix**, le **tarif appliqué marqué**, et la **prochaine bascule** (« passage en pleines/creuses à HH:MM »)
+
+**Given** la période HC/HP indisponible côté HA
+**When** la tuile se rend
+**Then** dégradation en obsolescence (AD-6) ; le coût est calculé sur le **dernier tarif connu**, jamais de blanc
+
+### Story 9.3: Micro-tuile Eau (SAUR)
+
+_Clone du patron 9.1, transport HA/SAUR. Reflect-only, AD-16._
+
+As a Florian,
+I want une micro-tuile Eau qui affiche le coût du jour et la conso SAUR reflétés depuis HA,
+So that je suis ma consommation d'eau d'un coup d'œil.
+
+**Acceptance Criteria:**
+
+**Given** un capteur HA de conso eau SAUR (Task 0)
+**When** l'accueil s'affiche
+**Then** une **micro-tuile Eau** s'insère dans `TopBarSlots`, **reflect-only** (AD-3), réutilisant le patron de la Story 9.1
+
+**Given** le prix/m³ (helper HA `input_number` ou config runtime)
+**When** la tuile se rend
+**Then** elle affiche le **coût du jour** (`conso × prix/m³`, €, tabular-nums) comme valeur glanceable + le **prix unitaire** en ligne secondaire / au tap (dérivation d'affichage, AD-16)
+
+**Given** le capteur `unavailable`/`unknown` ou WebSocket perdu
+**When** la tuile se rend
+**Then** dernière valeur connue + indicateur d'obsolescence (AD-6), **jamais de blanc**
+
+> **Note granularité (SAUR) :** la conso eau est souvent **journalière ou plus grossière** → l'affichage peut montrer « hier » et se rafraîchir lentement ; le pattern d'obsolescence (AD-6) couvre ce décalage (pas un état d'erreur).

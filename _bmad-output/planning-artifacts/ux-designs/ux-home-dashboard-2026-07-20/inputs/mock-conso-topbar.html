@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1024, height=768, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Epic 9 — micro-tuiles conso élec & eau</title>
+<style>
+  :root{
+    --g-indigo:#1a1140; --g-teal:#122a3a; --g-magenta:#251034;
+    --card:rgba(255,255,255,.06); --card-bd:rgba(255,255,255,.12);
+    --tile:rgba(255,255,255,.04); --tile-bd:rgba(255,255,255,.10);
+    --text:#f2f4fa; --muted:#aab3c8; --muted2:#7d849c;
+    --creuses:#5fd39a; --creuses-soft:rgba(95,211,154,.16);
+    --pleines:#ffb23e; --pleines-soft:rgba(255,178,62,.16);
+    --stale:#5b6172; --stale-text:#c2c8d6;
+    --r-lg:20px; --r-md:14px;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;}
+  body{font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:#000;display:flex;justify-content:center;}
+  .num{font-variant-numeric:tabular-nums;}
+  .frame{width:1024px;height:768px;overflow:hidden;color:var(--text);user-select:none;padding:22px 24px;
+    background-color:var(--g-indigo);
+    background-image:radial-gradient(1200px 800px at 15% 8%, rgba(88,66,168,.35), transparent 60%),
+      radial-gradient(1000px 720px at 85% 92%, rgba(74,26,96,.45), transparent 60%),
+      linear-gradient(135deg,var(--g-indigo),var(--g-teal) 50%,var(--g-magenta));
+    display:flex;flex-direction:column;gap:11px;}
+  .h1{font-size:19px;font-weight:700;letter-spacing:-.01em;}
+  .lead{font-size:12px;color:var(--muted);margin-top:2px;}
+  .block{}
+  .blabel{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:9px;}
+
+  /* ---- base chip (TopBarSlots mould) ---- */
+  .chip{display:inline-flex;align-items:center;gap:10px;height:56px;padding:0 14px;border-radius:var(--r-md);
+    background:var(--card);border:1px solid var(--card-bd);cursor:pointer;position:relative;}
+  .chip .ic{color:var(--muted);flex:none;}
+  .cost{font-size:18px;font-weight:700;letter-spacing:-.01em;}
+  .cost small{font-size:12px;color:var(--muted);font-weight:500;margin-left:1px;}
+  .sub{font-size:11.5px;color:var(--muted);}
+  .stack{display:flex;flex-direction:column;line-height:1.2;}
+  .period{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;padding:4px 9px;border-radius:20px;}
+  .period.hc{color:var(--creuses);background:var(--creuses-soft);}
+  .period.hp{color:var(--pleines);background:var(--pleines-soft);}
+  .divider{width:1px;height:26px;background:var(--card-bd);}
+
+  /* context top bar */
+  .topbar{display:flex;align-items:center;gap:11px;background:rgba(0,0,0,.12);border-radius:var(--r-lg);padding:10px 14px;flex-wrap:wrap;}
+  .clock .h{font-size:26px;font-weight:600;letter-spacing:-.02em;line-height:1;}
+  .clock .d{font-size:11px;color:var(--muted);}
+  .chip.sm{height:48px;padding:0 12px;gap:8px;}
+  .chip.ghost{background:var(--tile);border-color:var(--tile-bd);}
+  .spacer{flex:1;}
+
+  /* variants row */
+  .row{display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap;}
+  .variant{display:flex;flex-direction:column;gap:8px;}
+  .vname{font-size:11.5px;color:var(--muted);}
+  .vname b{color:var(--text);}
+  .reco{color:var(--creuses);font-weight:700;}
+
+  /* states row */
+  .states{display:flex;gap:16px;flex-wrap:wrap;}
+  .state{display:flex;flex-direction:column;gap:8px;}
+  .slabel{font-size:10.5px;color:var(--muted2);text-transform:uppercase;letter-spacing:.05em;}
+  .chip.stale{border-style:dashed;border-color:var(--stale);background:rgba(91,97,114,.08);}
+  .chip.stale .cost,.chip.stale .sub{color:var(--stale-text);}
+  .stale-pill{display:inline-flex;align-items:center;gap:5px;font-size:10px;color:var(--stale-text);background:rgba(91,97,114,.25);padding:3px 7px;border-radius:20px;}
+
+  /* popover (au tap) */
+  .tap-wrap{display:flex;gap:22px;align-items:flex-start;}
+  .pop{width:280px;background:var(--card);border:1px solid var(--card-bd);border-radius:var(--r-lg);padding:12px 16px;box-shadow:0 12px 34px rgba(0,0,0,.4);}
+  .pop .ph{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;font-weight:700;margin-bottom:8px;}
+  .pop .big{display:flex;align-items:baseline;gap:8px;}
+  .pop .big .v{font-size:34px;font-weight:700;letter-spacing:-.02em;}
+  .pop .big .u{font-size:13px;color:var(--muted);}
+  .pop .conso{font-size:13px;color:var(--muted);margin-top:2px;}
+  .pop .conso b{color:var(--text);}
+  .tariff{display:flex;align-items:center;gap:10px;margin-top:9px;padding:9px 12px;border-radius:12px;border:1px solid var(--tile-bd);background:var(--tile);}
+  .tariff.active{border-color:var(--creuses);background:var(--creuses-soft);}
+  .tariff .lab{flex:1;font-size:13px;font-weight:600;display:flex;align-items:center;gap:7px;}
+  .tariff .pr{font-size:14px;font-weight:700;}
+  .tariff .now{font-size:10px;color:var(--creuses);font-weight:700;text-transform:uppercase;letter-spacing:.04em;}
+  .pop .switch{font-size:11.5px;color:var(--muted);margin-top:10px;display:flex;align-items:center;gap:6px;}
+  .caption{font-size:11.5px;color:var(--muted);line-height:1.5;max-width:340px;}
+  .caption b{color:var(--text);}
+</style>
+</head>
+<body>
+<div class="frame">
+  <div>
+    <div class="h1">Epic 9 — micro-tuiles « coût d'un coup d'œil » (élec &amp; eau)</div>
+    <div class="lead">Read-only, moule <b style="color:#f2f4fa">TopBarSlots</b>. Chips <b style="color:#f2f4fa">neutres</b> (pas d'accent device réutilisé) ; seul l'état tarifaire porte une teinte sémantique — toujours <b style="color:#f2f4fa">icône + libellé</b>, jamais la couleur seule.</div>
+  </div>
+
+  <!-- CONTEXT -->
+  <div class="block">
+    <div class="blabel">1 · Où elles vivent (barre supérieure)</div>
+    <div class="topbar">
+      <div class="clock"><div class="h num">17:05</div><div class="d">Lun. 20 Juil.</div></div>
+      <div class="chip sm ghost"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#ffb23e" stroke-width="2"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2M12 20v2M4 12H2M22 12h-2M5 5l1.5 1.5M17.5 17.5 19 19M19 5l-1.5 1.5M6.5 17.5 5 19"/></svg><span class="num" style="font-weight:600">34.4°</span></div>
+      <!-- élec -->
+      <div class="chip sm ghost"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2"><path d="M13 2 4 14h6l-1 8 10-12h-6z"/></svg><span class="num" style="font-weight:700">1,84&nbsp;€</span><span class="period hc" style="padding:2px 7px"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z"/></svg>HC</span></div>
+      <!-- eau -->
+      <div class="chip sm ghost"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2"><path d="M12 2.7l5.7 5.7a8 8 0 1 1-11.4 0z"/></svg><span class="num" style="font-weight:700">0,42&nbsp;€</span></div>
+      <div class="spacer"></div>
+      <div class="chip sm ghost">Désarmé</div>
+    </div>
+    <div class="caption" style="margin-top:6px;max-width:100%">⚠︎ <b>Densité</b> : la barre est déjà chargée (horloge, météo, rituels) → format le plus court possible ; envisager une seule chip « Conso » fusionnée si ça sature.</div>
+  </div>
+
+  <!-- VARIANTS -->
+  <div class="block">
+    <div class="blabel">2 · Anatomie de la micro-tuile élec — 3 variantes</div>
+    <div class="row">
+      <div class="variant">
+        <div class="chip">
+          <svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2 4 14h6l-1 8 10-12h-6z"/></svg>
+          <span class="cost num">1,84&nbsp;€</span>
+          <span class="period hc"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z"/></svg>Creuses</span>
+        </div>
+        <div class="vname"><b>A · Coût + état</b> — le plus court. Conso au tap.</div>
+      </div>
+
+      <div class="variant">
+        <div class="chip">
+          <svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2 4 14h6l-1 8 10-12h-6z"/></svg>
+          <div class="stack"><span class="cost num">1,84&nbsp;€<small>auj.</small></span><span class="sub num">8,2 kWh</span></div>
+          <span class="period hc"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z"/></svg>Creuses</span>
+        </div>
+        <div class="vname"><b class="reco">B · Coût + conso ⭐</b> — colle à la spec (conso sur la tuile).</div>
+      </div>
+
+      <div class="variant">
+        <div class="chip">
+          <svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2 4 14h6l-1 8 10-12h-6z"/></svg>
+          <span class="sub num">8,2 kWh</span><span class="divider"></span><span class="cost num">1,84&nbsp;€</span>
+          <span class="period hc" title="Creuses"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z"/></svg></span>
+        </div>
+        <div class="vname"><b>C · Tout inline</b> — dense ; état = icône seule (moins lisible).</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STATES -->
+  <div class="block">
+    <div class="blabel">3 · Les 3 états (variante B) — élec &amp; eau</div>
+    <div class="states">
+      <div class="state">
+        <div class="slabel">Heures creuses</div>
+        <div class="chip">
+          <svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2 4 14h6l-1 8 10-12h-6z"/></svg>
+          <div class="stack"><span class="cost num">1,84&nbsp;€<small>auj.</small></span><span class="sub num">8,2 kWh</span></div>
+          <span class="period hc"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z"/></svg>Creuses</span>
+        </div>
+      </div>
+      <div class="state">
+        <div class="slabel">Heures pleines</div>
+        <div class="chip">
+          <svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2 4 14h6l-1 8 10-12h-6z"/></svg>
+          <div class="stack"><span class="cost num">2,31&nbsp;€<small>auj.</small></span><span class="sub num">11,0 kWh</span></div>
+          <span class="period hp"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M6 6l1.5 1.5M16.5 16.5 18 18M18 6l-1.5 1.5M6 18l1.5-1.5"/></svg>Pleines</span>
+        </div>
+      </div>
+      <div class="state">
+        <div class="slabel">Obsolète (HA hors ligne)</div>
+        <div class="chip stale">
+          <svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--stale-text)" stroke-width="2"><path d="M13 2 4 14h6l-1 8 10-12h-6z"/></svg>
+          <div class="stack"><span class="cost num">1,84&nbsp;€<small>auj.</small></span><span class="sub num">8,2 kWh</span></div>
+          <span class="stale-pill"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 1l22 22M16.7 11.1A5 5 0 0 0 12 9M5 12.5a10 10 0 0 1 3-2M8.5 16.1a5 5 0 0 1 5.5-1"/></svg>Hors ligne · 17:02</span>
+        </div>
+      </div>
+      <div class="state">
+        <div class="slabel">Eau (même patron)</div>
+        <div class="chip">
+          <svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2.7l5.7 5.7a8 8 0 1 1-11.4 0z"/></svg>
+          <div class="stack"><span class="cost num">0,42&nbsp;€<small>auj.</small></span><span class="sub num">0,18 m³</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAP / POPOVER -->
+  <div class="block">
+    <div class="blabel">4 · Au tap — le détail tarifaire (prix HC/HP consultables)</div>
+    <div class="tap-wrap">
+      <div class="pop">
+        <div class="ph"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2"><path d="M13 2 4 14h6l-1 8 10-12h-6z"/></svg>Électricité · aujourd'hui</div>
+        <div class="big"><span class="v num">1,84</span><span class="u">€</span></div>
+        <div class="conso num">Conso <b>8,2 kWh</b> · depuis 00:00</div>
+        <div class="tariff active">
+          <span class="lab"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--creuses)" stroke-width="2"><path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z"/></svg>Heures creuses</span>
+          <span class="pr num">0,18&nbsp;€</span><span class="now">appliqué</span>
+        </div>
+        <div class="tariff">
+          <span class="lab"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2"/></svg>Heures pleines</span>
+          <span class="pr num" style="color:var(--muted)">0,24&nbsp;€</span>
+        </div>
+        <div class="switch"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Passage en pleines à 06:00</div>
+      </div>
+
+      <div class="caption">
+        <b>Recommandation : variante B.</b> Le coût du jour reste la valeur héros (le « job » : ce que ça me coûte), la conso est présente comme le demande la spec, l'état HC/HP est porté par <b>icône + mot</b> (lune / soleil), jamais la couleur seule.<br><br>
+        Le <b>prix unitaire</b> et les <b>deux tarifs</b> vivent au tap (popover ci-contre) — recognition plutôt que rappel, sans encombrer la barre.<br><br>
+        L'état <b>obsolète</b> garde la dernière valeur + pill « Hors ligne · HH:MM », jamais de blanc ni de spinner (AD-6).
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
