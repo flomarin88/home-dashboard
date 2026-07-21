@@ -12,7 +12,8 @@ import type { BinColor } from "./bin-state";
  * AD-4). HA is the single source of truth: the tile only mirrors it, and every
  * tap writes an `input_datetime` that HA re-evaluates the sensor from. Phases:
  *   - `a_sortir` → bin due now; tap writes `sortie` (marks it out).
- *   - `sortie`   → taken out; a disabled "done ✓" confirmation until `aucune`.
+ *   - `sortie`   → taken out; a disabled tile whose ground fills green (like
+ *                 TurtleTile's done cue) until `aucune`.
  *   - `oubli`    → missed; red thicker border; tap writes `oubli_ack` (dismiss,
  *                  no sortie logged) → HA moves to `{c}_oubli_ack` → hidden, and
  *                  because the ack lives in HA it stays hidden across reloads.
@@ -94,12 +95,17 @@ export function BinTile() {
       onClick={onTap}
       disabled={isSortie}
       aria-label={label}
-      className={`inline-flex min-h-[56px] items-center justify-center gap-2 rounded-lg bg-card-fill px-4 backdrop-blur-glass ${
+      className={`relative inline-flex min-h-[56px] items-center justify-center gap-2 overflow-hidden rounded-lg bg-card-fill px-4 backdrop-blur-glass ${
         isOubli ? "border-2 border-security-alert" : "border border-card-border"
       } ${isSortie ? "opacity-60" : ""}`}
     >
-      <PoubelleIcon className={COLOR[view.color]} />
-      {isSortie ? <CheckIcon /> : null}
+      {/* Poubelle sortie → fond vert plein plutôt qu'une coche : même repère
+          « done » que TurtleTile (parité look & feel). */}
+      <span
+        aria-hidden
+        className={`pointer-events-none absolute inset-x-0 bottom-0 ${isSortie ? "h-full" : "h-0"} bg-security-ok/25 transition-[height] duration-300`}
+      />
+      <PoubelleIcon className={`relative ${COLOR[view.color]}`} />
     </button>
   );
 }
@@ -122,25 +128,6 @@ function PoubelleIcon({ className = "" }: { className?: string }) {
       <path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2" />
       <path d="M6 6l1 14a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-14" />
       <path d="M10 11v6M14 11v6" />
-    </svg>
-  );
-}
-
-function CheckIcon() {
-  return (
-    <svg
-      width="20"
-      height="20"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="3"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="text-security-ok"
-      aria-hidden
-    >
-      <path d="M20 6 9 17l-5-5" />
     </svg>
   );
 }

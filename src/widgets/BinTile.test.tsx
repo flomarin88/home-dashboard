@@ -132,14 +132,29 @@ describe("BinTile (Story 6.1 — top-bar indicator)", () => {
     });
   });
 
-  it("sortie → shown as a disabled done confirmation, no HA write on click", () => {
+  it("sortie → disabled, green fill instead of a check, no HA write on click", () => {
     hass.state = "jaune_sortie";
     render(<BinTile />);
     const btn = screen.getByRole("button", { name: /jaune sortie/i });
 
     expect(btn).toBeDisabled();
+
+    // Done cue = ground fills green (parity with TurtleTile), not a checkmark.
+    const fill = btn.querySelector("span[aria-hidden]");
+    expect(fill?.getAttribute("class") ?? "").toContain("bg-security-ok");
+    expect(fill?.getAttribute("class") ?? "").toContain("h-full");
+    expect(btn.querySelectorAll("svg")).toHaveLength(1); // poubelle icon only
+
     fireEvent.click(btn);
     expect(hass.setDatetime).not.toHaveBeenCalled();
+  });
+
+  it("a_sortir → no green fill yet (fill span at h-0)", () => {
+    render(<BinTile />);
+    const fill = screen
+      .getByRole("button", { name: /jaune à sortir/i })
+      .querySelector("span[aria-hidden]");
+    expect(fill?.getAttribute("class") ?? "").toContain("h-0");
   });
 
   it("oubli_ack → renders nothing (acknowledged, hidden)", () => {
