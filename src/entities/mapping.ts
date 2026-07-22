@@ -517,8 +517,39 @@ export function assertNoPlaceholders(
   }
 }
 
+/**
+ * Auxiliary HA ids that drive a widget but live OUTSIDE `ENTITIES` (the ritual
+ * counters + the bin's `input_datetime` helpers). They otherwise escape
+ * `assertCanonicalMapping`'s well-formedness check, so a typo would ship as a
+ * silently `unavailable` tile instead of a loud dev-time throw. Format-only:
+ * these are distinct HA helper domains (`counter`/`input_datetime`), not sensors,
+ * so the (room, measure) canonical rule does not apply — only `ENTITY_ID_RE`.
+ */
+const AUX_ENTITY_IDS: readonly string[] = [
+  TURTLES.counterEntityId,
+  PLANTS.counterEntityId,
+  BINS.stateEntityId,
+  BINS.sortie.jaune,
+  BINS.sortie.noire,
+  BINS.ack.jaune,
+  BINS.ack.noire,
+];
+
+export function assertWellFormedAuxIds(
+  ids: readonly string[] = AUX_ENTITY_IDS,
+): void {
+  for (const id of ids) {
+    if (!ENTITY_ID_RE.test(id)) {
+      throw new Error(
+        `Malformed auxiliary entity_id "${id}" — expected "<domain>.<object_id>"`,
+      );
+    }
+  }
+}
+
 // Self-enforce the canonical invariant live in dev (not just under `npm test`),
 // so a bad edit surfaces immediately. Stripped from production builds.
 if (import.meta.env.DEV) {
   assertCanonicalMapping();
+  assertWellFormedAuxIds();
 }

@@ -10,6 +10,7 @@ import {
   vacuum,
   climate,
   assertCanonicalMapping,
+  assertWellFormedAuxIds,
   assertNoPlaceholders,
   ENTITIES,
   type EntityEntry,
@@ -157,6 +158,21 @@ describe("canonical invariant (AD-7)", () => {
       },
     ];
     expect(() => assertCanonicalMapping(bad)).toThrow(/malformed/i);
+  });
+});
+
+describe("auxiliary entity_ids (counters + input_datetime, outside ENTITIES)", () => {
+  it("accepts the real aux ids (turtle/plant counters, bin helpers)", () => {
+    expect(() => assertWellFormedAuxIds()).not.toThrow();
+  });
+
+  it("rejects a malformed aux id (typo would ship as a silently dimmed tile)", () => {
+    expect(() => assertWellFormedAuxIds(["counter.plantes_arosees "])).toThrow(
+      /malformed/i,
+    );
+    expect(() => assertWellFormedAuxIds(["plantes_arrosees"])).toThrow(
+      /malformed/i,
+    );
   });
 });
 
