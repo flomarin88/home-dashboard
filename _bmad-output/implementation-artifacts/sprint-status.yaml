@@ -42,7 +42,7 @@
 # - Retrospective appends its action items to action_items; sprint-status surfaces open ones
 
 generated: 2026-07-13
-last_updated: 2026-07-21
+last_updated: 2026-07-22
 # EPIC 1 (Fondation) DONE — stories 1.1-1.6 done (2026-07-15). Epic-1 retrospective optional. Next: epic-2 (pilotage).
 # v2 (2026-07-20): epics 7 (Arrosage) + 8 (Courses/NutriClaude) ajoutés au backlog depuis epics.md. Aucun fichier story v2 encore créé. Task 0 hors-repo requis avant epic-8.
 # v2b (2026-07-21): epic-9 (Consommation élec/eau — flux d'affichage HA read-only) ajouté au backlog via correct-course (sprint-change-proposal-2026-07-21.md). Aucun fichier story créé. Task 0 HA (capteurs conso + HC/HP + prix) requis avant device-proof.
@@ -101,8 +101,8 @@ development_status:
   epic-6-retrospective: optional
 
   # Epic 7 — Arrosage des plantes (v2, coordination familiale)
-  epic-7: backlog
-  7-1-tuile-arrosage: backlog
+  epic-7: in-progress
+  7-1-tuile-arrosage: review  # dev-story 2026-07-22 : app impl + 266 tests verts ; reste Task 0 HA (counter.plantes_arrosees + automation) + device-proof (Florian)
   epic-7-retrospective: optional
 
   # Epic 8 — Courses : surface kiosque NutriClaude (v2)

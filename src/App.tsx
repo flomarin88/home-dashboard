@@ -4,6 +4,7 @@ import { TopBar } from "./ui/TopBar";
 import { TopBarSlots } from "./ui/TopBarSlots";
 import { UndoToast } from "./ui/UndoToast";
 import { BinTile } from "./widgets/BinTile";
+import { PlantTile } from "./widgets/PlantTile";
 import { TopBarWeather } from "./widgets/TopBarWeather";
 import { TurtleTile } from "./widgets/TurtleTile";
 import { Skeleton } from "./ui/Skeleton";
@@ -82,6 +83,7 @@ function KioskShell() {
           <TopBarSlots>
             <TopBarWeather />
             <TurtleTile />
+            <PlantTile />
             <BinTile />
           </TopBarSlots>
         </HakitProvider>

@@ -392,6 +392,26 @@ export function turtlesConfig(): TurtlesConfig {
 }
 
 /**
+ * Plants (Story 7.1) — the `maximum: 1` twin of Turtles (Epic 7, "rituel partagé"
+ * AD-15). The app REFLECTS a HA `counter` (0 = à arroser, 1 = arrosé today) and
+ * INCREMENTS it via a service on tap; the daily midnight reset is an HA automation
+ * (AD-4). Contract: docs/home-assistant.md § "Arrosage — plantes 1×/jour".
+ */
+export interface PlantsConfig {
+  /** HA `counter` helper (min 0, max 1). state ∈ "0" | "1". */
+  readonly counterEntityId: string;
+}
+
+const PLANTS: PlantsConfig = {
+  counterEntityId: "counter.plantes_arrosees",
+};
+
+/** The plants config (Story 7.1). */
+export function plantsConfig(): PlantsConfig {
+  return PLANTS;
+}
+
+/**
  * Weather (Story 6.2) — outdoor Netatmo sensors (temp/humidity/battery/trend,
  * real ids) reflected via @hakit. Condition icon / 7-day forecast / rain-in-1h
  * come from a HA weather integration to be added (AD-1/AD-2 — no external API in
