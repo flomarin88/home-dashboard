@@ -47,6 +47,7 @@ last_updated: 2026-07-22
 # v2 (2026-07-20): epics 7 (Arrosage) + 8 (Courses/NutriClaude) ajoutés au backlog depuis epics.md. Aucun fichier story v2 encore créé. Task 0 hors-repo requis avant epic-8.
 # v2b (2026-07-21): epic-9 (Consommation élec/eau — flux d'affichage HA read-only) ajouté au backlog via correct-course (sprint-change-proposal-2026-07-21.md). Aucun fichier story créé. Task 0 HA (capteurs conso + HC/HP + prix) requis avant device-proof.
 # v2c (2026-07-22): epic-7 (Arrosage) DONE — story 7.1 create→dev→code-review→done ; Task 0 HA + device-proof validés (Florian). Revue : D1/D3/D4 corrigés, D2 différé. Refactor undo→file d'undos concurrents en passant.
+# v2d (2026-07-22): epic-6 (Maison & coordination) clôturé DONE — 4/4 stories done. Rétros epic-6 + epic-7 restent optional (non lancées).
 project: home-dashboard
 project_key: NOKEY
 tracking_system: file-system
@@ -94,7 +95,7 @@ development_status:
   epic-5-retrospective: optional
 
   # Epic 6 — Maison & coordination (correct-course 2026-07-16)
-  epic-6: in-progress
+  epic-6: done  # done 2026-07-22 — 4/4 stories done (poubelles, météo, tortues, composition top-bar)
   6-1-sortie-poubelles: done  # app impl reviewed (9f14001) & shipped 2026-07-17; HA Task 0 + device-proof remain (Florian)
   6-2-meteo-topbar-detail: done
   6-3-nourrir-les-tortues: done  # done 2026-07-18 — HA Task 0 (counter+automation) + device-proof validated (Florian)
