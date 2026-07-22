@@ -41,12 +41,14 @@ describe("PlantTile (Story 7.1 — top-bar watering, maximum:1)", () => {
     });
   });
 
-  it("tap offers a 5 s undo that decrements the counter on run (misclick net)", () => {
+  it("tap offers a 5 s undo that decrements the counter on run (misclick net)", async () => {
     render(<PlantTile />);
     fireEvent.click(screen.getByRole("button", { name: /arroser/i }));
+    await Promise.resolve(); // undo is offered once the increment resolves (D3)
+    await Promise.resolve();
 
     const undo = useUndoStore.getState().queue.at(-1);
-    expect(undo).not.toBeNull();
+    expect(undo).toBeDefined();
     expect(undo!.expiresAt - undo!.offeredAt).toBe(5000);
 
     useUndoStore.getState().runUndo();

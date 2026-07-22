@@ -97,9 +97,9 @@ _Revue multi-agent (Blind Hunter + Edge Case Hunter + Acceptance Auditor), Opus.
 
 - [x] [Review][Patch] Branche `.catch` de libération de la garde `pending` (increment échoué → retry possible) non testée — ✅ test ajouté 2026-07-22 (`increment` rejette → 2ᵉ tap ré-écrit) [src/widgets/PlantTile.test.tsx]
 - [x] [Review][Fixed] Undo inter-tuiles écrasé — ✅ **corrigé 2026-07-22** (choix Florian) : store undo passé de slot unique → **file** ; `UndoToast` rend une pile, chaque undo avec son propre dwell. `offerUndo` inchangé (3 callers intacts). +4 tests (store file + toast empilé). [src/state/undo.ts · src/ui/UndoToast.tsx] — _refactor infra partagée, commit séparé de la feature 7.1 (Rule 6)_
-- [x] [Review][Defer] Garde in-flight bloquée si HA n'écho jamais après un `increment` résolu (ex. tap→undo coalescé net-zéro) — `pending` reste `true`, tuile silencieusement inerte [src/widgets/PlantTile.tsx:39-54] — deferred, pre-existing (cloné de TurtleTile)
-- [x] [Review][Defer] Toast undo offert même si l'`increment` échoue (offre fantôme → decrement d'un no-op) [src/widgets/PlantTile.tsx:50-64] — deferred, pre-existing (cloné de TurtleTile)
-- [x] [Review][Defer] Les ids `counter.*` (plante/tortue/poubelle) échappent à `assertCanonicalMapping`/`ENTITY_ID_RE` — une typo passe en tuile silencieusement atténuée au lieu d'un throw dev-time [src/entities/mapping.ts] — deferred, pre-existing (parité famille)
+- [x] [Review][Fixed] Toast undo offert même si l'`increment` échoue (offre fantôme) — ✅ **corrigé 2026-07-22** : `offerUndo` déplacé dans le `.then()` de l'appel service (Turtle + Plant + Bin), offert seulement au succès. Tests des 3 tuiles passés en async. [src/widgets/{TurtleTile,PlantTile,BinTile}.tsx]
+- [x] [Review][Fixed] Les ids `counter.*`/`input_datetime.*` (plante/tortue/poubelle) hors validation canonique — ✅ **corrigé 2026-07-22** : `assertWellFormedAuxIds()` passe les ids auxiliaires au `ENTITY_ID_RE`, appelée dans le bloc DEV existant + tests. [src/entities/mapping.ts]
+- [x] [Review][Defer] Garde in-flight potentiellement bloquée si HA n'écho jamais (D2) — **maintenu différé** (choix Florian, ROI marginal : proba très faible, fix = timer de sécurité géré). [src/widgets/{TurtleTile,PlantTile}.tsx]
 
 _Rejetés (bruit) : (1) `view.count` non consommé par la tuile binaire — API publique testée, parité `turtleView` intentionnelle (le Blind Hunter lui-même : « not a defect ») ; (2) `""`/`" "` non traités comme stale — sorties correctes (garbage→« à faire »), commentaire partagé verbatim avec `turtle-state.ts`._
 

@@ -39,12 +39,14 @@ describe("TurtleTile (Story 6.3 — top-bar feeding counter)", () => {
     });
   });
 
-  it("tap offers a 5 s undo that decrements the counter on run (misclick net)", () => {
+  it("tap offers a 5 s undo that decrements the counter on run (misclick net)", async () => {
     render(<TurtleTile />);
     fireEvent.click(screen.getByRole("button", { name: /nourrir/i }));
+    await Promise.resolve(); // undo is offered once the increment resolves (D3)
+    await Promise.resolve();
 
     const undo = useUndoStore.getState().queue.at(-1);
-    expect(undo).not.toBeNull();
+    expect(undo).toBeDefined();
     expect(undo!.expiresAt - undo!.offeredAt).toBe(5000);
 
     useUndoStore.getState().runUndo();
@@ -53,14 +55,15 @@ describe("TurtleTile (Story 6.3 — top-bar feeding counter)", () => {
     });
   });
 
-  it("blocked double-tap does not offer a second undo", () => {
+  it("blocked double-tap does not offer a second undo", async () => {
     render(<TurtleTile />);
     const btn = screen.getByRole("button", { name: /nourrir/i });
     fireEvent.click(btn);
-    const first = useUndoStore.getState().queue.at(-1);
-    fireEvent.click(btn);
-    // guard returns before offering again → same offer, not a newer one
-    expect(useUndoStore.getState().queue.at(-1)).toBe(first);
+    fireEvent.click(btn); // blocked by the in-flight guard
+    await Promise.resolve();
+    await Promise.resolve();
+    // only one undo offered despite the double tap
+    expect(useUndoStore.getState().queue).toHaveLength(1);
   });
 
   it("rapid double-tap → increments only once (in-flight guard, counter is not idempotent)", () => {

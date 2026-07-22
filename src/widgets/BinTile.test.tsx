@@ -64,13 +64,15 @@ describe("BinTile (Story 6.1 — top-bar indicator)", () => {
     });
   });
 
-  it("tap offers a 5 s undo that restores the target's prior timestamp (misclick net)", () => {
+  it("tap offers a 5 s undo that restores the target's prior timestamp (misclick net)", async () => {
     render(<BinTile />);
     fireEvent.click(screen.getByRole("button", { name: /jaune à sortir/i }));
     hass.setDatetime.mockClear(); // drop the forward write; assert only the revert
+    await Promise.resolve(); // undo offered once the forward write resolves (D3)
+    await Promise.resolve();
 
     const undo = useUndoStore.getState().queue.at(-1);
-    expect(undo).not.toBeNull();
+    expect(undo).toBeDefined();
     expect(undo!.expiresAt - undo!.offeredAt).toBe(5000);
 
     useUndoStore.getState().runUndo();
@@ -80,11 +82,13 @@ describe("BinTile (Story 6.1 — top-bar indicator)", () => {
     });
   });
 
-  it("undo of a never-set helper restores epoch 0 (first-ever use → phase reverts)", () => {
+  it("undo of a never-set helper restores epoch 0 (first-ever use → phase reverts)", async () => {
     hass.priorTimestamp = undefined;
     render(<BinTile />);
     fireEvent.click(screen.getByRole("button", { name: /jaune à sortir/i }));
     hass.setDatetime.mockClear();
+    await Promise.resolve(); // undo offered once the forward write resolves (D3)
+    await Promise.resolve();
 
     useUndoStore.getState().runUndo();
     expect(hass.setDatetime).toHaveBeenCalledWith({

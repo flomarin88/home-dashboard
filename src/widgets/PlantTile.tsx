@@ -47,21 +47,25 @@ export function PlantTile() {
   const water = () => {
     if (!interactive || pending.current) return;
     pending.current = true;
-    void Promise.resolve(svc.increment({ target: cfg.counterEntityId })).catch(
-      (err) => {
+    void Promise.resolve(svc.increment({ target: cfg.counterEntityId }))
+      .then(() => {
+        // Offer the undo ONLY once the write landed (D3): a failed increment
+        // has nothing to revert, so a phantom undo (→ decrement of a no-op)
+        // would be misleading.
+        offerUndo(
+          "Plantes arrosées",
+          () => {
+            void Promise.resolve(
+              svc.decrement({ target: cfg.counterEntityId }),
+            ).catch((err) => console.warn("plant: undo decrement failed", err));
+          },
+          5000,
+        );
+      })
+      .catch((err) => {
         pending.current = false;
         console.warn("plant: counter.increment failed", err);
-      },
-    );
-    offerUndo(
-      "Plantes arrosées",
-      () => {
-        void Promise.resolve(
-          svc.decrement({ target: cfg.counterEntityId }),
-        ).catch((err) => console.warn("plant: undo decrement failed", err));
-      },
-      5000,
-    );
+      });
   };
 
   const label = `Arrosage : ${view.done ? "fait" : "à faire"}${interactive ? " — arroser" : ""}`;

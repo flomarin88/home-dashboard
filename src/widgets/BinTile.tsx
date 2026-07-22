@@ -72,16 +72,24 @@ export function BinTile() {
         target,
         serviceData: { timestamp: Math.floor(Date.now() / 1000) },
       }),
-    ).catch((err) => console.warn("bin: setDatetime failed", err));
-    offerUndo(
-      isOubli ? `Poubelle ${name} masquée` : `Poubelle ${name} sortie`,
-      () => {
-        void Promise.resolve(
-          svc.setDatetime({ target, serviceData: { timestamp: priorTs ?? 0 } }),
-        ).catch((err) => console.warn("bin: undo setDatetime failed", err));
-      },
-      5000,
-    );
+    )
+      .then(() => {
+        // Offer the undo ONLY once the write landed (D3): a failed setDatetime
+        // has nothing to revert.
+        offerUndo(
+          isOubli ? `Poubelle ${name} masquée` : `Poubelle ${name} sortie`,
+          () => {
+            void Promise.resolve(
+              svc.setDatetime({
+                target,
+                serviceData: { timestamp: priorTs ?? 0 },
+              }),
+            ).catch((err) => console.warn("bin: undo setDatetime failed", err));
+          },
+          5000,
+        );
+      })
+      .catch((err) => console.warn("bin: setDatetime failed", err));
   };
   const label = isSortie
     ? `Poubelle ${name} sortie`

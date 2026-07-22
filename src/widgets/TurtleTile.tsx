@@ -47,21 +47,27 @@ export function TurtleTile() {
   const feed = () => {
     if (!interactive || pending.current) return;
     pending.current = true;
-    void Promise.resolve(svc.increment({ target: cfg.counterEntityId })).catch(
-      (err) => {
+    void Promise.resolve(svc.increment({ target: cfg.counterEntityId }))
+      .then(() => {
+        // Offer the undo ONLY once the write landed (D3): a failed increment
+        // has nothing to revert, so a phantom undo (→ decrement of a no-op)
+        // would be misleading.
+        offerUndo(
+          "Tortues nourries",
+          () => {
+            void Promise.resolve(
+              svc.decrement({ target: cfg.counterEntityId }),
+            ).catch((err) =>
+              console.warn("turtle: undo decrement failed", err),
+            );
+          },
+          5000,
+        );
+      })
+      .catch((err) => {
         pending.current = false;
         console.warn("turtle: counter.increment failed", err);
-      },
-    );
-    offerUndo(
-      "Tortues nourries",
-      () => {
-        void Promise.resolve(
-          svc.decrement({ target: cfg.counterEntityId }),
-        ).catch((err) => console.warn("turtle: undo decrement failed", err));
-      },
-      5000,
-    );
+      });
   };
 
   const label = `Tortues : ${view.count} repas sur 2${interactive ? " — nourrir" : ""}`;
