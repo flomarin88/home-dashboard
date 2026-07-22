@@ -96,7 +96,7 @@ development_status:
 
   # Epic 6 — Maison & coordination (correct-course 2026-07-16)
   epic-6: done  # done 2026-07-22 — 4/4 stories done (poubelles, météo, tortues, composition top-bar)
-  6-1-sortie-poubelles: done  # app impl reviewed (9f14001) & shipped 2026-07-17; HA Task 0 + device-proof remain (Florian)
+  6-1-sortie-poubelles: done  # done — app reviewed (9f14001) & shipped 2026-07-17; HA Task 0 + device-proof validés (Florian, confirmé 2026-07-22)
   6-2-meteo-topbar-detail: done
   6-3-nourrir-les-tortues: done  # done 2026-07-18 — HA Task 0 (counter+automation) + device-proof validated (Florian)
   6-4-composition-barre-superieure: done  # done 2026-07-18 — device-proof validated (Florian); un-fix follow-on is a new story
