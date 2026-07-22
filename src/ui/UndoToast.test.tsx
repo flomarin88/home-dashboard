@@ -3,7 +3,7 @@ import { render, screen, fireEvent, act } from "@testing-library/react";
 import { useUndoStore } from "../state/undo";
 import { UndoToast } from "./UndoToast";
 
-const reset = () => useUndoStore.setState({ current: null });
+const reset = () => useUndoStore.setState({ queue: [] });
 
 describe("UndoToast (UX-DR9 / NFR6)", () => {
   beforeEach(reset);
@@ -36,7 +36,7 @@ describe("UndoToast (UX-DR9 / NFR6)", () => {
 
     expect(undo).toHaveBeenCalledOnce();
     expect(screen.queryByText("Tout éteindre")).not.toBeInTheDocument();
-    expect(useUndoStore.getState().current).toBeNull();
+    expect(useUndoStore.getState().queue).toHaveLength(0);
   });
 
   it("auto-dismisses at the end of the dwell without running undo", () => {
@@ -54,6 +54,30 @@ describe("UndoToast (UX-DR9 / NFR6)", () => {
 
     expect(screen.queryByText("Tout fermer")).not.toBeInTheDocument();
     expect(undo).not.toHaveBeenCalled(); // expiry ≠ undo
-    expect(useUndoStore.getState().current).toBeNull();
+    expect(useUndoStore.getState().queue).toHaveLength(0);
+  });
+
+  it("stacks concurrent toasts; cancelling one leaves the other intact (D1)", () => {
+    const undoA = vi.fn();
+    const undoB = vi.fn();
+    render(<UndoToast />);
+    act(() => {
+      useUndoStore.getState().offer("Tortues nourries", undoA, 7000);
+      useUndoStore.getState().offer("Plantes arrosées", undoB, 7000);
+    });
+
+    // Both toasts coexist (no clobber).
+    expect(screen.getByText("Tortues nourries")).toBeInTheDocument();
+    expect(screen.getByText("Plantes arrosées")).toBeInTheDocument();
+
+    // Cancel only the turtle one.
+    fireEvent.click(
+      screen.getByRole("button", { name: /annuler tortues nourries/i }),
+    );
+
+    expect(undoA).toHaveBeenCalledOnce();
+    expect(undoB).not.toHaveBeenCalled();
+    expect(screen.queryByText("Tortues nourries")).not.toBeInTheDocument();
+    expect(screen.getByText("Plantes arrosées")).toBeInTheDocument(); // survives
   });
 });

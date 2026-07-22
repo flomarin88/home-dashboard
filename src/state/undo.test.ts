@@ -2,7 +2,8 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { useUndoStore, buildUndo, offerUndo, undoCountdown } from "./undo";
 import type { EntitySnapshot } from "./undo";
 
-const reset = () => useUndoStore.setState({ current: null });
+const reset = () => useUndoStore.setState({ queue: [] });
+const queue = () => useUndoStore.getState().queue;
 
 describe("undo store (NFR6)", () => {
   beforeEach(reset);
@@ -11,8 +12,8 @@ describe("undo store (NFR6)", () => {
     const id = useUndoStore
       .getState()
       .offer("Tout éteindre", () => {}, 7000, 1000);
-    const cur = useUndoStore.getState().current;
-    expect(cur).toMatchObject({
+    expect(queue()).toHaveLength(1);
+    expect(queue()[0]).toMatchObject({
       id,
       label: "Tout éteindre",
       offeredAt: 1000,
@@ -20,13 +21,18 @@ describe("undo store (NFR6)", () => {
     });
   });
 
-  it("last-wins: a second offer replaces the first (one active toast)", () => {
-    useUndoStore.getState().offer("Tout éteindre", () => {}, 7000, 1000);
+  it("concurrent offers coexist in the queue (a later offer no longer clobbers the first — D1)", () => {
+    const id1 = useUndoStore
+      .getState()
+      .offer("Tout éteindre", () => {}, 7000, 1000);
     const id2 = useUndoStore
       .getState()
       .offer("Tout fermer", () => {}, 7000, 2000);
-    expect(useUndoStore.getState().current?.id).toBe(id2);
-    expect(useUndoStore.getState().current?.label).toBe("Tout fermer");
+    expect(queue().map((u) => u.id)).toEqual([id1, id2]); // both, oldest first
+    expect(queue().map((u) => u.label)).toEqual([
+      "Tout éteindre",
+      "Tout fermer",
+    ]);
   });
 
   it("ids are monotonic (not wall-clock), so distinct offers never collide", () => {
@@ -35,15 +41,26 @@ describe("undo store (NFR6)", () => {
     expect(b).toBe(a + 1);
   });
 
-  it("runUndo runs the closure then clears the toast", () => {
+  it("runUndo() runs the most recent closure then removes it", () => {
     const undo = vi.fn();
     useUndoStore.getState().offer("Tout éteindre", undo, 7000, 1000);
     useUndoStore.getState().runUndo();
     expect(undo).toHaveBeenCalledOnce();
-    expect(useUndoStore.getState().current).toBeNull();
+    expect(queue()).toHaveLength(0);
   });
 
-  it("runUndo clears the toast even if the undo closure throws (error still surfaces)", () => {
+  it("runUndo(id) targets a specific action, leaving the others queued", () => {
+    const undoA = vi.fn();
+    const undoB = vi.fn();
+    const idA = useUndoStore.getState().offer("A", undoA, 7000, 1000);
+    useUndoStore.getState().offer("B", undoB, 7000, 2000);
+    useUndoStore.getState().runUndo(idA);
+    expect(undoA).toHaveBeenCalledOnce();
+    expect(undoB).not.toHaveBeenCalled();
+    expect(queue().map((u) => u.label)).toEqual(["B"]); // B still undoable
+  });
+
+  it("runUndo removes the action even if the undo closure throws (error still surfaces)", () => {
     useUndoStore.getState().offer(
       "boom",
       () => {
@@ -53,20 +70,28 @@ describe("undo store (NFR6)", () => {
       1000,
     );
     expect(() => useUndoStore.getState().runUndo()).toThrow("x");
-    expect(useUndoStore.getState().current).toBeNull(); // not wedged
+    expect(queue()).toHaveLength(0); // not wedged
   });
 
-  it("dismiss(id) does not clear a newer offer", () => {
+  it("dismiss(id) removes only that action, never a sibling", () => {
     const old = useUndoStore.getState().offer("old", () => {}, 7000, 1000);
     useUndoStore.getState().offer("new", () => {}, 7000, 2000);
     useUndoStore.getState().dismiss(old);
-    expect(useUndoStore.getState().current?.label).toBe("new"); // untouched
+    expect(queue().map((u) => u.label)).toEqual(["new"]); // untouched
+  });
+
+  it("dismiss of an already-gone id is an idempotent no-op", () => {
+    const id = useUndoStore.getState().offer("a", () => {}, 7000, 1000);
+    useUndoStore.getState().dismiss(id);
+    const before = queue();
+    useUndoStore.getState().dismiss(id); // second dismiss
+    expect(queue()).toBe(before); // same reference — no state churn
   });
 
   it("offerUndo is the shared entry point (writes to the store)", () => {
     const undo = vi.fn();
     offerUndo("Désarmer", undo);
-    expect(useUndoStore.getState().current?.label).toBe("Désarmer");
+    expect(queue().at(-1)?.label).toBe("Désarmer");
   });
 });
 

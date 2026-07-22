@@ -27,7 +27,7 @@ describe("TurtleTile (Story 6.3 — top-bar feeding counter)", () => {
     hass.connectionStatus = "connected";
     hass.increment.mockClear();
     hass.decrement.mockClear();
-    useUndoStore.setState({ current: null });
+    useUndoStore.setState({ queue: [] });
   });
 
   it("0 feedings → tappable, increments the HA counter", () => {
@@ -43,7 +43,7 @@ describe("TurtleTile (Story 6.3 — top-bar feeding counter)", () => {
     render(<TurtleTile />);
     fireEvent.click(screen.getByRole("button", { name: /nourrir/i }));
 
-    const undo = useUndoStore.getState().current;
+    const undo = useUndoStore.getState().queue.at(-1);
     expect(undo).not.toBeNull();
     expect(undo!.expiresAt - undo!.offeredAt).toBe(5000);
 
@@ -57,10 +57,10 @@ describe("TurtleTile (Story 6.3 — top-bar feeding counter)", () => {
     render(<TurtleTile />);
     const btn = screen.getByRole("button", { name: /nourrir/i });
     fireEvent.click(btn);
-    const first = useUndoStore.getState().current;
+    const first = useUndoStore.getState().queue.at(-1);
     fireEvent.click(btn);
     // guard returns before offering again → same offer, not a newer one
-    expect(useUndoStore.getState().current).toBe(first);
+    expect(useUndoStore.getState().queue.at(-1)).toBe(first);
   });
 
   it("rapid double-tap → increments only once (in-flight guard, counter is not idempotent)", () => {

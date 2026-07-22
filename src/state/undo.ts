@@ -4,7 +4,9 @@ import { create } from "zustand";
  * The single "undo" layer for high-impact actions (NFR6, UX-DR9) — the safety
  * net that lets a mistaken group action ("Tout éteindre", "Tout fermer",
  * "Désarmer", a scene apply — including an accidental kid tap) be reverted for a
- * few seconds. One active undoable at a time, last-wins, bounded by a dwell.
+ * few seconds. Concurrent undoables coexist as a queue, each bounded by its own
+ * dwell — a later offer no longer clobbers an earlier one still in its window
+ * (e.g. tapping two adjacent top-bar tiles in quick succession).
  *
  * It holds ONLY the transient undo offer (an ephemeral UI concern, AD-1) — the
  * captured prior state lives inside the `undo` closure the caller builds. It is
@@ -29,18 +31,19 @@ export interface EntitySnapshot {
 }
 
 interface UndoState {
-  readonly current: UndoableAction | null;
-  /** Register an undoable action (last-wins). Returns its id. */
+  /** Pending undoables, oldest first. Each coexists with its own dwell. */
+  readonly queue: readonly UndoableAction[];
+  /** Register an undoable action (appended — concurrent offers coexist). Returns its id. */
   offer: (
     label: string,
     undo: () => void,
     dwellMs?: number,
     now?: number,
   ) => number;
-  /** Clear the toast. With `id`, only if it still matches (never clears a newer offer). */
+  /** Remove one action from the queue (by `id`, or the most recent). Idempotent. */
   dismiss: (id?: number) => void;
-  /** Run the active undo closure then clear. */
-  runUndo: () => void;
+  /** Run one action's undo closure then remove it (by `id`, or the most recent). */
+  runUndo: (id?: number) => void;
 }
 
 // Monotonic id — NOT Date.now() (review lesson from 2.1: a wall-clock value is
@@ -48,29 +51,37 @@ interface UndoState {
 let nextId = 1;
 
 export const useUndoStore = create<UndoState>((set, get) => ({
-  current: null,
+  queue: [],
   offer: (label, undo, dwellMs = 7000, now = Date.now()) => {
     const id = nextId++;
-    set({
-      current: { id, label, undo, offeredAt: now, expiresAt: now + dwellMs },
-    });
+    set((s) => ({
+      queue: [
+        ...s.queue,
+        { id, label, undo, offeredAt: now, expiresAt: now + dwellMs },
+      ],
+    }));
     return id;
   },
   dismiss: (id) =>
     set((s) => {
-      if (s.current == null) return s;
-      if (id != null && s.current.id !== id) return s; // a newer offer replaced it
-      return { current: null };
+      if (s.queue.length === 0) return s;
+      const targetId = id ?? s.queue[s.queue.length - 1].id;
+      const next = s.queue.filter((u) => u.id !== targetId);
+      // Idempotent: dismissing an already-gone id is a no-op (no state churn).
+      return next.length === s.queue.length ? s : { queue: next };
     }),
-  runUndo: () => {
-    const cur = get().current;
-    if (!cur) return;
-    // Always clear the toast, even if the undo closure throws — otherwise the
+  runUndo: (id) => {
+    const { queue } = get();
+    if (queue.length === 0) return;
+    const target =
+      id != null ? queue.find((u) => u.id === id) : queue[queue.length - 1];
+    if (!target) return;
+    // Always remove the action, even if its closure throws — otherwise the
     // safety-net UI wedges and the error escapes the click handler uncaught.
     try {
-      cur.undo();
+      target.undo();
     } finally {
-      set({ current: null });
+      set((s) => ({ queue: s.queue.filter((u) => u.id !== target.id) }));
     }
   },
 }));

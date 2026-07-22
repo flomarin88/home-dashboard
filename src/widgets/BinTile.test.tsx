@@ -49,7 +49,7 @@ describe("BinTile (Story 6.1 — top-bar indicator)", () => {
     hass.connectionStatus = "connected";
     hass.priorTimestamp = 1_600_000_000;
     hass.setDatetime.mockClear();
-    useUndoStore.setState({ current: null });
+    useUndoStore.setState({ queue: [] });
   });
 
   it("a_sortir → shown + marks sortie by writing the input_datetime", () => {
@@ -69,7 +69,7 @@ describe("BinTile (Story 6.1 — top-bar indicator)", () => {
     fireEvent.click(screen.getByRole("button", { name: /jaune à sortir/i }));
     hass.setDatetime.mockClear(); // drop the forward write; assert only the revert
 
-    const undo = useUndoStore.getState().current;
+    const undo = useUndoStore.getState().queue.at(-1);
     expect(undo).not.toBeNull();
     expect(undo!.expiresAt - undo!.offeredAt).toBe(5000);
 
