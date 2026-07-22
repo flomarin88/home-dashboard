@@ -4,10 +4,10 @@ baseline_commit: 50454ffe778522f082b2258be8e6c287815e6537
 
 # Story 7.1: Tuile Arrosage (barre supérieure)
 
-Status: review
+Status: done
 
+<!-- Done 2026-07-22: HA Task 0 (counter.plantes_arrosees + reset automation) créés et device-proof (dont absence de collision/scroll top-bar 4ᵉ tuile) validés par Florian. -->
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
-<!-- dev-story 2026-07-22: app-side implémenté & gates verts (266 tests). Reste Task 0 HA + device-proof (Florian) avant done. -->
 
 ## Story
 
@@ -56,11 +56,11 @@ so that je vois d'un coup d'œil si j'ai arrosé et je le valide d'un doigt en p
 
 ## Tasks / Subtasks
 
-- [ ] **Task 0 — ⚠️ PRÉREQUIS HA (Florian, hors app) : compteur + automation reset**
-  - [ ] **Créer** le helper `counter.plantes_arrosees` (Paramètres → Appareils et services → Helpers → **Compteur** : minimum **0**, maximum **1**, pas **1**, valeur initiale **0**).
-  - [ ] **Créer** une automation « Reset arrosage minuit » : déclencheur **`time` = `00:00:00`** → action **`counter.reset`** sur `counter.plantes_arrosees`.
-  - [ ] Confirmer l'**`entity_id` réel** — `counter.plantes_arrosees` (device-proof → le slug doit correspondre au mapping ; sinon mettre à jour `src/entities/mapping.ts`).
-  - [ ] _(Doc déjà écrite : `docs/home-assistant.md` § « Arrosage — plantes 1×/jour » couvre le setup pas-à-pas + le contrat d'interface.)_
+- [x] **Task 0 — ⚠️ PRÉREQUIS HA (Florian, hors app) : compteur + automation reset** — ✅ fait 2026-07-22
+  - [x] **Créer** le helper `counter.plantes_arrosees` (minimum **0**, maximum **1**, pas **1**, valeur initiale **0**).
+  - [x] **Créer** une automation « Reset arrosage minuit » : déclencheur **`time` = `00:00:00`** → action **`counter.reset`** sur `counter.plantes_arrosees`.
+  - [x] Confirmer l'**`entity_id` réel** — `counter.plantes_arrosees` (device-proof OK → le slug correspond au mapping).
+  - [x] _(Doc déjà écrite : `docs/home-assistant.md` § « Arrosage — plantes 1×/jour ».)_
 
 - [x] **Task 1 — Mapping arrosage** (AC: 1, 2, 3)
   - [x] `src/entities/mapping.ts` : config **`PLANTS`** (AD-7) `{ counterEntityId: 'counter.plantes_arrosees' }` + accesseur **`plantsConfig()`**. Suivre **exactement** le moule de `TURTLES`/`turtlesConfig()` (interface `PlantsConfig` avec le même JSDoc « min 0, max 1 »). — `mapping.test.ts` n'assère pas cette forme (comme pour `TURTLES`) → pas de MAJ.
@@ -85,11 +85,11 @@ so that je vois d'un coup d'œil si j'ai arrosé et je le valide d'un doigt en p
 
 - [x] **Task 4 — Insérer la tuile dans `TopBarSlots`** (AC: 1, 3)
   - [x] `src/App.tsx` : `<PlantTile/>` inséré comme **4ᵉ enfant** de `<TopBarSlots>`, ordre `TopBarWeather` → `TurtleTile` → `PlantTile` → `BinTile`. **Visible en permanence**. Pas de nouveau `fixed` (TD-4 soldé — la couche existe).
-  - [ ] **⚠️ 4ᵉ tuile permanente = risque collision top-bar** (dette connue, `deferred-work.md`) — **à vérifier au device-proof (Florian)** : rangée horloge → météo/tortue/plante/poubelle → contrôles **ne se chevauche pas** et **ne scrolle pas** à 1024×768. _(Non vérifiable côté agent — reporté au device-proof.)_
+  - [x] **⚠️ 4ᵉ tuile permanente = risque collision top-bar** (dette connue, `deferred-work.md`) — ✅ device-proof 2026-07-22 : rangée horloge → météo/tortue/plante/poubelle → contrôles **sans chevauchement ni scroll** à 1024×768.
 
-- [ ] **Task 5 — Validation (gates)** (AC: 3)
-  - [x] `build` (sans token, garde AD-8) + `typecheck` + `lint` (oxlint) + `test` **verts** (266 tests, +8) ; 0 `entity_id` en dur hors `entities/` (le literal n'apparaît que dans les assertions de test + JSDoc, comme `TurtleTile`) ; **0 token dans `dist/`** (build sans `.env.local` → 0 `VITE_`/JWT ; les hits `llat` = « insta**llat**ion » dans les chunks de locale `@hakit`) ; Prettier OK.
-  - [ ] **⏳ Preuve device (Florian)** — tuile plante visible, tap → remplissage + increment HA, `disabled` à plein, reset minuit OK, **pas de collision/scroll** à 1024×768.
+- [x] **Task 5 — Validation (gates)** (AC: 3)
+  - [x] `build` (sans token, garde AD-8) + `typecheck` + `lint` (oxlint) + `test` **verts** (272 tests après revue) ; 0 `entity_id` en dur hors `entities/` (le literal n'apparaît que dans les assertions de test + JSDoc, comme `TurtleTile`) ; **0 token dans `dist/`** (build sans `.env.local` → 0 `VITE_`/JWT ; les hits `llat` = « insta**llat**ion » dans les chunks de locale `@hakit`) ; Prettier OK.
+  - [x] **✅ Preuve device (Florian) — validée 2026-07-22** : tuile plante visible, tap → remplissage + increment HA, `disabled` à plein, reset minuit OK, **pas de collision/scroll** à 1024×768.
 
 ### Review Findings (code review 2026-07-22)
 
@@ -206,6 +206,7 @@ claude-opus-4-8 (Liza Pairing, Autonomous — bmad dev-story).
 
 | Date | Version | Description |
 | --- | --- | --- |
+| 2026-07-22 | 1.0 | **Done.** Task 0 HA (`counter.plantes_arrosees` min 0/max 1 + automation « Reset arrosage minuit ») créés côté HA ; device-proof validé par Florian (remplissage/tap/increment/reset OK ; **pas de collision/scroll** de la top-bar à 4 tuiles à 1024×768). Toutes les tâches cochées, tous les findings de revue résolus (D1/D3/D4) ou différés par choix (D2). → done. |
 | 2026-07-22 | 0.3 | **Revue de code (dev-story → code-review, Opus multi-agent).** Blind + Edge + Acceptance : 0 violation d'AC, aucun bug High/Med. 1 patch appliqué (test de la branche `.catch` guard-release). 4 différés (pré-existants/famille) consignés dans `deferred-work.md` ; **D1 corrigé sur demande de Florian** : store undo slot unique → file, `UndoToast` empilé (`offerUndo` inchangé, 3 callers intacts). 2 rejets (bruit). +4 tests (patch 1 + D1 3) → **270 verts**, tsc/oxlint/Prettier verts, 0 régression. Statut maintenu `review` (reste Task 0 HA + device-proof, Florian). |
 | 2026-07-22 | 0.2 | **Implémentée (dev-story).** `plantsConfig` + `plantView` (pur, clamp 0..1) + `PlantTile` (fond de tuile qui se remplit vide/plein, tap → `counter.increment`, `disabled` à 1/1, undo 5 s, garde in-flight, obsolescence AD-6) inséré dans `TopBarSlots` (4ᵉ tuile). Clone `maximum:1` du moule Tortues — HA source unique, pas d'optimiste. `plantView` renvoie `{ count, fill, done }` (calque `turtleView`, pas le `watered` du brouillon). +8 tests (266 verts, 43 fichiers), tsc/oxlint/build-sans-token/Prettier verts, 0 régression. Reste : Task 0 HA + preuve device (Florian). → review. |
 | 2026-07-22 | 0.1 | Story 7.1 créée (create-story, Ultimate context engine) — **tuile plante** dans `TopBarSlots`, **compteur HA `counter.plantes_arrosees`** (`maximum: 1`), **`counter.increment`** au tap, **remplissage binaire** vide→plein, **`disabled` à plein**, **reset minuit côté HA** (automation). **Clone `maximum:1` du moule Tortues (6.3)** : HA source unique, pas d'optimiste, garde in-flight, obsolescence AD-6. Simplifications vs 6.3 : pas de palier « moitié », **TD-4 déjà soldé** (ajout d'enfant, pas de refactor), **doc HA déjà écrite**. Risque : **4ᵉ tuile top-bar** (dette collision `deferred-work.md`) → device-proof à 1024×768. Task 0 (counter + automation) + preuve device = Florian. → ready-for-dev. |
