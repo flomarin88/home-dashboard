@@ -3,10 +3,14 @@ import { render, screen } from "@testing-library/react";
 import { TopBar } from "./TopBar";
 
 describe("TopBar (persistent chrome)", () => {
-  it("renders alarm + cameras affordances with text labels (UX-DR14)", () => {
+  it("renders the clock (HH:MM)", () => {
     render(<TopBar />);
-    // State carried by text + icon, not colour alone.
-    expect(screen.getByText(/désarmé/i)).toBeInTheDocument();
-    expect(screen.getByText(/caméras/i)).toBeInTheDocument();
+    expect(screen.getByText(/\d{2}:\d{2}/)).toBeInTheDocument();
+  });
+
+  it("no longer renders the (removed) alarm/cameras placeholders", () => {
+    render(<TopBar />);
+    expect(screen.queryByText(/désarmé/i)).toBeNull();
+    expect(screen.queryByText(/caméras/i)).toBeNull();
   });
 });
