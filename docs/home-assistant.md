@@ -392,3 +392,230 @@ journalière** (`sensor.climatiseur_etage_gateway_ratelimit_remaining_day`). Le 
 **Hors périmètre 2.6** (candidats à une future page « Détail climatisation ») :
 température extérieure, capteurs de défaut/alerte, présets `boost`/`away`
 (`climate.set_preset_mode`), planning (`select.*_schedule`).
+
+---
+
+## Voix — marquer un rituel « fait » (Google Nest + Siri)
+
+Dire « **Ok Google / Dis Siri, j'ai sorti les poubelles / arrosé les plantes / nourri les
+tortues** » écrit **les mêmes helpers HA** que les tuiles du dashboard. Le dashboard
+**reflète** (AD-3) — **aucun changement d'app**. Réf. archi :
+`planning-artifacts/architecture/architecture-voix-rituels-2026-07-23/ARCHITECTURE-SPINE.md`
+(AD-V1…AD-V5).
+
+**Principe** : Google et Siri convergent sur **un seul script HA `rituel_fait`** (le
+« registre » = la seule logique, AD-V2/V3). Il **résout la cible**, **écrit le helper**, et
+**renvoie un message parlé** `{ outcome, spoken }`. Le feedback est calculé **une fois** puis
+dit par l'iPhone (Siri) ou poussé en TTS vers la Nest (Google) (AD-V4).
+
+```mermaid
+graph LR
+  S["Siri / iPhone"] --> A["HA Assist (phrase FR)"] --> SC["script.rituel_fait (registre)"]
+  G["Google Nest"] --> I["IFTTT (dumb)"] --> W["webhook HA"] --> SC
+  SC --> H["helpers HA (input_datetime / counter)"]
+  SC --> R["{outcome, spoken}"]
+  R --> A
+  R --> T["TTS → Nest"]
+```
+
+### 1. Le script central `rituel_fait` (registre + logique)
+
+> **Un seul endroit qui « fait avancer » (AD-V2/V3).** Ajouter un rituel = **une entrée de
+> `registre` + une phrase** (§2). La désambiguïsation « quelle poubelle » vit **ici**, pas dans
+> l'assistant ni le relais (AD-4/AD-V5).
+
+```yaml
+script:
+  rituel_fait:
+    alias: "Rituel fait (voix)"
+    fields:
+      rituel:
+        description: "Clé du rituel : poubelles | plantes | tortues"
+    sequence:
+      - variables:
+          # ---- REGISTRE — ajouter un rituel = une clé ici (+ une phrase §2) ----
+          registre:
+            plantes:
+              {
+                type: counter,
+                entity: counter.plantes_arrosees,
+                nom: "les plantes",
+              }
+            tortues:
+              {
+                type: counter,
+                entity: counter.tortues_nourries,
+                nom: "les tortues",
+              }
+            poubelles: { type: poubelle, nom: "les poubelles" }
+          def: "{{ registre.get(rituel) }}"
+      - choose:
+          # ---- clé inconnue → échec EXPLICITE (contrat de clés, AD-V2) ----
+          - conditions: "{{ def is none }}"
+            sequence:
+              - variables:
+                  resultat:
+                    {
+                      outcome: failure,
+                      spoken: "Désolé, je ne connais pas ce rituel.",
+                    }
+          # ---- compteur (plantes / tortues) : clamp HA → déjà-fait = noop ----
+          - conditions: "{{ def.type == 'counter' }}"
+            sequence:
+              - variables:
+                  cur: "{{ states(def.entity) | int(0) }}"
+                  mx: "{{ state_attr(def.entity, 'maximum') | int(1) }}"
+              - if: "{{ cur >= mx }}"
+                then:
+                  - variables:
+                      resultat:
+                        {
+                          outcome: noop,
+                          spoken: "C'était déjà noté pour {{ def.nom }}.",
+                        }
+                else:
+                  - service: counter.increment
+                    target: { entity_id: "{{ def.entity }}" }
+                  - variables:
+                      resultat:
+                        {
+                          outcome: success,
+                          spoken: "C'est noté, {{ def.nom }} !",
+                        }
+          # ---- poubelle : résout la poubelle DUE depuis le capteur (AD-V3) ----
+          - conditions: "{{ def.type == 'poubelle' }}"
+            sequence:
+              - variables:
+                  s: "{{ states('sensor.poubelle_a_sortir') }}"
+                  couleur: "{{ s.split('_')[0] if '_' in s else '' }}"
+                  due: "{{ couleur in ['jaune','noire'] and ('a_sortir' in s or s.endswith('oubli')) }}"
+              - if: "{{ due }}"
+                then:
+                  # ⚠️ epoch, pas une heure locale (leçon 6.1 D1)
+                  - service: input_datetime.set_datetime
+                    target:
+                      {
+                        entity_id: "input_datetime.poubelle_{{ couleur }}_sortie",
+                      }
+                    data: { timestamp: "{{ now().timestamp() | int }}" }
+                  - variables:
+                      resultat:
+                        {
+                          outcome: success,
+                          spoken: "C'est noté, poubelle {{ couleur }} sortie !",
+                        }
+                else:
+                  - variables:
+                      resultat:
+                        {
+                          outcome: noop,
+                          spoken: "Aucune poubelle à sortir en ce moment.",
+                        }
+      - stop: "fait"
+        response_variable: resultat
+```
+
+> ⚠️ **Syntaxe `stop` + `response_variable`** (script qui renvoie une réponse) : HA **2024.6+**.
+> Sur une version antérieure, adapter (voir _Scripts → Responses_ dans la doc HA). Teste dans
+> **Outils de dév → Actions** : appelle `script.rituel_fait` avec `rituel: plantes` et vérifie
+> la réponse `{ outcome, spoken }`.
+
+### 2. Phrases FR + intent Assist (chemin Siri)
+
+`config/custom_sentences/fr/rituels.yaml` — **la clé du slug est le contrat** (AD-V2) : chaque
+groupe de phrases fixe la clé exacte du registre.
+
+```yaml
+language: "fr"
+intents:
+  RituelFait:
+    data:
+      - sentences: ["j'ai sorti les poubelles", "les poubelles sont sorties"]
+        slots: { rituel: "poubelles" }
+      - sentences: ["j'ai arrosé les plantes", "j'ai arrosé"]
+        slots: { rituel: "plantes" }
+      - sentences: ["j'ai nourri les tortues"]
+        slots: { rituel: "tortues" }
+```
+
+`configuration.yaml` — l'intent appelle le script et **parle** sa réponse :
+
+```yaml
+intent_script:
+  RituelFait:
+    action:
+      - service: script.rituel_fait
+        data: { rituel: "{{ rituel }}" }
+        response_variable: r
+    speech:
+      text: "{{ r.spoken }}"
+```
+
+### 3. Le Raccourci Siri (iPhone)
+
+App **Raccourcis** → un raccourci **par rituel** :
+
+1. Action **« Assist »** (fournie par l'app **Home Assistant Companion**) → texte = la phrase
+   (ex. `j'ai arrosé les plantes`).
+2. Action **« Énoncer le texte »** → la **réponse** de l'action Assist (Siri dit le résultat).
+3. **Nomme le raccourci avec la phrase** (« j'ai arrosé les plantes ») → « **Dis Siri, j'ai
+   arrosé les plantes** » le déclenche.
+
+Local / VPN : marche sans cloud (l'app Companion parle à HA directement).
+
+### 4. Chemin Google (Nest) : phrase → webhook → script → TTS retour
+
+> **Prérequis** : HA doit être **joignable depuis internet** pour recevoir le webhook (IFTTT/Google
+> sont dans le cloud) — **webhook cloud Nabu Casa** recommandé, ou proxy inverse. (Siri, lui, n'en
+> a pas besoin.)
+
+`configuration.yaml` (ou l'éditeur d'automatisations) :
+
+```yaml
+automation:
+  - alias: "Voix — rituel via webhook (Google)"
+    trigger:
+      - platform: webhook
+        webhook_id: "<SECRET_LONG_ALEATOIRE>" # 🔒 l'URL = un secret, ne pas partager
+        allowed_methods: [POST]
+        local_only: false # le cloud IFTTT/Google l'appelle
+    action:
+      - service: script.rituel_fait
+        data: { rituel: "{{ trigger.json.rituel }}" }
+        response_variable: r
+      # feedback dynamique côté Google : HA pousse le TTS vers la Nest (AD-V4)
+      - service: tts.speak
+        target: { entity_id: tts.google_translate_fr } # ton moteur TTS
+        data:
+          media_player_entity_id: media_player.<ta_enceinte_nest>
+          message: "{{ r.spoken }}"
+```
+
+**Applet IFTTT** (une par rituel — le relais est bête, il ne fait que forwarder, AD-V5) :
+
+- **If** : Google Assistant → _Say a simple phrase_ → « j'ai sorti les poubelles ».
+- **Then** : Webhooks → _Make a web request_ → `POST` l'URL du webhook HA, `Content-Type:
+application/json`, body `{"rituel":"poubelles"}`.
+
+> ⚠️ **Vérifie au build** que le déclencheur IFTTT « Google Assistant » existe toujours (tiers
+> volatil) ; sinon **Routine Google Home** (phrase perso) → appeler le webhook/script.
+> n8n reste **optionnel** en coupure (IFTTT → n8n → webhook HA) si tu veux du logging — mais
+> **aucune logique dedans** (AD-V5).
+
+### 5. Ajouter un rituel plus tard
+
+1. Une entrée dans `registre` (§1) : `{ type: counter|poubelle, entity: …, nom: … }`.
+2. Un groupe de phrases dans `rituels.yaml` (§2) avec le **slug exact**.
+3. (Google) une applet IFTTT qui poste `{"rituel":"<slug>"}`.
+
+Aucun nouveau script, aucune ligne d'app.
+
+### 6. Appliquer & tester
+
+- **Recharger** : Outils de dév → YAML → **Recharger les scripts / automatisations / intents** ;
+  `custom_sentences` : **redémarrage** HA (chargé au boot).
+- **Tester le cœur** : Outils de dév → Actions → `script.rituel_fait` (`rituel: poubelles` un jour
+  de collecte → `input_datetime.poubelle_*_sortie` écrit + la tuile passe « sortie » ; hors créneau
+  → `outcome: noop`).
+- **Tester Siri** : « Dis Siri, j'ai arrosé les plantes » → la tuile plante se remplit + Siri
+  confirme. **Google** : dis la phrase → la Nest répond + la tuile bouge.
