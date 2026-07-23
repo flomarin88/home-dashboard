@@ -450,6 +450,32 @@ export function weatherConfig(): WeatherConfig {
   return WEATHER;
 }
 
+/**
+ * Electricity consumption (Story 9.1) — a daily-cumulative kWh sensor + a unit
+ * price helper, reflected read-only (AD-16). Cost = kWh × price is a DISPLAY
+ * derivation (never a stored state, AD-1). A single flat price for 9.1; Story
+ * 9.2 splits it into HC/HP + adds the current-period sensor.
+ * ⚠️ PLACEHOLDER ids until Task 0 (real Enedis / TotalÉnergies daily sensor +
+ * `input_number` price helper) — confirm the real slugs at device-proof.
+ */
+export interface ElectricityConfig {
+  /** `sensor.*` — daily cumulative consumption in kWh (utility_meter `cycle: daily`, reset midnight HA). */
+  readonly dailyKwhEntityId: string;
+  /** `input_number.*` — unit price €/kWh (flat; Story 9.2 splits into HC/HP). */
+  readonly priceEntityId: string;
+}
+
+const ELECTRICITY: ElectricityConfig = {
+  // ⚠️ Placeholders (Task 0) — the real ids depend on the provider integration.
+  dailyKwhEntityId: "sensor.electricite_conso_jour",
+  priceEntityId: "input_number.prix_kwh",
+};
+
+/** The electricity config (Story 9.1). */
+export function electricityConfig(): ElectricityConfig {
+  return ELECTRICITY;
+}
+
 /** The single sensor entity for a (room, measure), or undefined if unmapped. */
 export function sensor(
   room: RoomId,
@@ -533,6 +559,8 @@ const AUX_ENTITY_IDS: readonly string[] = [
   BINS.sortie.noire,
   BINS.ack.jaune,
   BINS.ack.noire,
+  ELECTRICITY.dailyKwhEntityId,
+  ELECTRICITY.priceEntityId,
 ];
 
 export function assertWellFormedAuxIds(

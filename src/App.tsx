@@ -7,6 +7,7 @@ import { BinTile } from "./widgets/BinTile";
 import { PlantTile } from "./widgets/PlantTile";
 import { TopBarWeather } from "./widgets/TopBarWeather";
 import { TurtleTile } from "./widgets/TurtleTile";
+import { ElectricityTile } from "./widgets/ElectricityTile";
 import { Skeleton } from "./ui/Skeleton";
 import { Home } from "./pages/Home";
 import { RoomDetail } from "./pages/RoomDetail";
@@ -14,6 +15,7 @@ import { VacuumDetail } from "./pages/VacuumDetail";
 import { WeatherDetail } from "./pages/WeatherDetail";
 import { ClimateDetail } from "./pages/ClimateDetail";
 import { CoursesDetail } from "./pages/CoursesDetail";
+import { ElectricityDetail } from "./pages/ElectricityDetail";
 
 function AppRoutes() {
   return (
@@ -24,6 +26,7 @@ function AppRoutes() {
       <Route path="/climatisation" element={<ClimateDetail />} />
       <Route path="/meteo" element={<WeatherDetail />} />
       <Route path="/courses" element={<CoursesDetail />} />
+      <Route path="/electricite" element={<ElectricityDetail />} />
     </Routes>
   );
 }
@@ -82,6 +85,7 @@ function KioskShell() {
               added as children. */}
           <TopBarSlots>
             <TopBarWeather />
+            <ElectricityTile />
             <TurtleTile />
             <PlantTile />
             <BinTile />

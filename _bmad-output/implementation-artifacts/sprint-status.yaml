@@ -42,12 +42,13 @@
 # - Retrospective appends its action items to action_items; sprint-status surfaces open ones
 
 generated: 2026-07-13
-last_updated: 2026-07-22
+last_updated: 2026-07-23
 # EPIC 1 (Fondation) DONE — stories 1.1-1.6 done (2026-07-15). Epic-1 retrospective optional. Next: epic-2 (pilotage).
 # v2 (2026-07-20): epics 7 (Arrosage) + 8 (Courses/NutriClaude) ajoutés au backlog depuis epics.md. Aucun fichier story v2 encore créé. Task 0 hors-repo requis avant epic-8.
 # v2b (2026-07-21): epic-9 (Consommation élec/eau — flux d'affichage HA read-only) ajouté au backlog via correct-course (sprint-change-proposal-2026-07-21.md). Aucun fichier story créé. Task 0 HA (capteurs conso + HC/HP + prix) requis avant device-proof.
 # v2c (2026-07-22): epic-7 (Arrosage) DONE — story 7.1 create→dev→code-review→done ; Task 0 HA + device-proof validés (Florian). Revue : D1/D3/D4 corrigés, D2 différé. Refactor undo→file d'undos concurrents en passant.
 # v2d (2026-07-22): epic-6 (Maison & coordination) clôturé DONE — 4/4 stories done. Rétros epic-6 + epic-7 restent optional (non lancées).
+# v2e (2026-07-23): epic-9 démarré — story 9.1 (micro-tuile Électricité, fondation du patron conso) contextualisée via create-story. Florian a demandé 9.2 mais 9.1 (le patron) est greenfield → 9.1 d'abord (séquence change-proposal §5). epic-9 backlog→in-progress. Task 0 HA (capteur conso journalière + helper prix) requis avant device-proof. Risques story : popover NET-NEW (aucun précédent) + 5ᵉ élément top-bar (déclencheur dette collision).
 project: home-dashboard
 project_key: NOKEY
 tracking_system: file-system
@@ -116,8 +117,8 @@ development_status:
   epic-8-retrospective: optional
 
   # Epic 9 — Consommation : flux élec & eau (v2)
-  epic-9: backlog
-  9-1-micro-tuile-electricite-conso-cout: backlog
+  epic-9: in-progress  # démarré 2026-07-23 — story 9.1 contextualisée (create-story)
+  9-1-micro-tuile-electricite-conso-cout: review  # dev-story 2026-07-23 : tuile+page /electricite, 293 tests verts, build sans token OK ; reste Task 0 HA (capteur conso jour + prix, entity_ids réels) + device-proof (Florian)
   9-2-heures-creuses-pleines: backlog
   9-3-micro-tuile-eau-saur: backlog
   epic-9-retrospective: optional

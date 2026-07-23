@@ -9,6 +9,7 @@ import {
   lights,
   vacuum,
   climate,
+  electricityConfig,
   assertCanonicalMapping,
   assertWellFormedAuxIds,
   assertNoPlaceholders,
@@ -173,6 +174,20 @@ describe("auxiliary entity_ids (counters + input_datetime, outside ENTITIES)", (
     expect(() => assertWellFormedAuxIds(["plantes_arrosees"])).toThrow(
       /malformed/i,
     );
+  });
+});
+
+describe("electricity mapping (Story 9.1)", () => {
+  it("exposes the daily-kWh sensor and the €/kWh price helper (placeholders until Task 0)", () => {
+    const e = electricityConfig();
+    expect(e.dailyKwhEntityId).toMatch(/^sensor\.[a-z0-9_]+$/);
+    expect(e.priceEntityId).toMatch(/^input_number\.[a-z0-9_]+$/);
+  });
+
+  it("registers both ids for aux well-formedness validation (leçon 7.1 D4)", () => {
+    // They are part of the default AUX_ENTITY_IDS, so the real-ids check covers
+    // them; a typo in either would throw at dev-time instead of shipping dimmed.
+    expect(() => assertWellFormedAuxIds()).not.toThrow();
   });
 });
 

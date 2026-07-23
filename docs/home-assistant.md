@@ -290,6 +290,77 @@ mets à jour le mapping (`src/entities/mapping.ts`).
 
 ---
 
+## Électricité — conso & coût (Story 9.1)
+
+La micro-tuile Électricité **reflète** en lecture seule un capteur HA de **conso
+journalière** (kWh cumulés du jour) et un **prix** (€/kWh), et en **dérive le coût du
+jour** (`conso × prix`) — une **dérivation d'affichage**, jamais un état stocké
+(AD-16). L'app ne planifie rien : le **reset minuit** et (Story 9.2) le **schéma
+heures creuses/pleines** vivent **dans HA** (AD-4). Purement HA-natif, reflect-only
+(même patron que l'Ambiance Netatmo, Story 1.5).
+
+### 1. Un capteur de conso journalière (kWh, reset minuit)
+
+Le dashboard attend un `sensor.*` dont le `state` = **kWh consommés depuis 00:00**
+(cumul du jour, remis à 0 chaque nuit par HA). Deux voies :
+
+- **Intégration fournisseur** (Enedis / TotalÉnergies…) exposant déjà un capteur
+  _journalier_ → l'utiliser directement.
+- Sinon, un **`utility_meter`** en cycle quotidien au-dessus d'un capteur d'énergie
+  cumulée :
+
+```yaml
+utility_meter:
+  electricite_conso_jour:
+    source: sensor.<compteur_energie_kwh>
+    cycle: daily
+```
+
+> ⚠️ **entity_id placeholder** : le mapping du dashboard utilise
+> `sensor.electricite_conso_jour` **en attendant** le slug réel (dépend de
+> l'intégration). Mets à jour `src/entities/mapping.ts` avec le vrai id.
+
+### 2. Un helper `input_number` pour le prix
+
+**Paramètres → Appareils et services → Helpers → Créer un helper → Nombre** :
+
+- **Prix kWh** → `input_number.prix_kwh` — €/kWh.
+
+```yaml
+input_number:
+  prix_kwh:
+    name: Prix kWh
+    min: 0
+    max: 1
+    step: 0.0001
+    unit_of_measurement: "€/kWh"
+```
+
+> Un **seul prix flat** pour la Story 9.1. La **Story 9.2** ajoutera un **2ᵉ prix**
+> (heures creuses / heures pleines) + un capteur de **période courante** HC/HP.
+
+### Contrat d'interface (⚠️ le code du dashboard en dépend)
+
+| entité                          | rôle          | état attendu                           |
+| ------------------------------- | ------------- | -------------------------------------- |
+| `sensor.electricite_conso_jour` | conso du jour | nombre en **kWh** (cumul depuis 00:00) |
+| `input_number.prix_kwh`         | prix unitaire | nombre en **€/kWh**                    |
+
+Le **coût du jour** = `conso × prix`, calculé **côté app à l'affichage** (jamais
+persisté, AD-16). `unavailable`/`unknown`/socket perdue → **obsolescence** (dernière
+valeur + « Hors ligne », AD-6). Si tu changes un `entity_id`, mets à jour le mapping
+(`src/entities/mapping.ts`).
+
+### 3. Appliquer & tester
+
+- **Recharger** : Outils de dév → YAML → **Recharger Utility Meter** (si utilisé) ;
+  helper `input_number` créé via l'UI : pas de rechargement.
+- **Tester** : la tuile montre `conso × prix` (ex. 8,2 kWh × 0,18 €/kWh ⇒ 1,48 €) ;
+  tap → page `/electricite` (coût + conso + prix + graphe conso + seam HC/HP). Coupe
+  le capteur (`unavailable`) → dernière valeur + « Hors ligne », jamais de blanc.
+
+---
+
 ## Climatisation — étage (Story 2.6)
 
 **Aucun setup HA custom requis** : contrairement aux poubelles/tortues, la clim est une
