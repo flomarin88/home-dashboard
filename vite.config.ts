@@ -60,7 +60,6 @@ export default defineConfig(({ command, mode }) => {
           // Lazy chunks (e.g. @hakit's ~60 i18n locale bundles) load on demand.
           globPatterns: [
             "index.html",
-            "registerSW.js",
             "assets/index-*.{js,css}",
             "**/*.{svg,webmanifest,woff,woff2}",
           ],

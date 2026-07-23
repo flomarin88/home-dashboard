@@ -63,7 +63,9 @@ On push to `master`, after the gates: build for the www base, join the tailnet,
    `config/www/home-dashboard/` once.
 
 After that, every push to `master` redeploys automatically. The iPad picks up
-the new build on its next load (the PWA service worker auto-updates).
+the new build on its next load: the PWA service worker precaches the new shell
+and, once it activates, reloads the open page so the latest version shows on the
+current load (rather than one launch later).
 
 ## Kiosk / device setup
 
