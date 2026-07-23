@@ -1,14 +1,12 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import { registerSW } from "virtual:pwa-register";
+import { registerPwa } from "./pwa";
 import "./index.css";
 import App from "./App.tsx";
 
-// PWA (AD-9): reload the app-shell as soon as a freshly deployed service worker
-// activates. Without this the SW precaches the new build in the background but
-// never refreshes the open page, so an always-on kiosk stays one deploy behind
-// (worse on iOS, where a standalone PWA suspends/resumes instead of relaunching).
-registerSW({ immediate: true });
+// PWA (AD-9): reload the app-shell when a new build is deployed, and poll for
+// updates so an always-on kiosk stays current even when never relaunched.
+registerPwa();
 
 // StrictMode is kept intentionally. In dev it double-invokes effects, so
 // HassConnect may open → tear down → reopen the HA WebSocket once at startup
