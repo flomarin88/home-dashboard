@@ -1,7 +1,39 @@
-import { defineConfig, loadEnv } from "vite";
+import { defineConfig, loadEnv, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import { VitePWA } from "vite-plugin-pwa";
+
+// Regression guard (incident 2026-07): the PWA update path lives entirely in the
+// app bundle via `virtual:pwa-register` (see src/pwa.ts). If someone drops that
+// import or moves off `registerType: "autoUpdate"`, the SW keeps precaching new
+// builds but never reloads the open page — the always-on kiosk would silently
+// freeze on an old version, exactly the bug this guards against. Fail the build
+// loudly if the two fingerprints of that path are missing from the output: the
+// `workbox-window` chunk (the client is bundled) and a `location.reload` call
+// (the autoUpdate reload-on-activate wiring).
+function assertPwaReloadWired(): Plugin {
+  return {
+    name: "assert-pwa-reload-wired",
+    apply: "build",
+    writeBundle(_options, bundle) {
+      let hasWorkboxWindow = false;
+      let hasReload = false;
+      for (const output of Object.values(bundle)) {
+        if (output.type !== "chunk") continue;
+        if (output.fileName.includes("workbox-window")) hasWorkboxWindow = true;
+        if (output.code.includes("location.reload")) hasReload = true;
+      }
+      if (!hasWorkboxWindow || !hasReload) {
+        throw new Error(
+          "AD-9 guard: the PWA reload path is missing from the bundle " +
+            `(workbox-window chunk: ${hasWorkboxWindow}, location.reload: ${hasReload}). ` +
+            "A deploy would no longer refresh the open kiosk. Restore the " +
+            "`virtual:pwa-register` autoUpdate wiring — see src/pwa.ts.",
+        );
+      }
+    },
+  };
+}
 
 // Deploy base path. Default '/' keeps dev (localhost) and a root/add-on deploy
 // simple. For the HA `www/` deploy the CI sets DEPLOY_BASE=/local/home-dashboard/
@@ -98,6 +130,7 @@ export default defineConfig(({ command, mode }) => {
           ],
         },
       }),
+      assertPwaReloadWired(),
     ],
   };
 });
