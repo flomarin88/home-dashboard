@@ -52,7 +52,9 @@ export default function TileTempChart({
           {refTemp != null ? (
             <ReferenceLine
               y={refTemp}
-              stroke="var(--color-security-alert)"
+              // DIAG: hex littéral au lieu de var(--color-security-alert) — test
+              // « var() non résolu dans un attribut SVG sur WebKit ancien ».
+              stroke="#ff5d5d"
               strokeDasharray="4 3"
               strokeWidth={1.5}
               ifOverflow="extendDomain"
@@ -61,7 +63,8 @@ export default function TileTempChart({
           <Line
             dataKey="value"
             type="monotone"
-            stroke="var(--color-accent-climate)"
+            // DIAG: hex littéral au lieu de var(--color-accent-climate).
+            stroke="#35e0d8"
             strokeWidth={2}
             dot={false}
             isAnimationActive={false}
