@@ -71,22 +71,25 @@
  * flick — which visually drifts the `fixed` top-bar tiles away from the chrome.
  * `overscroll-behavior: none` kills that bounce so nothing moves.
  *
- * The dark ground is also set here (not only on the `h-dvh` <main>): in the iOS
- * standalone PWA, when `100dvh` doesn't cover the dalle to the pixel (rounding /
- * `black-translucent` viewport), the body's DEFAULT background (white) shows
- * through as a bar at the bottom edge. A solid indigo body makes any residual
- * gap invisible instead of white.
+ * The ground gradient is set on `html` itself (below), not only on the shell:
+ * the iPad's PWA layout viewport is 1024×748 while the physical screen is 768,
+ * leaving a ~20px strip at the bottom that page CONTENT can't reach (it's below
+ * the visible viewport). Only the root element's background paints that strip —
+ * so putting the SAME `.bg-ground` on `html` makes the strip a seamless
+ * continuation of the ground instead of a visible bar. The shell/content stay
+ * transparent on top of it.
  */
 html,
 body {
   overscroll-behavior: none;
-  background-color: var(--color-ground-indigo);
 }
 
 /*
  * Full-screen ground: diagonal indigo→teal→magenta + soft radial glows.
- * Multi-layer, so a component class rather than a single gradient utility.
+ * Applied to `html` (paints the canvas, incl. the unreachable bottom strip) and
+ * available as a class. Multi-layer, so a component class rather than a utility.
  */
+html,
 .bg-ground {
   background-color: var(--color-ground-indigo);
   background-image:

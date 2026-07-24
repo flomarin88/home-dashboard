@@ -70,18 +70,17 @@ function ConnectingZones() {
  */
 function KioskShell() {
   return (
-    // Full-screen ground holding a width-capped content stage. `h-screen`
-    // (`100vh`) + `w-screen`, NOT `fixed inset-0`/`h-dvh`: on the 2016 iPad's PWA
-    // the layout viewport is only 1024×748 (fixed/innerHeight/dvh all report
-    // 748), leaving a ~20px dark strip at the physical bottom — but `100vh`
-    // measures the full 768, so `h-screen` covers it. Explicit units, no `inset`
-    // shorthand (< iOS 14.5). See memory: target-device-and-layout.
-    <main className="bg-ground fixed top-0 left-0 h-screen w-screen flex items-center justify-center overflow-hidden">
+    // Content shell — transparent; the ground gradient is on `html` (index.css)
+    // so it also paints the ~20px bottom strip that page content can't reach on
+    // the iPad's 1024×748 PWA viewport (the `100vh`=768 area below 748 is
+    // off-screen, so sizing the shell there just hides content — the SHA tag
+    // vanished). `fixed` + explicit offsets = the 748 visible viewport; content
+    // is designed to fit it. See memory: target-device-and-layout.
+    <main className="fixed top-0 right-0 bottom-0 left-0 flex items-center justify-center overflow-hidden">
       {/* Width-capped stage (max 1024px, centered) so it isn't oversized on a
-          desktop window; height FILLS the viewport (`h-full`, no max-height) —
-          the iPad's PWA viewport is slightly taller than 768, so a 768 cap left
-          a dark surround bar at the bottom. `overflow-hidden` = NEVER-scroll. */}
-      <div className="bg-ground relative flex h-full w-full max-w-[1024px] flex-col gap-grid-gap overflow-hidden p-6 text-text">
+          desktop window; transparent (ground is on `html`). `overflow-hidden`
+          keeps the NEVER-scroll invariant. */}
+      <div className="relative flex h-full w-full max-w-[1024px] flex-col gap-grid-gap overflow-hidden p-6 text-text">
         <TopBar />
         {isConfigured ? (
           <HakitProvider loading={<ConnectingZones />}>
