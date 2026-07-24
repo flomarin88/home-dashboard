@@ -77,9 +77,11 @@ function KioskShell() {
     // the 2016 iPad's old WebKit ignores `dvh` (Safari 15.4+) and the `inset`
     // shorthand (< iOS 14.5). See memory: target-device-and-layout.
     <main className="fixed top-0 right-0 bottom-0 left-0 flex items-center justify-center overflow-hidden">
-      {/* Centered 1024×768 stage — `max-*` caps it on a larger screen, `w/h-full`
-          fills the iPad; `overflow-hidden` keeps the NEVER-scroll invariant. */}
-      <div className="bg-ground relative flex h-full max-h-[768px] w-full max-w-[1024px] flex-col gap-grid-gap overflow-hidden p-6 text-text">
+      {/* Width-capped stage (max 1024px, centered) so it isn't oversized on a
+          desktop window; height FILLS the viewport (`h-full`, no max-height) —
+          the iPad's PWA viewport is slightly taller than 768, so a 768 cap left
+          a dark surround bar at the bottom. `overflow-hidden` = NEVER-scroll. */}
+      <div className="bg-ground relative flex h-full w-full max-w-[1024px] flex-col gap-grid-gap overflow-hidden p-6 text-text">
         <TopBar />
         {isConfigured ? (
           <HakitProvider loading={<ConnectingZones />}>
