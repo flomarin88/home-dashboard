@@ -70,10 +70,17 @@
  * scrolls), but iOS Safari still rubber-band overscrolls the document on a
  * flick — which visually drifts the `fixed` top-bar tiles away from the chrome.
  * `overscroll-behavior: none` kills that bounce so nothing moves.
+ *
+ * The dark ground is also set here (not only on the `h-dvh` <main>): in the iOS
+ * standalone PWA, when `100dvh` doesn't cover the dalle to the pixel (rounding /
+ * `black-translucent` viewport), the body's DEFAULT background (white) shows
+ * through as a bar at the bottom edge. A solid indigo body makes any residual
+ * gap invisible instead of white.
  */
 html,
 body {
   overscroll-behavior: none;
+  background-color: var(--color-ground-indigo);
 }
 
 /*
