@@ -27,7 +27,7 @@ export default function TileTempChart({
   // an invisible render failure — mirrors SensorHistoryChart's guard.
   if (values.length < 2) {
     return (
-      <div className="flex h-full items-center">
+      <div className="absolute inset-0 flex items-center">
         <span className="text-meta text-text-muted">Pas d'historique</span>
       </div>
     );
@@ -35,7 +35,14 @@ export default function TileTempChart({
 
   const data = values.map((value) => ({ value }));
   return (
-    <div className="h-full w-full" role="img" aria-label="Température (24 h)">
+    // `absolute inset-0` (parent is `relative`) gives a definite px box so
+    // ResponsiveContainer measures a real height — a %-height chain collapses to
+    // 0 inside a flex item on WebKit (iPad / iOS), rendering nothing.
+    <div
+      className="absolute inset-0"
+      role="img"
+      aria-label="Température (24 h)"
+    >
       <ResponsiveContainer width="100%" height="100%">
         <LineChart
           data={data}
