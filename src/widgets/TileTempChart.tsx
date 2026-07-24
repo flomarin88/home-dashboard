@@ -22,6 +22,17 @@ export default function TileTempChart({
   values: number[];
   refTemp?: number | null;
 }) {
+  // Empty/single-point history draws nothing in Recharts (a silent blank block).
+  // Surface it explicitly so a missing sparkline reads as "no data" rather than
+  // an invisible render failure — mirrors SensorHistoryChart's guard.
+  if (values.length < 2) {
+    return (
+      <div className="flex h-full items-center">
+        <span className="text-meta text-text-muted">Pas d'historique</span>
+      </div>
+    );
+  }
+
   const data = values.map((value) => ({ value }));
   return (
     <div className="h-full w-full" role="img" aria-label="Température (24 h)">

@@ -29,4 +29,10 @@ describe("TileTempChart", () => {
     expect(line).toBeInTheDocument();
     expect(line.getAttribute("data-y")).toBe("26");
   });
+
+  it("shows 'Pas d'historique' instead of a blank chart when history is empty", () => {
+    render(<TileTempChart values={[]} />);
+    expect(screen.getByText(/pas d'historique/i)).toBeInTheDocument();
+    expect(screen.queryByRole("img", { name: /température/i })).toBeNull();
+  });
 });
