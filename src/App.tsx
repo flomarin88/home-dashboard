@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react";
 import { HashRouter, Routes, Route } from "react-router-dom";
 import { HakitProvider, isConfigured } from "./hakit";
 import { TopBar } from "./ui/TopBar";
@@ -69,65 +68,15 @@ function ConnectingZones() {
  * Not configured (no HA URL) → render the zones with NO provider (Home gates its
  * HA widgets off internally); the shell still shows, never blank (AD-6/NFR4).
  */
-// DIAGNOSTIC (temporary) — reads the real viewport heights on the iPad so the
-// bottom-bar cause is measured, not guessed. Magenta strip is `fixed bottom:0`:
-// if it floats above the dark bar, fixed positioning is short on this WebKit.
-function DiagViewport() {
-  const [s, setS] = useState("");
-  useEffect(() => {
-    const probe = (h: string) => {
-      const d = document.createElement("div");
-      d.style.cssText = `position:fixed;top:0;left:0;width:1px;height:${h};visibility:hidden;pointer-events:none`;
-      document.body.appendChild(d);
-      const v = d.offsetHeight;
-      d.remove();
-      return v;
-    };
-    const upd = () => {
-      setS(
-        `win ${window.innerHeight} vh ${probe("100vh")} svh ${probe("100svh")} lvh ${probe("100lvh")} dvh ${probe("100dvh")} sab ${probe("env(safe-area-inset-bottom)")} avail ${window.screen.availHeight}`,
-      );
-    };
-    upd();
-    window.addEventListener("resize", upd);
-    window.visualViewport?.addEventListener("resize", upd);
-    return () => {
-      window.removeEventListener("resize", upd);
-      window.visualViewport?.removeEventListener("resize", upd);
-    };
-  }, []);
-  return (
-    <div
-      style={{
-        position: "fixed",
-        left: 0,
-        right: 0,
-        bottom: 0,
-        zIndex: 9999,
-        background: "#ff00ff",
-        color: "#fff",
-        fontSize: 11,
-        textAlign: "center",
-        padding: "3px 0",
-      }}
-    >
-      {s}
-    </div>
-  );
-}
-
 function KioskShell() {
   return (
-    // Full-viewport ground. The kiosk content is a centered 1024×768 stage so it
-    // renders the same everywhere: on the iPad the viewport IS 1024×768 → the
-    // stage fills it, no surround; on a larger screen the ground fills around it.
-    // `fixed` + EXPLICIT offsets (top/right/bottom/left-0), not `h-dvh`/`inset-0`:
-    // the 2016 iPad's old WebKit ignores `dvh` (Safari 15.4+) and the `inset`
+    // Full-screen ground holding a width-capped content stage. `h-screen`
+    // (`100vh`) + `w-screen`, NOT `fixed inset-0`/`h-dvh`: on the 2016 iPad's PWA
+    // the layout viewport is only 1024×748 (fixed/innerHeight/dvh all report
+    // 748), leaving a ~20px dark strip at the physical bottom — but `100vh`
+    // measures the full 768, so `h-screen` covers it. Explicit units, no `inset`
     // shorthand (< iOS 14.5). See memory: target-device-and-layout.
-    <main
-      className="fixed top-0 right-0 bottom-0 left-0 flex items-center justify-center overflow-hidden"
-      style={{ outline: "3px solid #22ff22", outlineOffset: "-3px" }}
-    >
+    <main className="bg-ground fixed top-0 left-0 h-screen w-screen flex items-center justify-center overflow-hidden">
       {/* Width-capped stage (max 1024px, centered) so it isn't oversized on a
           desktop window; height FILLS the viewport (`h-full`, no max-height) —
           the iPad's PWA viewport is slightly taller than 768, so a 768 cap left
@@ -159,7 +108,6 @@ function KioskShell() {
           is what reaches HA. */}
         <UndoToast />
       </div>
-      <DiagViewport />
     </main>
   );
 }
