@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { HashRouter, Routes, Route } from "react-router-dom";
 import { HakitProvider, isConfigured } from "./hakit";
 import { TopBar } from "./ui/TopBar";
@@ -68,6 +69,47 @@ function ConnectingZones() {
  * Not configured (no HA URL) → render the zones with NO provider (Home gates its
  * HA widgets off internally); the shell still shows, never blank (AD-6/NFR4).
  */
+// DIAGNOSTIC (temporary) — reads the real viewport heights on the iPad so the
+// bottom-bar cause is measured, not guessed. Magenta strip is `fixed bottom:0`:
+// if it floats above the dark bar, fixed positioning is short on this WebKit.
+function DiagViewport() {
+  const [s, setS] = useState("");
+  useEffect(() => {
+    const upd = () => {
+      const vv = window.visualViewport;
+      const main = document.querySelector("main");
+      setS(
+        `win ${window.innerWidth}x${window.innerHeight} · doc ${document.documentElement.clientHeight} · vv ${vv ? Math.round(vv.height) : "?"} · scr ${window.screen.height} · main ${Math.round(main?.getBoundingClientRect().height ?? 0)}`,
+      );
+    };
+    upd();
+    window.addEventListener("resize", upd);
+    window.visualViewport?.addEventListener("resize", upd);
+    return () => {
+      window.removeEventListener("resize", upd);
+      window.visualViewport?.removeEventListener("resize", upd);
+    };
+  }, []);
+  return (
+    <div
+      style={{
+        position: "fixed",
+        left: 0,
+        right: 0,
+        bottom: 0,
+        zIndex: 9999,
+        background: "#ff00ff",
+        color: "#fff",
+        fontSize: 11,
+        textAlign: "center",
+        padding: "3px 0",
+      }}
+    >
+      {s}
+    </div>
+  );
+}
+
 function KioskShell() {
   return (
     // Full-viewport ground. The kiosk content is a centered 1024×768 stage so it
@@ -76,7 +118,10 @@ function KioskShell() {
     // `fixed` + EXPLICIT offsets (top/right/bottom/left-0), not `h-dvh`/`inset-0`:
     // the 2016 iPad's old WebKit ignores `dvh` (Safari 15.4+) and the `inset`
     // shorthand (< iOS 14.5). See memory: target-device-and-layout.
-    <main className="fixed top-0 right-0 bottom-0 left-0 flex items-center justify-center overflow-hidden">
+    <main
+      className="fixed top-0 right-0 bottom-0 left-0 flex items-center justify-center overflow-hidden"
+      style={{ outline: "3px solid #22ff22", outlineOffset: "-3px" }}
+    >
       {/* Width-capped stage (max 1024px, centered) so it isn't oversized on a
           desktop window; height FILLS the viewport (`h-full`, no max-height) —
           the iPad's PWA viewport is slightly taller than 768, so a 768 cap left
@@ -108,6 +153,7 @@ function KioskShell() {
           is what reaches HA. */}
         <UndoToast />
       </div>
+      <DiagViewport />
     </main>
   );
 }
