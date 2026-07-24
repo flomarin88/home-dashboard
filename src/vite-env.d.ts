@@ -22,3 +22,7 @@ interface ImportMetaEnv {
 interface ImportMeta {
   readonly env: ImportMetaEnv;
 }
+
+/** Short git SHA of the build, injected at build time by vite.config.ts. Shown
+ *  discreetly on the home page to track deploys. "dev" outside CI/git. */
+declare const __APP_COMMIT__: string;

@@ -62,6 +62,10 @@ On push to `master`, after the gates: build for the www base, join the tailnet,
 3. `config/www/` exists and is writable by `PI_USER`. Create
    `config/www/home-dashboard/` once.
 
+The home page shows the build's short git SHA discreetly in its bottom-left
+corner (`src/ui/CommitTag.tsx`, injected at build time from `GITHUB_SHA`), so a
+glance confirms which build the kiosk is running against the latest `master`.
+
 After that, every push to `master` redeploys automatically. The iPad picks up
 the new build on its next load: the PWA service worker precaches the new shell
 and, once it activates, reloads the open page so the latest version shows on the

@@ -8,6 +8,9 @@ import react from "@vitejs/plugin-react";
 // computed Tailwind styles).
 export default defineConfig({
   plugins: [react()],
+  // Kept in sync with vite.config.ts so `__APP_COMMIT__` (injected there) is also
+  // defined under the test runner — components that render it don't ReferenceError.
+  define: { __APP_COMMIT__: JSON.stringify("test") },
   test: {
     environment: "jsdom",
     globals: false,

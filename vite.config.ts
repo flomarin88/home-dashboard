@@ -1,7 +1,26 @@
+import { execSync } from "node:child_process";
 import { defineConfig, loadEnv, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import { VitePWA } from "vite-plugin-pwa";
+
+// Build stamp shown discreetly on the home page (see src/ui/CommitTag.tsx) so a
+// glance confirms which build the kiosk runs — the visible counterpart to the
+// PWA auto-update path (src/pwa.ts). CI provides GITHUB_SHA; locally we read
+// git; "dev" if neither is available (never fails the build).
+function resolveCommit(): string {
+  const sha = process.env.GITHUB_SHA;
+  if (sha) return sha.slice(0, 7);
+  try {
+    return execSync("git rev-parse --short HEAD", {
+      stdio: ["ignore", "pipe", "ignore"],
+    })
+      .toString()
+      .trim();
+  } catch {
+    return "dev";
+  }
+}
 
 // Regression guard (incident 2026-07): the PWA update path lives entirely in the
 // app bundle via `virtual:pwa-register` (see src/pwa.ts). If someone drops that
@@ -78,6 +97,9 @@ export default defineConfig(({ command, mode }) => {
 
   return {
     base,
+    // Inlined into the bundle (the hashed chunk name changes each commit, so the
+    // SW naturally treats a new commit as a new build). See src/ui/CommitTag.tsx.
+    define: { __APP_COMMIT__: JSON.stringify(resolveCommit()) },
     plugins: [
       react(),
       tailwindcss(),

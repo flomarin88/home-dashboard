@@ -16,6 +16,7 @@ import {
   climate,
 } from "../entities";
 import { isConfigured } from "../hakit";
+import { CommitTag } from "../ui/CommitTag";
 import { TEMPERATURE_THRESHOLD_C } from "../config";
 
 /**
@@ -38,23 +39,31 @@ import { TEMPERATURE_THRESHOLD_C } from "../config";
  * provider; unconfigured, the shell still shows (AD-6/NFR4).
  */
 export function Home() {
-  if (!isConfigured) {
-    // NutriClaude is an isolated seam (AD-12): the Courses tile has no HA
-    // dependency, so it stays visible even when HA is unconfigured — otherwise
-    // its "degraded, never blank" contract (AC2/AC7) would be unobservable
-    // whenever HA is down.
-    return (
-      <div className="flex flex-col gap-grid-gap">
-        <p className="text-meta text-text-muted">
-          Home Assistant non configuré.
-        </p>
-        <div className="grid grid-cols-3 gap-tile-gap">
-          <CoursesTile />
-        </div>
+  // CommitTag is a fixed, non-interactive build stamp — rendered in both states
+  // so the deployed version is always glanceable on the home page.
+  return (
+    <>
+      {isConfigured ? <HomeContent /> : <UnconfiguredFallback />}
+      <CommitTag />
+    </>
+  );
+}
+
+/**
+ * Shown when HA is unconfigured. NutriClaude is an isolated seam (AD-12): the
+ * Courses tile has no HA dependency, so it stays visible even when HA is
+ * unconfigured — otherwise its "degraded, never blank" contract (AC2/AC7) would
+ * be unobservable whenever HA is down.
+ */
+function UnconfiguredFallback() {
+  return (
+    <div className="flex flex-col gap-grid-gap">
+      <p className="text-meta text-text-muted">Home Assistant non configuré.</p>
+      <div className="grid grid-cols-3 gap-tile-gap">
+        <CoursesTile />
       </div>
-    );
-  }
-  return <HomeContent />;
+    </div>
+  );
 }
 
 /** Rendered only when configured (under the HA provider), so it may use hooks. */
