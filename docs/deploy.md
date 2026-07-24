@@ -66,14 +66,23 @@ The home page shows the build's short git SHA discreetly in its bottom-left
 corner (`src/ui/CommitTag.tsx`, injected at build time from `GITHUB_SHA`), so a
 glance confirms which build the kiosk is running against the latest `master`.
 
-After that, every push to `master` redeploys automatically. The iPad picks up
-the new build on its next load: the PWA service worker precaches the new shell
-and, once it activates, reloads the open page so the latest version shows on the
-current load (rather than one launch later). The app also re-checks whenever it
-returns to the foreground (a reopened PWA — iOS keeps it suspended in memory, so
-a plain reopen would otherwise resume a stale build), and an always-on kiosk
-that never backgrounds (Guided Access) re-checks every hour — so a deploy lands
-without anyone touching the iPad (see `src/pwa.ts`).
+After that, every push to `master` redeploys automatically. Keeping the kiosk
+current is `src/pwa.ts`:
+
+- On capable browsers the service worker's `autoUpdate` path precaches the new
+  shell and reloads the open page.
+- The **2016 iPad's standalone PWA does not reliably run the SW update
+  lifecycle** — it stayed pinned to its install-time build across force-quit
+  (confirmed 2026-07-24). So the app self-heals out-of-band: it fetches
+  `version.json` (emitted at build, not precached) cache-busted on load, on
+  every return-to-foreground, and hourly; if the deployed commit differs from
+  the running one (`__APP_COMMIT__`), it **unregisters the wedged SW and hard-
+  reloads** — a fresh network load independent of the SW's broken update path.
+
+Note: a client already stuck on an old build (one lacking the self-heal) needs a
+**one-time reinstall** (remove the icon → Safari → Add to Home Screen) to adopt
+it; after that it stays current on its own. The build's short SHA in the home
+page's bottom-left corner confirms which build is live.
 
 ## Kiosk / device setup
 

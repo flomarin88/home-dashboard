@@ -1,59 +1,65 @@
 import { registerSW } from "virtual:pwa-register";
 
-// How often an always-on kiosk re-checks for a freshly deployed build. A panel
-// pinned in Guided Access is never relaunched for days, so it would otherwise
-// never look for a new service worker: the reload-on-activate path only fires
-// once an update is actually found. An hourly conditional GET on the SW keeps
-// deploy latency bounded without hammering Home Assistant.
+// How often to re-check for a freshly deployed build (belt-and-suspenders with
+// the check on every return-to-foreground).
 const UPDATE_INTERVAL_MS = 60 * 60 * 1000;
+// Never hard-reload more than once per minute — a stale HTTP cache could
+// otherwise loop if a reload doesn't actually pick up the new build.
+const HEAL_GUARD_MS = 60 * 1000;
 
 /**
- * Register the PWA service worker (AD-9) and keep an always-on kiosk current.
+ * Keep the always-on kiosk on the latest deployed build.
  *
- * - `immediate: true` registers on load, so the plugin's autoUpdate path
- *   (`activated → window.location.reload()`) is live and the latest build shows
- *   on the current load rather than one launch later.
- * - The periodic `registration.update()` covers the kiosk that is never
- *   relaunched (Guided Access): without it, a new deploy would only be noticed
- *   the next time the PWA is opened. Guarded by an online check and a no-store
- *   fetch of the SW so a transient HA/network outage stays non-fatal — the shell
- *   must keep running on the cached build (AD-6/NFR4).
+ * The plugin's `autoUpdate` path (registerSW → SW `skipWaiting`/`clientsClaim`
+ * → reload) handles capable browsers. But the 2016 iPad's **standalone** PWA
+ * does NOT reliably run the SW update lifecycle: it stayed pinned to its
+ * install-time build across force-quit/relaunch. So we don't trust the SW to
+ * update itself — we detect staleness out-of-band and heal it directly:
+ *
+ *  1. Fetch `version.json` (emitted at build, NOT precached) cache-busted +
+ *     `no-store`, so it bypasses both the SW precache and the HTTP cache and
+ *     reports the *deployed* build's commit.
+ *  2. If it differs from ours (`__APP_COMMIT__`), **unregister the wedged SW**
+ *     and `location.reload()` — a fresh network load, independent of the SW's
+ *     broken update path. A sessionStorage guard prevents reload loops.
+ */
+async function checkForFreshBuild(): Promise<void> {
+  if (!navigator.onLine) return;
+  try {
+    const res = await fetch(
+      `${import.meta.env.BASE_URL}version.json?_=${Date.now()}`,
+      { cache: "no-store", headers: { "cache-control": "no-cache" } },
+    );
+    if (!res.ok) return;
+    const { commit } = (await res.json()) as { commit?: string };
+    if (!commit || commit === __APP_COMMIT__) return;
+
+    const last = Number(sessionStorage.getItem("build-heal-at") || 0);
+    if (Date.now() - last < HEAL_GUARD_MS) return; // anti-loop
+    sessionStorage.setItem("build-heal-at", String(Date.now()));
+
+    const reg = await navigator.serviceWorker?.getRegistration();
+    if (reg) await reg.unregister();
+    location.reload();
+  } catch {
+    // Offline / HA unreachable — stay on the cached build (AD-6/NFR4); retry
+    // on the next foreground/interval tick.
+  }
+}
+
+/**
+ * Register the PWA service worker (AD-9) and keep the kiosk current.
+ *
+ * `immediate: true` keeps the plugin's autoUpdate path live for capable
+ * browsers; `checkForFreshBuild` is the robust fallback for the old iPad,
+ * running on load, on every return-to-foreground, and hourly.
  */
 export function registerPwa(): void {
-  registerSW({
-    immediate: true,
-    onRegisteredSW(swUrl, registration) {
-      if (!registration) return;
+  registerSW({ immediate: true });
 
-      // One guarded update check, shared by the hourly poll and the
-      // foreground-return trigger. Confirms the SW is actually reachable (200,
-      // not an HA error page) before asking the browser to update; a found
-      // update auto-activates and reloads (registerType "autoUpdate").
-      const checkForUpdate = async () => {
-        // Skip while an update is already installing or the device is offline.
-        if (registration.installing || !navigator.onLine) return;
-        try {
-          const resp = await fetch(swUrl, {
-            cache: "no-store",
-            headers: { "cache-control": "no-cache" },
-          });
-          if (resp.status === 200) await registration.update();
-        } catch {
-          // Update check failed (HA unreachable / offline). Non-fatal by design:
-          // the shell stays on the cached build (AD-6/NFR4); we retry next time.
-        }
-      };
-
-      // Always-on kiosk that never backgrounds (Guided Access): poll hourly.
-      setInterval(checkForUpdate, UPDATE_INTERVAL_MS);
-
-      // Re-opened PWA: iOS keeps an installed PWA suspended in memory, so a plain
-      // reopen resumes stale JS with no navigation and no update check. Re-check
-      // as soon as the app returns to the foreground so a pending deploy lands on
-      // this open (autoUpdate then reloads) — no force-quit needed.
-      document.addEventListener("visibilitychange", () => {
-        if (document.visibilityState === "visible") void checkForUpdate();
-      });
-    },
+  void checkForFreshBuild();
+  setInterval(() => void checkForFreshBuild(), UPDATE_INTERVAL_MS);
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") void checkForFreshBuild();
   });
 }

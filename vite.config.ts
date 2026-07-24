@@ -22,6 +22,25 @@ function resolveCommit(): string {
   }
 }
 
+// Emit `version.json` = { commit } at the dist root. It is NOT in the SW precache
+// globs, so it always hits the network — the app fetches it cache-busted to learn
+// the deployed build and self-heal a stale client (see src/pwa.ts). The 2016
+// iPad's standalone SW does not reliably auto-update, so this is the actual
+// mechanism that keeps that kiosk current.
+function emitVersionJson(): Plugin {
+  return {
+    name: "emit-version-json",
+    apply: "build",
+    generateBundle() {
+      this.emitFile({
+        type: "asset",
+        fileName: "version.json",
+        source: JSON.stringify({ commit: resolveCommit() }),
+      });
+    },
+  };
+}
+
 // Regression guard (incident 2026-07): the PWA update path lives entirely in the
 // app bundle via `virtual:pwa-register` (see src/pwa.ts). If someone drops that
 // import or moves off `registerType: "autoUpdate"`, the SW keeps precaching new
@@ -153,6 +172,7 @@ export default defineConfig(({ command, mode }) => {
         },
       }),
       assertPwaReloadWired(),
+      emitVersionJson(),
     ],
   };
 });
