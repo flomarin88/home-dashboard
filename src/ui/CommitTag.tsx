@@ -10,7 +10,7 @@
 export function CommitTag() {
   return (
     <span
-      className="pointer-events-none fixed bottom-1 left-2 select-none text-[10px] text-text-muted opacity-40"
+      className="pointer-events-none absolute bottom-1 left-2 select-none text-[10px] text-text-muted opacity-40"
       aria-hidden="true"
     >
       {__APP_COMMIT__}

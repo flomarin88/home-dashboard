@@ -70,39 +70,42 @@ function ConnectingZones() {
  */
 function KioskShell() {
   return (
-    // Fixed kiosk viewport — iPad Pro 9.7" landscape (1024×768 CSS px). Locked to
-    // the full viewport with no scrolling anywhere (NEVER scroll); every page is
-    // designed to fit. `fixed` + EXPLICIT offsets (top/right/bottom/left-0), not
-    // `h-dvh`: the 2016 iPad's old WebKit ignores `dvh` (Safari 15.4+), leaving
-    // the shell ~10px short at the bottom; a fixed box covers the real viewport.
-    // Explicit offsets, not `inset-0` (the `inset` shorthand is < iOS 14.5 too).
-    // See memory: target-device-and-layout.
-    <main className="bg-ground fixed top-0 right-0 bottom-0 left-0 flex flex-col gap-grid-gap overflow-hidden p-6 text-text">
-      <TopBar />
-      {isConfigured ? (
-        <HakitProvider loading={<ConnectingZones />}>
-          <AppRoutes />
-          {/* HA-backed top-bar widgets — they need HA, so (unlike TopBar/Clock,
+    // Full-viewport ground. The kiosk content is a centered 1024×768 stage so it
+    // renders the same everywhere: on the iPad the viewport IS 1024×768 → the
+    // stage fills it, no surround; on a larger screen the ground fills around it.
+    // `fixed` + EXPLICIT offsets (top/right/bottom/left-0), not `h-dvh`/`inset-0`:
+    // the 2016 iPad's old WebKit ignores `dvh` (Safari 15.4+) and the `inset`
+    // shorthand (< iOS 14.5). See memory: target-device-and-layout.
+    <main className="fixed top-0 right-0 bottom-0 left-0 flex items-center justify-center overflow-hidden">
+      {/* Centered 1024×768 stage — `max-*` caps it on a larger screen, `w/h-full`
+          fills the iPad; `overflow-hidden` keeps the NEVER-scroll invariant. */}
+      <div className="bg-ground relative flex h-full max-h-[768px] w-full max-w-[1024px] flex-col gap-grid-gap overflow-hidden p-6 text-text">
+        <TopBar />
+        {isConfigured ? (
+          <HakitProvider loading={<ConnectingZones />}>
+            <AppRoutes />
+            {/* HA-backed top-bar widgets — they need HA, so (unlike TopBar/Clock,
               which stay above the connection gate, TD-1) they live UNDER the
               provider. TopBarSlots (TD-4) is the composition layer that flows
               them instead of each tile hand-placing itself; new tiles just get
               added as children. */}
-          <TopBarSlots>
-            <TopBarWeather />
-            <ElectricityTile />
-            <TurtleTile />
-            <PlantTile />
-            <BinTile />
-          </TopBarSlots>
-        </HakitProvider>
-      ) : (
-        <AppRoutes />
-      )}
+            <TopBarSlots>
+              <TopBarWeather />
+              <ElectricityTile />
+              <TurtleTile />
+              <PlantTile />
+              <BinTile />
+            </TopBarSlots>
+          </HakitProvider>
+        ) : (
+          <AppRoutes />
+        )}
 
-      {/* Undo safety-net toast (NFR6) — chrome, above the connection gate so it
+        {/* Undo safety-net toast (NFR6) — chrome, above the connection gate so it
           persists across (re)connect; the undo closure (built under the provider)
           is what reaches HA. */}
-      <UndoToast />
+        <UndoToast />
+      </div>
     </main>
   );
 }
