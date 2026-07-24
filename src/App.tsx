@@ -75,11 +75,17 @@ function ConnectingZones() {
 function DiagViewport() {
   const [s, setS] = useState("");
   useEffect(() => {
+    const probe = (h: string) => {
+      const d = document.createElement("div");
+      d.style.cssText = `position:fixed;top:0;left:0;width:1px;height:${h};visibility:hidden;pointer-events:none`;
+      document.body.appendChild(d);
+      const v = d.offsetHeight;
+      d.remove();
+      return v;
+    };
     const upd = () => {
-      const vv = window.visualViewport;
-      const main = document.querySelector("main");
       setS(
-        `win ${window.innerWidth}x${window.innerHeight} · doc ${document.documentElement.clientHeight} · vv ${vv ? Math.round(vv.height) : "?"} · scr ${window.screen.height} · main ${Math.round(main?.getBoundingClientRect().height ?? 0)}`,
+        `win ${window.innerHeight} vh ${probe("100vh")} svh ${probe("100svh")} lvh ${probe("100lvh")} dvh ${probe("100dvh")} sab ${probe("env(safe-area-inset-bottom)")} avail ${window.screen.availHeight}`,
       );
     };
     upd();
