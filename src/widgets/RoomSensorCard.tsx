@@ -123,11 +123,10 @@ export function RoomSensorCard({
       </div>
 
       {/* Grows to fill the rest of the card — the room cards stretch to the
-          row height (set by the taller Climatisation / Aspirateur tiles).
-          `relative` gives the sparkline a positioned ancestor so it can fill via
-          `absolute inset-0` (definite px height) instead of a %-height chain,
-          which WebKit collapses to 0 inside a flex item → blank chart. */}
-      <div className="relative mt-1 min-h-[2rem] flex-1">
+          row height (set by the taller Climatisation / Aspirateur tiles). The
+          sparkline fills it via normal-flow `h-full w-full` (NOT absolute/inset,
+          which collapsed to width 0 on the 2016 iPad's WebKit). */}
+      <div className="mt-1 min-h-[2rem] flex-1">
         {loading ? (
           <Skeleton className="h-full w-full" />
         ) : offline ? (
