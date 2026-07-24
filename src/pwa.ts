@@ -24,22 +24,36 @@ export function registerPwa(): void {
     immediate: true,
     onRegisteredSW(swUrl, registration) {
       if (!registration) return;
-      setInterval(async () => {
+
+      // One guarded update check, shared by the hourly poll and the
+      // foreground-return trigger. Confirms the SW is actually reachable (200,
+      // not an HA error page) before asking the browser to update; a found
+      // update auto-activates and reloads (registerType "autoUpdate").
+      const checkForUpdate = async () => {
         // Skip while an update is already installing or the device is offline.
         if (registration.installing || !navigator.onLine) return;
         try {
-          // Confirm the SW is actually reachable (200, not an HA error page)
-          // before asking the browser to update.
           const resp = await fetch(swUrl, {
             cache: "no-store",
             headers: { "cache-control": "no-cache" },
           });
           if (resp.status === 200) await registration.update();
         } catch {
-          // Update poll failed (HA unreachable / offline). Non-fatal by design:
-          // the shell stays on the cached build (AD-6/NFR4); we retry next tick.
+          // Update check failed (HA unreachable / offline). Non-fatal by design:
+          // the shell stays on the cached build (AD-6/NFR4); we retry next time.
         }
-      }, UPDATE_INTERVAL_MS);
+      };
+
+      // Always-on kiosk that never backgrounds (Guided Access): poll hourly.
+      setInterval(checkForUpdate, UPDATE_INTERVAL_MS);
+
+      // Re-opened PWA: iOS keeps an installed PWA suspended in memory, so a plain
+      // reopen resumes stale JS with no navigation and no update check. Re-check
+      // as soon as the app returns to the foreground so a pending deploy lands on
+      // this open (autoUpdate then reloads) — no force-quit needed.
+      document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "visible") void checkForUpdate();
+      });
     },
   });
 }

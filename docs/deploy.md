@@ -69,9 +69,11 @@ glance confirms which build the kiosk is running against the latest `master`.
 After that, every push to `master` redeploys automatically. The iPad picks up
 the new build on its next load: the PWA service worker precaches the new shell
 and, once it activates, reloads the open page so the latest version shows on the
-current load (rather than one launch later). An always-on kiosk that is never
-relaunched (Guided Access) also re-checks for a new build every hour, so a
-deploy lands without anyone touching the iPad (see `src/pwa.ts`).
+current load (rather than one launch later). The app also re-checks whenever it
+returns to the foreground (a reopened PWA — iOS keeps it suspended in memory, so
+a plain reopen would otherwise resume a stale build), and an always-on kiosk
+that never backgrounds (Guided Access) re-checks every hour — so a deploy lands
+without anyone touching the iPad (see `src/pwa.ts`).
 
 ## Kiosk / device setup
 
