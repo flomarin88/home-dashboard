@@ -71,9 +71,13 @@ function ConnectingZones() {
 function KioskShell() {
   return (
     // Fixed kiosk viewport — iPad Pro 9.7" landscape (1024×768 CSS px). Locked to
-    // the viewport height with no scrolling anywhere (NEVER scroll); every page is
-    // designed to fit. See memory: target-device-and-layout.
-    <main className="bg-ground flex h-dvh w-full flex-col gap-grid-gap overflow-hidden p-6 text-text">
+    // the full viewport with no scrolling anywhere (NEVER scroll); every page is
+    // designed to fit. `fixed` + EXPLICIT offsets (top/right/bottom/left-0), not
+    // `h-dvh`: the 2016 iPad's old WebKit ignores `dvh` (Safari 15.4+), leaving
+    // the shell ~10px short at the bottom; a fixed box covers the real viewport.
+    // Explicit offsets, not `inset-0` (the `inset` shorthand is < iOS 14.5 too).
+    // See memory: target-device-and-layout.
+    <main className="bg-ground fixed top-0 right-0 bottom-0 left-0 flex flex-col gap-grid-gap overflow-hidden p-6 text-text">
       <TopBar />
       {isConfigured ? (
         <HakitProvider loading={<ConnectingZones />}>
