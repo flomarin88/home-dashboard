@@ -1,20 +1,24 @@
-import {
-  ResponsiveContainer,
-  LineChart,
-  Line,
-  YAxis,
-  ReferenceLine,
-} from "recharts";
-
 /**
- * TileTempChart (Intent G) — the read-only glance temperature sparkline on the
- * home room cards, drawn with Recharts (replacing the hand-rolled SVG so the
- * tiles and the detail charts share one rendering + reference-line treatment).
- * Deliberately bare: a single line, NO axes / grid / tooltip / interaction — it
- * is read-only. `refTemp` draws a red dashed reference line (the upstairs A/C
- * setpoint, on the étage rooms); `ifOverflow="extendDomain"` keeps it visible
- * even when the room sits below the setpoint (that gap is the point).
+ * TileTempChart — the read-only glance temperature sparkline on the home room
+ * cards. Hand-rolled inline SVG (no chart lib) on purpose: the Recharts version
+ * (introduced in 84d2f8b) rendered blank on the kiosk's older iPad WebkKit —
+ * ResponsiveContainer measures the tiny flex-sized tile box as 0 there, so
+ * nothing paints (the detail-page charts, in a large fixed-height block, render
+ * fine, so Recharts itself is not the problem — the tile's constraints are). A
+ * bare <svg> has no async measurement and no clip, so that WebKit paints it
+ * reliably; it's also the tile's original, known-good design and keeps Recharts
+ * off the warm-start bundle.
+ *
+ * One trend line (climate accent) plus an optional dashed reference line at
+ * `refTemp` (the upstairs A/C setpoint on the étage rooms, a static 26° on the
+ * RDC). The y-range always includes `refTemp`, so the reference line stays
+ * visible even when the room sits below it (that gap is the point).
+ * `preserveAspectRatio="none"` stretches the fixed viewBox to the tile; a
+ * `non-scaling-stroke` keeps the line crisp despite the non-uniform scaling.
  */
+const VIEW_W = 100;
+const VIEW_H = 40;
+
 export default function TileTempChart({
   values,
   refTemp,
@@ -22,9 +26,8 @@ export default function TileTempChart({
   values: number[];
   refTemp?: number | null;
 }) {
-  // Empty/single-point history draws nothing in Recharts (a silent blank block).
-  // Surface it explicitly so a missing sparkline reads as "no data" rather than
-  // an invisible render failure — mirrors SensorHistoryChart's guard.
+  // Empty/single-point history: nothing to draw. Surface it explicitly (a blank
+  // block would read as a render failure), mirroring SensorHistoryChart.
   if (values.length < 2) {
     return (
       <div className="absolute inset-0 flex items-center">
@@ -33,44 +36,49 @@ export default function TileTempChart({
     );
   }
 
-  const data = values.map((value) => ({ value }));
+  // y-range spans the data AND the reference line so the latter is always drawn.
+  const pool = refTemp != null ? [...values, refTemp] : values;
+  const lo = Math.min(...pool) - 1;
+  const hi = Math.max(...pool) + 1;
+  const span = hi - lo || 1;
+  const yFor = (v: number) => VIEW_H - ((v - lo) / span) * VIEW_H;
+
+  const d =
+    "M" +
+    values
+      .map(
+        (v, i) =>
+          `${((i / (values.length - 1)) * VIEW_W).toFixed(1)},${yFor(v).toFixed(1)}`,
+      )
+      .join(" L");
+
   return (
-    // `absolute inset-0` (parent is `relative`) gives a definite px box so
-    // ResponsiveContainer measures a real height — a %-height chain collapses to
-    // 0 inside a flex item on WebKit (iPad / iOS), rendering nothing.
-    <div
-      className="absolute inset-0"
+    <svg
+      viewBox={`0 0 ${VIEW_W} ${VIEW_H}`}
+      preserveAspectRatio="none"
+      className="absolute inset-0 h-full w-full"
       role="img"
       aria-label="Température (24 h)"
     >
-      <ResponsiveContainer width="100%" height="100%">
-        <LineChart
-          data={data}
-          margin={{ top: 4, right: 2, bottom: 2, left: 2 }}
-        >
-          <YAxis hide domain={["dataMin - 1", "dataMax + 1"]} />
-          {refTemp != null ? (
-            <ReferenceLine
-              y={refTemp}
-              // DIAG: hex littéral au lieu de var(--color-security-alert) — test
-              // « var() non résolu dans un attribut SVG sur WebKit ancien ».
-              stroke="#ff5d5d"
-              strokeDasharray="4 3"
-              strokeWidth={1.5}
-              ifOverflow="extendDomain"
-            />
-          ) : null}
-          <Line
-            dataKey="value"
-            type="monotone"
-            // DIAG: hex littéral au lieu de var(--color-accent-climate).
-            stroke="#35e0d8"
-            strokeWidth={2}
-            dot={false}
-            isAnimationActive={false}
-          />
-        </LineChart>
-      </ResponsiveContainer>
-    </div>
+      {refTemp != null ? (
+        <line
+          x1={0}
+          y1={yFor(refTemp)}
+          x2={VIEW_W}
+          y2={yFor(refTemp)}
+          stroke="var(--color-security-alert)"
+          strokeWidth={1.5}
+          strokeDasharray="4 3"
+          vectorEffect="non-scaling-stroke"
+        />
+      ) : null}
+      <path
+        d={d}
+        fill="none"
+        stroke="var(--color-accent-climate)"
+        strokeWidth={2}
+        vectorEffect="non-scaling-stroke"
+      />
+    </svg>
   );
 }
