@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { useEntity } from "@hakit/core";
 import type { EntityName } from "@hakit/core";
 import { RoomSensorCard } from "../widgets/RoomSensorCard";
@@ -18,6 +19,7 @@ import {
 import { isConfigured } from "../hakit";
 import { CommitTag } from "../ui/CommitTag";
 import { TEMPERATURE_THRESHOLD_C } from "../config";
+import { GRID_COLS } from "./home-grid";
 
 /**
  * Home — the composed landscape kiosk tiles, grouped by floor (moule
@@ -25,10 +27,10 @@ import { TEMPERATURE_THRESHOLD_C } from "../config";
  *
  * Content only: the ground + top bar are owned by `KioskShell` (App.tsx). Each
  * floor (`FLOOR_ORDER`, top → bottom = étage then RDC) gets a discreet heading,
- * then a single grid of its tiles on one row: the étage is [Climatisation,
- * Parents, Gaspard, Nathan] (4 columns), the RDC is [Salon, Aspirateur] (2
- * columns). Room cards are the tappable atom → room detail; the compact
- * ClimateTile and the VacuumTile sit as peers of the room cards (the vacuum is
+ * then a single grid of its tiles on ONE row: the étage is [Climatisation,
+ * Parents, Gaspard, Nathan], the RDC is [Salon, Aspirateur, Courses, Bureau].
+ * Room cards are the tappable atom → room detail; the compact ClimateTile, the
+ * VacuumTile and the LightTile sit as peers of the room cards (the vacuum is
  * kept on the home so `/aspirateur` stays reachable). The room sparklines carry a
  * red dashed reference line: the A/C setpoint for the étage rooms, a static 26 °C
  * for the RDC (Salon, which has no A/C).
@@ -84,51 +86,57 @@ function HomeContent() {
 
   return (
     <div className="flex flex-col gap-grid-gap">
-      {FLOOR_ORDER.map((floor) => (
-        <section key={floor} className="flex flex-col gap-tile-gap">
-          <h2 className="text-caption font-semibold uppercase tracking-wide text-text-muted">
-            {FLOOR_LABEL[floor]}
-          </h2>
+      {FLOOR_ORDER.map((floor) => {
+        // The floor's tiles, assembled as a LIST first: the grid then derives its
+        // column count from it (GRID_COLS), so a tile can never be added without
+        // the row widening to hold it. Device tiles are peers of the room cards.
+        const tiles: ReactNode[] = [];
 
-          {/* One row per floor: étage = clim + 3 chambres (4 col), RDC = salon
-              + aspirateur (2 col). Device tiles are peers of the room cards. */}
-          <div
-            className={`grid gap-tile-gap ${
-              floor === "etage1" ? "grid-cols-4" : "grid-cols-3"
-            }`}
-          >
-            {floor === "etage1" && climateEntry ? (
-              <ClimateTile entry={climateEntry} />
-            ) : null}
+        if (floor === "etage1" && climateEntry) {
+          tiles.push(<ClimateTile key="climate" entry={climateEntry} />);
+        }
 
-            {roomsOnFloor(floor).map((r) => (
-              <RoomSensorCard
-                key={r.id}
-                room={r.id}
-                refTemp={
-                  floor === "etage1" ? setpoint : TEMPERATURE_THRESHOLD_C
-                }
-              />
-            ))}
+        for (const r of roomsOnFloor(floor)) {
+          tiles.push(
+            <RoomSensorCard
+              key={r.id}
+              room={r.id}
+              refTemp={floor === "etage1" ? setpoint : TEMPERATURE_THRESHOLD_C}
+            />,
+          );
+        }
 
-            {floor === "rdc" && vacuumEntry ? (
-              <VacuumTile entry={vacuumEntry} />
-            ) : null}
+        if (floor === "rdc" && vacuumEntry) {
+          tiles.push(<VacuumTile key="vacuum" entry={vacuumEntry} />);
+        }
 
-            {/* Courses (v2) — coordination tile, grouped with the Ambiance room
-                cards (UX-DR19), filling the RDC row's free 3rd column so no row
-                is added (no-scroll). NutriClaude is an isolated seam (AD-12); the
-                tile only shares the layout, not HA state. */}
-            {floor === "rdc" ? <CoursesTile /> : null}
+        // Courses (v2) — coordination tile, grouped with the Ambiance room cards
+        // (UX-DR19). NutriClaude is an isolated seam (AD-12); the tile only
+        // shares the layout, not HA state.
+        if (floor === "rdc") {
+          tiles.push(<CoursesTile key="courses" />);
+        }
 
-            {lightEntries
-              .filter((l) => getRoom(l.room).floor === floor)
-              .map((l) => (
-                <LightTile key={l.entityId} entry={l} />
-              ))}
-          </div>
-        </section>
-      ))}
+        for (const l of lightEntries) {
+          if (getRoom(l.room).floor === floor) {
+            tiles.push(<LightTile key={l.entityId} entry={l} />);
+          }
+        }
+
+        return (
+          <section key={floor} className="flex flex-col gap-tile-gap">
+            <h2 className="text-caption font-semibold uppercase tracking-wide text-text-muted">
+              {FLOOR_LABEL[floor]}
+            </h2>
+
+            <div
+              className={`grid gap-tile-gap ${GRID_COLS[tiles.length] ?? "grid-cols-6"}`}
+            >
+              {tiles}
+            </div>
+          </section>
+        );
+      })}
     </div>
   );
 }

@@ -194,3 +194,32 @@ _Source: U1 rework (2026-07-20) — floor pills replaced by a floor-grouped home
   detail page. The Vitesse band's real density depends on how often HA recorded
   `fan_mode` changes on the polled Onecta entity — it degrades to fewer segments,
   never blank.
+- **Progress (2026-07-25):** the no-scroll risk tracked here **did** materialise —
+  the RDC row declared `grid-cols-3` while carrying 4 tiles (the `LightTile` from
+  `lights()` was never counted in "RDC = [Salon, Aspirateur]"), wrapping onto a
+  2nd row and clipping the bottom card on the iPad. Fixed by deriving the column
+  count from the tile list (`GRID_COLS`, `Home.tsx`); the RDC row is now
+  [Salon, Aspirateur, Courses, Bureau] on one row. Measured 748/748 with ~180px
+  of slack. The residual, unguarded part is TD-9.
+
+## TD-9 — L'invariant de hauteur du kiosque n'est gardé par aucun test · severity: medium
+
+_Source: bug « carte du bas rognée » (2026-07-25), trouvé sur l'iPad, diagnostiqué
+en reproduisant `main` contraint à 1024×748 dans Chrome._
+
+- **What:** rien ne vérifie automatiquement que la home tient dans les 748px du
+  viewport PWA de l'iPad. La dérivation des colonnes (`GRID_COLS`, `Home.tsx`)
+  rend impossible le désaccord colonnes/tuiles qui a causé CE bug, mais une tuile
+  plus haute, une police plus grande ou une 5ᵉ tuile déborderaient toujours sans
+  qu'aucun test ne bronche. jsdom ne fait pas de layout : seul un navigateur réel
+  peut mesurer.
+- **Why deferred:** demanderait un harnais de test navigateur (Playwright ou
+  vitest browser mode) — hors périmètre d'un fix de bug d'une ligne.
+- **Payback trigger:** au 3ᵉ bug de débordement du kiosque, ou à l'arrivée d'un
+  harnais navigateur pour une autre raison. En attendant, le garde-fou est
+  manuel : mesurer `stage.scrollHeight` vs `clientHeight` avec `main` contraint à
+  1024×748 dans Chrome avant toute modification de la grille de la home.
+- **Note d'instrument:** le DIAG embarqué (`0c75dfa`) rapportait `ovf 0` sur
+  l'iPad là où Chrome mesurait 56px de dépassement. WebKit n'a pas remonté le
+  débordement des descendants dans le `scrollHeight` d'un `flex-col` +
+  `overflow:hidden`. **Ne pas refaire confiance à cette mesure sur ce moteur.**
