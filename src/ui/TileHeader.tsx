@@ -30,7 +30,15 @@ export function TileHeader({
     </>
   );
   return (
-    <div className="flex min-w-0 items-center gap-2">
+    // `w-full` rather than relying on cross-axis stretch: WebKit does not
+    // stretch a flex item inside a `<button>` flex container (the room cards and
+    // the vacuum tile are buttons), so the header row shrink-wrapped its content
+    // on the iPad and the right slot ended up glued to the title instead of the
+    // tile's edge. `justify-between` likewise does not rely on the left slot's
+    // `flex-1` actually growing. Both are no-ops on Blink, where stretch and
+    // flex-1 already do the job — see the same `w-full` workaround on the CO₂
+    // row of `RoomSensorCard`.
+    <div className="flex w-full min-w-0 items-center justify-between gap-2">
       {onOpen ? (
         <button
           type="button"
