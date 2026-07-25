@@ -223,3 +223,50 @@ en reproduisant `main` contraint à 1024×748 dans Chrome._
   l'iPad là où Chrome mesurait 56px de dépassement. WebKit n'a pas remonté le
   débordement des descendants dans le `scrollHeight` d'un `flex-col` +
   `overflow:hidden`. **Ne pas refaire confiance à cette mesure sur ce moteur.**
+
+## TD-10 — Avis react-router non corrigeable par bump · severity: low (non exploitable ici)
+
+_Source: `npm audit` du 2026-07-26 (GHSA-qwww-vcr4-c8h2), pendant la montée des
+dépendances._
+
+- **What:** `react-router` 7.12.0 – 8.2.0 est marqué high — « RSC Mode CSRF
+  Bypass Allows Action Execution Before 400 Response ». `react-router-dom@^7.18.1`
+  en dépend, donc **2 lignes rouges permanentes** dans `npm audit`.
+- **Why deferred:** **non exploitable dans cette app.** L'avis porte sur le mode
+  RSC ; le dashboard est un SPA statique servi par HA en `HashRouter`, sans rendu
+  serveur, sans action ni loader serveur, sans RSC. Et il n'existe pas de
+  correctif sous forme de bump : `react-router-dom` s'arrête à 7.18.1, la v8
+  (corrigée en 8.3.0) ayant consolidé l'API dans `react-router` — passer au
+  correctif est une **migration**, donc un intent distinct (Rule 2, Atomic
+  Intent). Le « correctif » que propose `npm audit fix --force` est un
+  **downgrade** en 7.11.0, soit 7 mineures de régression pour un avis hors sujet.
+- **Payback trigger:** publication d'un `react-router-dom` corrigé ; OU migration
+  vers `react-router` v8 entreprise pour une autre raison ; OU — et là ça devient
+  **bloquant, pas différable** — introduction d'un rendu serveur, d'actions
+  serveur ou du mode RSC dans l'app.
+
+## TD-11 — Chaîne build-time de vite-plugin-pwa sans correctif amont · severity: low (build-time)
+
+_Source: `npm audit` du 2026-07-26 — 8 des 10 vulnérabilités high restantes._
+
+- **What:** `vite-plugin-pwa@1.3.0` → `workbox-build@7.4.1` → `@trickfilm400/rollup-plugin-off-main-thread`,
+  `ejs` → `jake` → `filelist`, `minimatch`, `brace-expansion`. Toutes high.
+- **Why deferred:** **aucun correctif amont n'existe** — `1.3.0` EST la dernière
+  publiée, et npm ne sait proposer qu'un downgrade en `1.2.0`. Forcer par
+  `overrides` injecterait des majors (`ejs` 3→6, `filelist` 1→2, `jake` 10→12)
+  dans le générateur du service worker. Le mode de défaillance n'est pas « le
+  build casse » (visible) mais « le SW est généré, subtilement faux » — or le SW
+  porte le shell hors-ligne du kiosque (AD-6/AD-9, « never blank »). Échanger une
+  exposition build-time contre un risque de corruption silencieuse du runtime de
+  l'appareil est le mauvais côté du marché. **Exposition réelle : build-time
+  uniquement** — `workbox-build` s'exécute pendant `vite build`, rien de cette
+  chaîne n'atteint l'iPad.
+- **Payback trigger:** publication d'un `vite-plugin-pwa` / `workbox-build`
+  corrigé (à re-tester à chaque `npm audit`) ; OU si le build cesse d'être
+  exécuté sur une machine de confiance (CI partagée, entrées non maîtrisées) —
+  l'exposition build-time cesse alors d'être théorique.
+- **Si on veut quand même tenter les `overrides`:** l'instrument honnête est de
+  rebuild et **differ le `dist/sw.js` généré** contre la version connue bonne.
+  Identique = innocuité prouvée, pas supposée.
+- **Réglé au passage (2026-07-26):** `fast-uri` (même chaîne, via `ajv`) corrigé
+  par `npm audit fix` non forcé — 11 → 10 vulnérabilités.
