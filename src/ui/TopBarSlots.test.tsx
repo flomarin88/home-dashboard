@@ -3,7 +3,7 @@ import { render, screen } from "@testing-library/react";
 import { TopBarSlots } from "./TopBarSlots";
 
 describe("TopBarSlots (Story 6.4 — top-bar composition, TD-4)", () => {
-  it("flows its children in a fixed flex row", () => {
+  it("flows its children in an out-of-flow flex row positioned against the stage", () => {
     const { container } = render(
       <TopBarSlots>
         <span>a</span>
@@ -13,7 +13,11 @@ describe("TopBarSlots (Story 6.4 — top-bar composition, TD-4)", () => {
     expect(screen.getByText("a")).toBeInTheDocument();
     expect(screen.getByText("b")).toBeInTheDocument();
     const region = container.firstElementChild as HTMLElement;
-    expect(region.className).toContain("fixed");
+    // `absolute`, NOT `fixed`: the region is positioned against the stage
+    // (max-w-[1024px], centred), not the viewport. Pinned to the viewport it
+    // overlapped the Clock on any window wider than 1024px — the Clock follows
+    // the stage's centring while the region did not.
+    expect(region.className).toContain("absolute");
     expect(region.className).toContain("flex");
   });
 

@@ -66,10 +66,12 @@
 }
 
 /*
- * Kiosk viewport lock. The shell is already h-dvh + overflow-hidden (never
- * scrolls), but iOS Safari still rubber-band overscrolls the document on a
- * flick — which visually drifts the `fixed` top-bar tiles away from the chrome.
- * `overscroll-behavior: none` kills that bounce so nothing moves.
+ * Kiosk viewport lock. The shell is already `fixed inset-0` + overflow-hidden
+ * (never scrolls), but iOS Safari still rubber-band overscrolls the document on
+ * a flick, which visually drifts the shell away from the chrome.
+ * `overscroll-behavior: none` kills that bounce so nothing moves. (The top-bar
+ * tiles used to be `fixed` to the viewport and drifted independently; they are
+ * now `absolute` inside the stage — see `TopBarSlots` — so they move with it.)
  *
  * The ground gradient is set on `html` itself (below), not only on the shell:
  * the iPad's PWA layout viewport is 1024×748 while the physical screen is 768,
