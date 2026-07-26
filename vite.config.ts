@@ -119,6 +119,31 @@ export default defineConfig(({ command, mode }) => {
     // Inlined into the bundle (the hashed chunk name changes each commit, so the
     // SW naturally treats a new commit as a new build). See src/ui/CommitTag.tsx.
     define: { __APP_COMMIT__: JSON.stringify(resolveCommit()) },
+    build: {
+      // Compilation floor PINNED to the kiosk iPad: iPadOS 16.7.16 (Safari 16.6),
+      // reported by Florian 2026-07-26. This is a PERMANENT ceiling, not a
+      // snapshot — the iPad Pro 9.7" (2016) was dropped by iPadOS 17, so the
+      // device will never go higher. Vite's default (`baseline-widely-available`)
+      // is a MOVING target that advances with time and with Vite releases: it
+      // currently sits around Safari 16.4, two minors below the device, and a
+      // future Vite bump would push it past the kiosk without a line of our code
+      // changing. Pinning turns "the wall panel is broken, found out on the
+      // screen" into a decision taken at build time.
+      //
+      // `cssTarget` inherits this value, and it IS active — but it is a PARTIAL
+      // guard, so do not trust it further than measured (probe at `safari11`,
+      // 2026-07-26): it lowers `oklch()` (20 → 0 occurrences) and rewrites modern
+      // selectors (`:where()` 9 → 15, `:is()` 2 → 3, +5 KB), yet it leaves
+      // `color-mix()` (28), `@property` (58) and `@layer` (5) untouched. Those
+      // three are all supported at 16.6 (16.2 / 16.4 / 15.4), so the current
+      // output is safe — but a future library emitting a NEWER at-rule would slip
+      // through this target unnoticed. The JS side, by contrast, is a real guard:
+      // the same probe collapsed `?.` 491 → 1, `??` 226 → 0, `??=` 14 → 0.
+      //
+      // Chrome on Mac is a second target since 2026-07-26, but a far more recent
+      // one: the iPad is the binding constraint.
+      target: "safari16.6",
+    },
     plugins: [
       react(),
       tailwindcss(),
