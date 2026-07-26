@@ -36,29 +36,55 @@ export function ClimateTile({ entry }: { entry: EntityEntry }) {
   return (
     <div
       data-domain="climate"
-      className="flex flex-col gap-3 rounded-md border border-tile-border bg-tile-fill px-4 py-3"
+      className="relative flex flex-col gap-3 rounded-md border border-tile-border bg-tile-fill px-4 py-3"
     >
-      {/* Header — shared tile template: title taps through to /climatisation.
-          Power (like mode/speed) is set on the detail page, not the tile. */}
-      <TileHeader
-        icon={<ClimateIcon />}
-        title="Climatisation"
-        onOpen={() => navigate("/climatisation")}
-        openLabel="Ouvrir le détail de la climatisation"
+      {/* Full-tile tap target → detail. Absolutely positioned so it is a SIBLING
+          of the ± buttons, never their parent — a nested <button> is invalid
+          HTML (same rule as VacuumTile). Transparent, and positioned elements
+          paint above non-positioned siblings, so it covers the header and the
+          summary: they read normally but tap through to the detail. Explicit
+          offsets rather than `inset-0`, matching KioskShell's convention. */}
+      <button
+        type="button"
+        onClick={() => navigate("/climatisation")}
+        aria-label="Ouvrir le détail de la climatisation"
+        className="absolute top-0 right-0 bottom-0 left-0 rounded-md"
       />
 
-      {/* Temperature — the only thing the tile controls */}
-      {c.hasSetpoint ? (
-        <SetpointStepper
-          value={c.setpointValue as number}
-          disabled={c.isOff}
-          onBump={c.bump}
-        />
-      ) : (
-        <div className="text-center text-title font-semibold text-text">
-          {hvacModeLabel(c.mode)}
-        </div>
-      )}
+      {/* Header — shared tile template. It no longer carries `onOpen`: the whole
+          tile navigates now, and two competing tap targets would only fight. */}
+      <TileHeader icon={<ClimateIcon />} title="Climatisation" />
+
+      {/* Temperature — the only thing the tile controls. Powered off → the
+          control block greys out, same treatment as the Bureau tile
+          (`LightTile`): header and running summary stay legible, only the
+          control dims. The dim has to live HERE because the tile reuses
+          `SetpointStepper` alone, not the wrapping <div> of `ClimateControls`
+          that carries it on the detail page — which is why the tile had the
+          `disabled` but never the grey. */}
+      {/* Running: only the ± buttons sit above the overlay, so they bump the
+          setpoint while the rest of the row still taps through to the detail.
+          Off: the block drops below the overlay entirely — the ± are disabled
+          anyway, and a powered-off tile is wholly a gateway to the detail. */}
+      <div
+        className={
+          c.isOff
+            ? "pointer-events-none opacity-30"
+            : "pointer-events-none relative z-10 [&_button]:pointer-events-auto"
+        }
+      >
+        {c.hasSetpoint ? (
+          <SetpointStepper
+            value={c.setpointValue as number}
+            disabled={c.isOff}
+            onBump={c.bump}
+          />
+        ) : (
+          <div className="text-center text-title font-semibold text-text">
+            {hvacModeLabel(c.mode)}
+          </div>
+        )}
+      </div>
 
       {/* Read-only running summary (mode · speed) — set on the detail page */}
       <div className="flex items-center gap-1.5 border-t border-tile-border pt-2 text-meta text-text-muted">

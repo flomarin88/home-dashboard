@@ -103,6 +103,17 @@ describe("ClimateTile — compact home tile (Intent B)", () => {
     expect(screen.getByText("22.5")).toBeInTheDocument();
   });
 
+  // La tuile entière ouvre le détail via un bouton de recouvrement, FRÈRE des ±
+  // (un <button> imbriqué est du HTML invalide). Ce test garde cette structure :
+  // si les ± se retrouvaient un jour DANS le bouton de recouvrement, le clic
+  // remonterait et déclencherait la navigation en plus du réglage.
+  it("tapping ± adjusts the setpoint WITHOUT navigating (siblings, not nested)", () => {
+    render(<ClimateTile entry={ENTRY} />);
+    fireEvent.click(screen.getByRole("button", { name: /augmenter/i }));
+    expect(screen.getByText("22.5")).toBeInTheDocument();
+    expect(nav.fn).not.toHaveBeenCalled();
+  });
+
   it("coalesces a burst of stepper taps into ONE set_temperature (quota)", async () => {
     render(<ClimateTile entry={ENTRY} />);
     const plus = screen.getByRole("button", { name: /augmenter/i });
@@ -132,6 +143,21 @@ describe("ClimateTile — compact home tile (Intent B)", () => {
     expect(screen.getByText("Éteinte")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /augmenter/i })).toBeDisabled();
     expect(screen.queryByText(/En marche/)).toBeNull();
+  });
+
+  // Le grisage vit sur le <div> enveloppant de `ClimateControls`, que la tuile
+  // ne réutilise pas (elle ne prend que `SetpointStepper`) : elle avait donc le
+  // `disabled` mais pas le gris. Assertion sur la classe faute de mieux — jsdom
+  // ne calcule pas de style ; c'est l'approche du test TopBarSlots.
+  it("off: greys out the control block (Bureau tile treatment); on: does not", () => {
+    const on = render(<ClimateTile entry={ENTRY} />);
+    expect(on.container.querySelector(".opacity-30")).toBeNull();
+    on.unmount();
+
+    hass.state = "off";
+    const off = render(<ClimateTile entry={ENTRY} />);
+    expect(off.container.querySelector(".opacity-30")).not.toBeNull();
+    expect(screen.getByText("Éteinte")).toBeVisible(); // le résumé reste lisible
   });
 
   it("hides the stepper when the mode exposes no setpoint (fan_only)", () => {
