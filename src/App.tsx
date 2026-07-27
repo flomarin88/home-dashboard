@@ -8,6 +8,7 @@ import { PlantTile } from "./widgets/PlantTile";
 import { TopBarWeather } from "./widgets/TopBarWeather";
 import { TurtleTile } from "./widgets/TurtleTile";
 import { ElectricityTile } from "./widgets/ElectricityTile";
+import { AgendaTile } from "./widgets/AgendaTile";
 import { Skeleton } from "./ui/Skeleton";
 import { Home } from "./pages/Home";
 import { RoomDetail } from "./pages/RoomDetail";
@@ -96,6 +97,11 @@ function KioskShell() {
               <TurtleTile />
               <PlantTile />
               <BinTile />
+              {/* 6th element in the bar (the epic said 5th — written before 9.1
+                  shipped ElectricityTile). Widest of the family, and the mock
+                  measured the row WITHOUT BinTile: device-proof at 1024×748 on
+                  a day a bin is due (deferred-work.md:21). */}
+              <AgendaTile />
             </TopBarSlots>
           </HakitProvider>
         ) : (

@@ -476,6 +476,55 @@ export function electricityConfig(): ElectricityConfig {
   return ELECTRICITY;
 }
 
+/**
+ * Google Calendars surfaced through HA (Story 10.1, AD-7/AD-17). These are the
+ * REAL ids (Task 0 done 2026-07-27) — no placeholders, unlike 9.1/9.2.
+ *
+ * Read by QUERY (`calendar.get_events`), never as entity state: a `calendar.*`
+ * entity only exposes its current/next event, so its attributes cannot answer
+ * "what does today hold" (AD-17). `label` is the human name — it becomes visible
+ * in Story 10.3's filter (UX-DR26: the filter shows the NAME, never a colour dot).
+ */
+export interface CalendarRef {
+  /** `calendar.*` — the HA entity backing one Google calendar. */
+  readonly entityId: string;
+  /** Human label, shown to the user (Story 10.3 filter). */
+  readonly label: string;
+  /**
+   * True when this calendar publishes timed events (start/end carry an hour).
+   * Documentation only — the parser detects all-day per EVENT, from the payload
+   * shape, never from this flag. Kept so the mapping records what Florian
+   * confirmed (2026-07-27): only `chats` is timed; the other three are all-day.
+   */
+  readonly timed: boolean;
+}
+
+/**
+ * ⚠️ ORDER IS SIGNIFICANT: it breaks ties between two events sharing the same
+ * start instant, which keeps `selectNext` deterministic (and its tests stable).
+ * Timed calendars first so a real appointment wins a coin-flip against a
+ * whole-day marker.
+ */
+const CALENDARS: readonly CalendarRef[] = [
+  { entityId: "calendar.chats", label: "Chats", timed: true },
+  { entityId: "calendar.anniversaires", label: "Anniversaires", timed: false },
+  {
+    entityId: "calendar.calendrier_scolaire_zone_c",
+    label: "Vacances scolaires",
+    timed: false,
+  },
+  {
+    entityId: "calendar.jours_feries_et_autres_fetes_en_france",
+    label: "Jours fériés",
+    timed: false,
+  },
+];
+
+/** The mapped calendars, in tie-break order (Story 10.1). */
+export function calendarsConfig(): readonly CalendarRef[] {
+  return CALENDARS;
+}
+
 /** The single sensor entity for a (room, measure), or undefined if unmapped. */
 export function sensor(
   room: RoomId,
@@ -561,6 +610,7 @@ const AUX_ENTITY_IDS: readonly string[] = [
   BINS.ack.noire,
   ELECTRICITY.dailyKwhEntityId,
   ELECTRICITY.priceEntityId,
+  ...CALENDARS.map((c) => c.entityId),
 ];
 
 export function assertWellFormedAuxIds(

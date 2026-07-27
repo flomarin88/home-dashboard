@@ -53,6 +53,18 @@ last_updated: 2026-07-27
 # correct-course (sprint-change-proposal-2026-07-27.md). Aucun fichier story créé. Task 0 HA
 # (intégration Google Calendar) + décision UX de placement (UX-DR25) requises avant 10.1.
 # epic-10 reste backlog : 3 epics sont déjà in-progress (2, 8, 9).
+# v2i (2026-07-27): epic-10 démarré — story 10.1 (Prochain rendez-vous, micro-tuile accueil)
+# contextualisée. Task 0 HA LEVÉE : 4 entity_id réels fournis par Florian (calendar.chats,
+# .anniversaires, .calendrier_scolaire_zone_c, .jours_feries_et_autres_fetes_en_france).
+# Découverte : 3 des 4 calendriers ne produisent que des événements journée entière, dont
+# des multi-jours (vacances scolaires sur 14 j), alors que la maquette UX-DR28 montrait un
+# rendez-vous horodaté ⇒ règle de sélection à 3 rangs tranchée (horodaté à venir → journée
+# entière du jour → multi-jours en cours → « Rien aujourd'hui »). Deux AC corrigées :
+# la tuile est le 6ᵉ élément de la barre (l'AC disait 5ᵉ, écrite avant 9.1) et sa hauteur
+# suit les voisines (min-h-[56px], pas les 52px de la maquette).
+# ⚠️ BARRE SUPÉRIEURE SATURÉE : 9.2 (pill HC/HP) et 10.1 (tuile agenda) sont toutes deux
+# ready-for-dev et consomment les MÊMES ~280px, que la maquette a mesurés sans BinTile ni
+# la pill. La première mergée consomme le budget — device-proof exigé des deux côtés.
 # v2h (2026-07-27): story 9.2 (Heures creuses/pleines) contextualisée via create-story.
 # Florian a fourni les données réelles : fenêtres HC 01h08-06h08 / 12h38-15h38, prix
 # Creuses 0,0890 €/kWh et Pleines 0,1491 €/kWh. Tranché « on oublie la notion de tarifs » :
@@ -143,8 +155,8 @@ development_status:
   epic-9-retrospective: optional
 
   # Epic 10 — Agenda : coup d'œil sur la journée (v2)
-  epic-10: backlog  # ajouté 2026-07-27 via correct-course (sprint-change-proposal-2026-07-27.md) ; Task 0 HA (intégration Google Calendar) + décision UX de placement (UX-DR25) requises avant 10.1
-  10-1-agenda-du-jour-accueil: backlog
+  epic-10: in-progress  # démarré 2026-07-27 — story 10.1 contextualisée (create-story). Task 0 HA LEVÉE : intégration Google Calendar active, 4 entity_id réels fournis. Placement tranché (UX-DR28, approche A)
+  10-1-agenda-du-jour-accueil: review  # story contextualisée 2026-07-27 (create-story) ; 4 calendriers réels (chats horodaté + anniversaires/scolaire/jours fériés en journée entière) ⇒ règle de sélection à 3 rangs tranchée avec Florian. Corrections d'AC consignées : 6ᵉ élément top-bar (pas 5ᵉ), hauteur min-h-[56px] (pas 52px). Risque dominant : barre supérieure saturée, en concurrence avec 9.2
   10-2-page-detail-agenda-semaine-mois: backlog
   10-3-filtre-par-calendrier: backlog
   epic-10-retrospective: optional

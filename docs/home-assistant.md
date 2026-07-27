@@ -361,6 +361,86 @@ valeur + « Hors ligne », AD-6). Si tu changes un `entity_id`, mets à jour le 
 
 ---
 
+## Agenda — calendriers Google (Story 10.1)
+
+La micro-tuile Agenda affiche **ce qui arrive ensuite aujourd'hui**. Contrairement à
+toutes les autres tuiles, elle ne **reflète pas un état d'entité** : elle **interroge**
+Home Assistant. C'est le point à comprendre avant de toucher à quoi que ce soit ici.
+
+### 1. L'intégration Google Calendar (déjà en place)
+
+**Paramètres → Appareils et services → Ajouter une intégration → Google Calendar.**
+L'OAuth se fait **côté HA**, jamais côté kiosque : le dashboard ne détient **aucun
+secret Google**. Chaque calendrier partagé apparaît ensuite comme une entité `calendar.*`.
+
+### 2. Les quatre calendriers lus par le dashboard
+
+| `entity_id`                                       | libellé dans l'app | contenu                                 |
+| ------------------------------------------------- | ------------------ | --------------------------------------- |
+| `calendar.chats`                                  | Chats              | rendez-vous **avec heure**              |
+| `calendar.anniversaires`                          | Anniversaires      | **journée entière**, récurrents annuels |
+| `calendar.calendrier_scolaire_zone_c`             | Vacances scolaires | **journée entière, multi-jours**        |
+| `calendar.jours_feries_et_autres_fetes_en_france` | Jours fériés       | **journée entière**                     |
+
+> **Ajouter un calendrier ne suffit pas côté HA** : le dashboard lit une **liste
+> explicite** (`CALENDARS` dans `src/entities/mapping.ts`, AD-7). Un calendrier absent
+> de cette liste est ignoré, même s'il existe dans HA. L'**ordre** de la liste est
+> significatif : il départage deux événements qui commencent au même instant.
+
+### Contrat d'interface (⚠️ le code du dashboard en dépend)
+
+Le dashboard appelle **`calendar.get_events`** — une action HA **qui retourne des
+données** — sur la plage `[aujourd'hui 00:00 → demain 00:00)`, en **un seul appel**
+ciblant les 4 entités. Il ne lit **jamais** les attributs d'une entité `calendar.*` :
+celle-ci n'expose que l'événement **courant/suivant**, ce qui ne permet pas de répondre
+« qu'y a-t-il aujourd'hui ».
+
+La réponse est **keyée par `entity_id`**, chaque clé portant une liste `events` :
+
+```yaml
+calendar.chats:
+  events:
+    - summary: "Vétérinaire"
+      start: "2026-07-28 17:00:00" # avec heure ⇒ événement horodaté
+      end: "2026-07-28 17:30:00"
+calendar.anniversaires:
+  events:
+    - summary: "Anniversaire de Nathan"
+      start: "2026-07-28" # date SEULE ⇒ journée entière
+      end: "2026-07-29" # ⚠️ end est EXCLUSIVE
+```
+
+- **Journée entière** = `start`/`end` **sans partie horaire**. L'app le détecte à la
+  **forme** de la chaîne — c'est le seul signal disponible.
+- **`end` est exclusive** : un événement du 28 se termine `2026-07-29`.
+- Une entrée illisible est **ignorée** ; les autres sont conservées. Jamais de
+  « Invalid Date » à l'écran.
+
+**Quel événement s'affiche** — les calendriers étant surtout en journée entière, un tri
+chronologique afficherait « Vacances de la Toussaint » pendant deux semaines. La règle
+est donc à trois rangs : (1) un événement **horodaté encore à venir** aujourd'hui, sinon
+(2) un événement **journée entière commençant aujourd'hui**, sinon (3) un **multi-jours
+en cours**, sinon « Rien aujourd'hui ».
+
+**Fraîcheur** — cette donnée **n'est pas poussée** par le WebSocket : une socket vivante
+ne dit **rien** sur l'âge de la réponse. Le dashboard rejoue donc la requête au montage,
+**toutes les 15 min**, au **retour au premier plan**, et au **changement de date locale**.
+En cas d'échec : **dernière réponse connue + tuile atténuée**, jamais de blanc.
+
+### 3. Appliquer & tester
+
+- **Rejouer la requête à la main** : Outils de développement → **Actions** →
+  `calendar.get_events`, cibler les 4 entités, `start_date_time` = aujourd'hui 00:00:00,
+  `end_date_time` = demain 00:00:00 → **Exécuter**. La réponse affichée est exactement
+  ce que lit le dashboard.
+- **Tester la tuile** : un jour avec un rendez-vous `chats` (heure + « dans Xh »), un jour
+  sans (repli « Aujourd'hui · Anniversaire de … »), pendant les vacances scolaires
+  (« Jusqu'au … »), et en fin de journée (« Rien aujourd'hui »).
+- **Tester l'obsolescence** : couper HA → la tuile s'atténue et **garde** la dernière
+  réponse ; jamais de blanc ni de spinner.
+
+---
+
 ## Climatisation — étage (Story 2.6)
 
 **Aucun setup HA custom requis** : contrairement aux poubelles/tortues, la clim est une

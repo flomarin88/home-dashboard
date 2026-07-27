@@ -10,6 +10,7 @@ import {
   vacuum,
   climate,
   electricityConfig,
+  calendarsConfig,
   assertCanonicalMapping,
   assertWellFormedAuxIds,
   assertNoPlaceholders,
@@ -188,6 +189,38 @@ describe("electricity mapping (Story 9.1)", () => {
     // They are part of the default AUX_ENTITY_IDS, so the real-ids check covers
     // them; a typo in either would throw at dev-time instead of shipping dimmed.
     expect(() => assertWellFormedAuxIds()).not.toThrow();
+  });
+});
+
+describe("calendars mapping (Story 10.1)", () => {
+  it("exposes the four REAL calendar entity_ids (Task 0 done — no placeholders)", () => {
+    const cals = calendarsConfig();
+    expect(cals).toHaveLength(4);
+    expect(cals.every((c) => /^calendar\.[a-z0-9_]+$/.test(c.entityId))).toBe(
+      true,
+    );
+    expect(cals.map((c) => c.entityId)).toContain("calendar.chats");
+  });
+
+  it("gives every calendar a non-empty human label (shown by the 10.3 filter, UX-DR26)", () => {
+    expect(calendarsConfig().every((c) => c.label.trim().length > 0)).toBe(
+      true,
+    );
+  });
+
+  it("puts the timed calendar first — the order breaks ties in selectNext", () => {
+    // Deterministic tie-break (same start instant) depends on this order, so a
+    // reshuffle must be a conscious edit, not a silent one.
+    expect(calendarsConfig()[0].timed).toBe(true);
+  });
+
+  it("registers the calendar ids for aux well-formedness validation (leçon 7.1 D4)", () => {
+    // A typo would otherwise ship as a permanently empty tile instead of a
+    // dev-time throw.
+    expect(() => assertWellFormedAuxIds()).not.toThrow();
+    expect(() => assertWellFormedAuxIds(["calendar.Anniversaires"])).toThrow(
+      /malformed/i,
+    );
   });
 });
 
