@@ -547,6 +547,13 @@ FR-E2: **Heures creuses/pleines** — **indicateur de période courante** (depui
 FR-E3: **Micro-tuile Eau (SAUR)** — conso (capteur HA) + **coût du jour** dérivé (`conso × prix/m³`) ; clone du patron FR-E1 ; **reflect-only** ; obsolescence AD-6.
 FR-E4 _(transverse)_: **Source & prix** — conso = **capteurs HA read-only** (Task 0 : vérifier/activer les intégrations par fournisseur) ; prix = helpers HA `input_number` ou config runtime ; **coût = dérivation d'affichage** (pas d'état persisté, AD-1) ; **repli** = seam read-only isolé (exception AD-2 conditionnelle, précédent NutriClaude) si un fournisseur n'a pas d'intégration HA.
 
+_(Feature Agenda — HA-natif, lecture par requête)_
+
+FR-A1: **Agenda du jour (accueil)** — afficher les événements du **jour courant** des calendriers mappés, reflétés depuis HA en **lecture seule** : heure, titre, calendrier d'origine. « Aucun événement » est un **état affiché**, jamais un blanc (UX-DR27) ; obsolescence → **dernière réponse connue + indicateur** (AD-17).
+FR-A2: **Page détail Agenda — semaine / mois** — tap sur la surface d'accueil → **page profonde** (AD-10) avec **bascule semaine / mois** ; la plage choisie pilote la requête `calendar.get_events` ; le retour ramène à l'accueil.
+FR-A3: **Filtre par calendrier** — montrer/masquer chaque entité `calendar.*` mappée ; le filtre porte le **nom** du calendrier (UX-DR26), cibles **≥ 48px** (NFR2) ; l'état du filtre est **local à la vue, non persisté** (AD-1 — le dashboard ne détient aucun état propre).
+FR-A4 _(transverse)_: **Lecture par requête HA** — les plages viennent de **`calendar.get_events`** via `src/hakit/` (AD-17) ; l'app **ne calcule ni récurrences ni fuseaux** (AD-4) ; les `entity_id` des calendriers vivent dans le **mapping central** (AD-7) ; activer l'intégration Google Calendar dans HA = **Task 0**, hors app.
+
 ### Non-Functional Requirements
 
 _(Aucun NFR neuf en v2 — les NFR v1 s'appliquent et sont étendus.)_
@@ -570,6 +577,7 @@ _(from Architecture Delta v2 — AD-12…AD-15, amendements AD-1/AD-2, Task 0, b
 - **[Task 0 — hors-repo, préalables]** HA : entité compteur Arrosage (`counter.plantes_arrosees` 0..1 ou `input_boolean`) + automation reset minuit. NutriClaude : activer Realtime sur `grocery_list_items` ; créer + onboarder le compte « cuisine » dans le foyer ; fournir `SUPABASE_URL` + `anon key` + identifiants cuisine (secret runtime gitignoré).
 - **[Bords durs Courses]** La RPC `generate_grocery_list_from_menu` **supprime tout le pending** puis régénère → traiter la liste pending comme **remplaçable en bloc** ; un pointage optimiste peut viser une ligne disparue → **converger vers la vérité serveur**. **Pas d'`updated_at`** ⇒ convergence par refetch/Realtime, pas par timestamp. **Fallback polling 15-30 s** si Realtime pose problème.
 - **[AD-16 — Flux de consommation : lecture HA read-only + coût dérivé]** La conso élec/eau vient de **capteurs HA** (reflet AD-3, obsolescence AD-6, mapping AD-7), **read-only**. Le **coût** est une **dérivation d'affichage** (`conso × prix`), **pas un état persisté** (AD-1). Les **prix** vivent en helpers HA `input_number` ou config runtime. La **période HC/HP courante** vient de HA — l'app **ne calcule pas** le planning tarifaire (AD-4). Source par fournisseur **vérifiée/activée en Task 0** ; **repli** = seam read-only isolé (exception AD-2 conditionnelle, précédent `src/nutriclaude/`) si un fournisseur n'a pas d'intégration HA.
+- **[AD-17 — Lecture par requête : service HA à réponse, bornée au seam]** Les événements d'agenda ne sont **pas un état d'entité** : `calendar.*` n'expose que l'événement **courant/suivant**. Une **plage** (jour, semaine, mois) s'obtient par **`calendar.get_events`**, un service HA **qui retourne des données** (`callService` + `returnResponse: true`, exposé par `@hakit/core`). Ce mode reste **dans `src/hakit/`** — **aucune exception AD-2, aucun secret client**, contrairement à AD-12. Il **n'entre ni dans la couche pending (AD-11) ni dans l'optimisme (AD-5)** : c'est de la lecture. En revanche il a sa **propre politique de fraîcheur** — la réponse est datée de sa requête, **non poussée par le WebSocket** — donc **l'obsolescence AD-6, fondée sur l'état d'entité, ne la couvre pas** : rafraîchissement explicite (changement de plage, retour au premier plan, période), et sur échec **dernière réponse connue + indicateur d'obsolescence**, jamais de blanc. L'app **ne calcule ni récurrences ni fuseaux** — `get_events` renvoie les occurrences déjà déployées (AD-4). Précédent : `useHistory` (sparklines, Story 1.5) fait déjà cohabiter donnée récupérée et état reflété.
 
 ### UX Design Requirements
 
@@ -582,6 +590,9 @@ UX-DR21: **Provenance** = **personne** (`added_by`, prénom `display_name`) + **
 UX-DR22: **Tuile Arrosage (barre supérieure)** — **clone du moule `TurtleTile`** (Story 6.3) avec `maximum: 1`, dans `TopBarSlots` ; état = **niveau de remplissage** bas→haut (vide→plein) + icône plante lisible, **pas de texte de statut**, `aria-label` ; geste **≥56px** si `!done && !stale` → service HA ; **disabled** à plein jusqu'au reset ; **reflect-only** (pas d'optimiste) ; obsolescence → non-interactive.
 UX-DR23: **Micro-tuiles Consommation (`TopBarSlots`)** — moule météo/tortue/plante, chip **neutre** (pas d'accent device). **Anatomie (variante B)** : icône + **coût du jour** (€, tabular-nums) en **valeur héros** + **sous-ligne conso** (kWh / m³ sur la tuile) ; pill d'état HC/HP à droite (élec). **Au tap** : popover tarifaire = coût + conso du jour, **les deux prix** (HC & HP) avec le **tarif appliqué marqué** + la **prochaine bascule** (« passage en pleines à HH:MM ») ; **pas de page détail**. **Obsolescence** = dernière valeur connue + **pill « Hors ligne · HH:MM »** (horodatage du dernier relevé), bordure dashed `{colors.stale}`, **jamais de blanc ni de spinner** (AD-6). **Densité (à trancher au build)** : selon l'espace réel des autres slots, **1 chip « Conso » fusionnée** (élec+eau) **ou 2 chips distinctes** ; libellé période responsive (« Creuses/Pleines » si place, « HC/HP » compact sinon).
 UX-DR24: **Indicateur Heures Creuses/Pleines** — **icône lune (Creuses) / soleil (Pleines) + libellé**, sur **pill neutre sans teinte sémantique** : le **vert est proscrit** (réservé sécurité, UX-DR18) et la palette d'accents est saturée → l'état est porté par **icône + mot**, jamais la couleur (UX-DR14). Le **tarif appliqué** au coût **suit la période courante**. **Pas de nouvel accent** de domaine.
+UX-DR25: **Budget vertical de l'accueil — contrainte dure, mesurée (2026-07-27).** À 1024×748, il reste **179px** libres sous la dernière rangée. Une rangée standard coûte **~265px** (titre + gaps + tuile de 225) : **une 3ᵉ rangée standard ne rentre pas**. Toute surface ajoutée à l'accueil choisit entre — (a) **micro-tuile en barre supérieure** (5ᵉ élément ; seuil signalé comme déclencheur de dette collision en Story 9.1), (b) **5ᵉ colonne** dans une rangée (les tuiles passent de 237 à ~190px de large, toutes, y compris celles qui vont bien), (c) **bande compacte sans titre, sous 165px**. Ce budget est **partagé** avec les epics 3, 4 et 5 à venir : le premier servi le consomme. Aucun test automatisé ne garde cet invariant (TD-9) — la vérification est visuelle, sur l'appareil.
+UX-DR26: **Couleur de calendrier jamais seule.** Si les événements sont teintés par calendrier, la distinction porte **aussi** un libellé ou un glyphe (instancie UX-DR14). Le filtre affiche le **nom** du calendrier, pas une pastille de couleur seule.
+UX-DR27: **Agenda vide = un rendu, pas du vide.** « Aucun événement aujourd'hui » est un état à part entière — jamais un blanc ni un spinner (AD-6/NFR4) — et la surface conserve **la même empreinte** qu'avec des événements, pour éviter le saut de mise en page au chargement (mêmes hauteurs de lignes fixes que les cartes de pièce, Story 1.5).
 
 ### FR Coverage Map (v2)
 
@@ -597,6 +608,10 @@ FR-E1: Epic 9 — Micro-tuile Électricité (conso + prix + coût, reflect-only)
 FR-E2: Epic 9 — Heures creuses/pleines (période courante HA + tarif appliqué)
 FR-E3: Epic 9 — Micro-tuile Eau (SAUR, conso + prix + coût)
 FR-E4: Epic 9 — Source HA read-only + prix config + repli seam (transverse)
+FR-A1: Epic 10 — Agenda du jour sur l'accueil (lecture HA par requête)
+FR-A2: Epic 10 — Page détail Agenda (bascule semaine / mois)
+FR-A3: Epic 10 — Filtre par calendrier
+FR-A4: Epic 10 — Lecture par requête `calendar.get_events` (transverse)
 
 ## Epic List (v2)
 
@@ -611,6 +626,10 @@ Le kiosque devient la **vitre read-write** de la liste de courses du foyer : voi
 ### Epic 9: Consommation — flux élec & eau (coup d'œil coûts)
 Des **micro-tuiles** dans la barre supérieure (moule météo/tortue/plante, Story 6.4) qui reflètent en lecture seule la **conso élec & eau** depuis HA et en dérivent le **coût du jour**, avec l'**état heures creuses/pleines**. Purement **HA-natif read-only** (Story 1.5 comme précédent), *reflect-only*, **zéro nouveau backend** si les capteurs HA existent. Après cet epic, Florian voit d'un coup d'œil ce que consomment élec & eau, à quel tarif, sans quitter l'accueil.
 **FRs covered:** FR-E1, FR-E2, FR-E3, FR-E4
+
+### Epic 10: Agenda — coup d'œil sur la journée
+Les événements **Google Calendar** du foyer, reflétés depuis HA en lecture seule : les rendez-vous **du jour** sur l'accueil, et une **page profonde semaine / mois** avec un **filtre par calendrier**. HA-natif de bout en bout (intégration Google côté HA, **aucun secret côté kiosque**, aucun second seam) — mais un **mode de lecture neuf** : la plage vient d'un **service à réponse** (`calendar.get_events`, AD-17), pas d'un état d'entité. Après cet epic, Florian voit sa journée en passant dans la cuisine, et déplie la semaine ou le mois d'un tap.
+**FRs covered:** FR-A1, FR-A2, FR-A3, FR-A4
 
 ## Epic 7: Arrosage des plantes
 
@@ -845,3 +864,93 @@ So that je suis ma consommation d'eau d'un coup d'œil.
 **Then** dernière valeur connue + indicateur d'obsolescence (AD-6), **jamais de blanc**
 
 > **Note granularité (SAUR) :** la conso eau est souvent **journalière ou plus grossière** → l'affichage peut montrer « hier » et se rafraîchir lentement ; le pattern d'obsolescence (AD-6) couvre ce décalage (pas un état d'erreur).
+
+## Epic 10: Agenda — coup d'œil sur la journée
+
+Les événements des calendriers Google du foyer, reflétés depuis HA. Les stories procèdent par tranches : fonder la **lecture par requête** (AD-17) et la surface « jour », puis la page profonde semaine/mois, puis le filtre. Lecture seule de bout en bout — aucune écriture d'événement dans cet epic.
+
+> **Task 0 (hors-repo, préalable à cet epic) :** activer l'intégration **Google Calendar** dans HA (OAuth **côté HA**, jamais côté kiosque) ; vérifier que les calendriers voulus apparaissent en entités `calendar.*` ; relever leurs `entity_id` **et** leur libellé humain pour le mapping (AD-7) ; vérifier que **`calendar.get_events` répond** sur ces entités (HA ≥ 2023.8).
+>
+> **Réf. design :** **aucune maquette n'existe.** Le **placement sur l'accueil est une décision UX ouverte**, bornée par le budget de UX-DR25 (179px libres ; les trois options chiffrées y sont). À trancher avant la Story 10.1.
+
+### Story 10.1: Agenda du jour (accueil)
+
+_Tracer bullet : fonde la **lecture par requête** (AD-17) — le chemin `calendar.get_events` dans `src/hakit/`, le mapping des calendriers (AD-7), et la surface « jour ». Lecture seule._
+
+As a Florian,
+I want voir les événements du jour sur l'accueil,
+So that je sais ce qui m'attend sans ouvrir mon téléphone.
+
+**Acceptance Criteria:**
+
+**Given** l'intégration Google Calendar activée côté HA et les `entity_id` relevés (Task 0), inscrits dans le **mapping central** (AD-7, jamais en dur)
+**When** l'accueil s'affiche
+**Then** une surface **Agenda du jour** rend les événements du **jour courant** — heure de début, titre, calendrier d'origine — **triés par heure**, en **lecture seule** (AD-3, aucun optimiste, aucune écriture)
+
+**Given** AD-17
+**When** la surface se monte
+**Then** les événements viennent de **`calendar.get_events`** appelé via `src/hakit/` sur la plage `[aujourd'hui 00:00 → demain 00:00)`, **jamais** des attributs d'entité — qui n'exposent que l'événement **courant/suivant** ; l'app **ne déploie ni récurrences ni fuseaux** (AD-4)
+
+**Given** une réponse obtenue
+**When** la plage change, l'app **revient au premier plan**, ou la période de rafraîchissement s'écoule
+**Then** la requête est **rejouée** — la fraîcheur n'est **pas** poussée par le WebSocket et **AD-6 ne couvre pas** cette donnée (AD-17)
+
+**Given** la requête en échec ou HA injoignable
+**When** la surface se rend
+**Then** **dernière réponse connue + indicateur d'obsolescence**, **jamais** de blanc ni de spinner (AD-17/AD-6/NFR4)
+
+**Given** aucun événement aujourd'hui
+**When** la surface se rend
+**Then** « **Aucun événement aujourd'hui** » s'affiche dans **la même empreinte** que la version peuplée — pas de saut de mise en page (UX-DR27)
+
+**Given** le budget vertical de l'accueil (UX-DR25) et le placement tranché en UX
+**When** la surface est intégrée
+**Then** elle tient dans l'option retenue **sans repousser le contenu hors des 748px**, et le résultat est **vérifié sur l'iPad** — aucun test automatisé ne garde cet invariant (TD-9)
+
+### Story 10.2: Page détail Agenda — semaine / mois
+
+_Page profonde (AD-10) sur le même chemin de lecture que 10.1 : seule la plage demandée change._
+
+As a Florian,
+I want déplier la semaine ou le mois depuis l'agenda du jour,
+So that je situe un rendez-vous dans la durée sans sortir le téléphone.
+
+**Acceptance Criteria:**
+
+**Given** la surface d'accueil (Story 10.1)
+**When** je la tape
+**Then** une **page `/agenda`** s'ouvre (un niveau, AD-10) avec un **en-tête** = fil d'Ariane « ‹ Accueil · Agenda » + une **bascule Semaine / Mois** ; le retour ramène à l'accueil
+
+**Given** la bascule
+**When** je choisis une plage
+**Then** **`calendar.get_events`** est rejoué sur cette plage (**semaine courante** lun→dim, **mois courant**) et les événements sont **groupés par jour**, l'aujourd'hui distingué **pas seulement par la couleur** (UX-DR14)
+
+**Given** le kiosque **1024×748 sans scroll** (invariant) et un mois chargé
+**When** la vue mois se rend
+**Then** elle **réduit la densité** plutôt que de déborder — grille jour × compteur/pastilles plutôt que titres complets — et **ne scrolle jamais**
+
+**Given** une plage sans événement, ou la requête en échec
+**When** la vue se rend
+**Then** état affiché (UX-DR27) / dernière réponse connue + obsolescence (AD-17), jamais de blanc
+
+### Story 10.3: Filtre par calendrier
+
+_Petit périmètre : montrer/masquer des entités `calendar.*` dans la vue courante._
+
+As a Florian,
+I want masquer certains calendriers,
+So that je ne vois que ce qui me concerne quand la semaine est chargée.
+
+**Acceptance Criteria:**
+
+**Given** plusieurs calendriers mappés (AD-7)
+**When** la page `/agenda` se rend
+**Then** une rangée de contrôles présente chaque calendrier par son **nom** (UX-DR26 — jamais une pastille de couleur seule), cibles **≥ 48px** (NFR2)
+
+**Given** un calendrier masqué
+**When** la vue se rend
+**Then** ses événements disparaissent de la vue courante ; l'état du filtre est **local à la vue et non persisté** (FR-A3/AD-1)
+
+**Given** tous les calendriers masqués
+**When** la vue se rend
+**Then** l'état vide s'affiche (UX-DR27) — jamais un écran blanc qui ressemblerait à une panne
