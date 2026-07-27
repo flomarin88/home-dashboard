@@ -549,8 +549,8 @@ FR-E4 _(transverse)_: **Source & prix** — conso = **capteurs HA read-only** (T
 
 _(Feature Agenda — HA-natif, lecture par requête)_
 
-FR-A1: **Agenda du jour (accueil)** — afficher les événements du **jour courant** des calendriers mappés, reflétés depuis HA en **lecture seule** : heure, titre, calendrier d'origine. « Aucun événement » est un **état affiché**, jamais un blanc (UX-DR27) ; obsolescence → **dernière réponse connue + indicateur** (AD-17).
-FR-A2: **Page détail Agenda — semaine / mois** — tap sur la surface d'accueil → **page profonde** (AD-10) avec **bascule semaine / mois** ; la plage choisie pilote la requête `calendar.get_events` ; le retour ramène à l'accueil.
+FR-A1: **Prochain rendez-vous (accueil)** — afficher le **prochain événement** du jour, reflété depuis HA en **lecture seule** : heure, délai relatif, titre. La **journée complète** vit sur `/agenda` (vue Jour). « Aucun événement aujourd'hui » est un **état affiché**, jamais un blanc (UX-DR27) ; obsolescence → **dernière réponse connue + indicateur** (AD-17). Placement acté : **micro-tuile en barre supérieure** (UX-DR28).
+FR-A2: **Page détail Agenda — jour / semaine / mois** — tap sur la micro-tuile → **page profonde** (AD-10) ouvrant sur la **vue Jour**, avec **bascule Jour / Semaine / Mois** ; la plage choisie pilote la requête `calendar.get_events` ; le retour ramène à l'accueil.
 FR-A3: **Filtre par calendrier** — montrer/masquer chaque entité `calendar.*` mappée ; le filtre porte le **nom** du calendrier (UX-DR26), cibles **≥ 48px** (NFR2) ; l'état du filtre est **local à la vue, non persisté** (AD-1 — le dashboard ne détient aucun état propre).
 FR-A4 _(transverse)_: **Lecture par requête HA** — les plages viennent de **`calendar.get_events`** via `src/hakit/` (AD-17) ; l'app **ne calcule ni récurrences ni fuseaux** (AD-4) ; les `entity_id` des calendriers vivent dans le **mapping central** (AD-7) ; activer l'intégration Google Calendar dans HA = **Task 0**, hors app.
 
@@ -593,6 +593,8 @@ UX-DR24: **Indicateur Heures Creuses/Pleines** — **icône lune (Creuses) / sol
 UX-DR25: **Budget vertical de l'accueil — contrainte dure, mesurée (2026-07-27).** À 1024×748, il reste **179px** libres sous la dernière rangée. Une rangée standard coûte **~265px** (titre + gaps + tuile de 225) : **une 3ᵉ rangée standard ne rentre pas**. Toute surface ajoutée à l'accueil choisit entre — (a) **micro-tuile en barre supérieure** (5ᵉ élément ; seuil signalé comme déclencheur de dette collision en Story 9.1), (b) **5ᵉ colonne** dans une rangée (les tuiles passent de 237 à ~190px de large, toutes, y compris celles qui vont bien), (c) **bande compacte sans titre, sous 165px**. Ce budget est **partagé** avec les epics 3, 4 et 5 à venir : le premier servi le consomme. Aucun test automatisé ne garde cet invariant (TD-9) — la vérification est visuelle, sur l'appareil.
 UX-DR26: **Couleur de calendrier jamais seule.** Si les événements sont teintés par calendrier, la distinction porte **aussi** un libellé ou un glyphe (instancie UX-DR14). Le filtre affiche le **nom** du calendrier, pas une pastille de couleur seule.
 UX-DR27: **Agenda vide = un rendu, pas du vide.** « Aucun événement aujourd'hui » est un état à part entière — jamais un blanc ni un spinner (AD-6/NFR4) — et la surface conserve **la même empreinte** qu'avec des événements, pour éviter le saut de mise en page au chargement (mêmes hauteurs de lignes fixes que les cartes de pièce, Story 1.5).
+UX-DR28: **Agenda sur l'accueil = micro-tuile « prochain rendez-vous ».** Décidé par Florian le 2026-07-27 sur maquettes (`ux-designs/ux-home-dashboard-2026-07-27/inputs/mock-agenda-approches.html`, approche A). L'accueil ne répond qu'à **une** question — *qu'est-ce qui arrive ensuite ?* : libellé **PROCHAIN**, heure (tabular-nums), **délai relatif** (« dans 4h »), titre tronqué sur une ligne. Le libellé est **obligatoire** — une icône calendrier seule serait du *mystery meat*. Moule `TopBarSlots`, **hauteur 52px** identique aux 4 micro-tuiles existantes (mesuré sur maquette) : **coût nul sur la grille**, les 179px de UX-DR25 restent intacts. **Écartées :** la tuile-journée en 5ᵉ colonne (toute la rangée RDC tombe de 237 à 187px, sparklines −21% — régression sur des tuiles qui allaient bien) et la bande temporelle pleine largeur (consomme la totalité du budget vertical, moule sans précédent dans le code). **Réversible :** passer de A à B ou C ne jette rien, le chemin de lecture (AD-17) est identique dans les trois.
+UX-DR29: **Page `/agenda` — jour, semaine en 7 rangées, mois en grille 7×6.** Mesuré sur maquette (`mock-agenda-detail.html`) : le chrome (barre 52 + fil d'Ariane 34 + rangée de contrôle 52 + paddings et gaps) laisse **~524px** de grille. **Mois** = 42 cellules de **134×79px** portant le numéro du jour, **2 puces d'événement** et un « +N » — vérifié sans débordement sur 4 cellules denses. **Semaine** = **7 rangées** de ~70px, **pas 7 colonnes** : à 134px de large une colonne-jour tronque tout, alors qu'en rangée chaque jour porte son nom, sa date et ses événements en clair. **Bascule et filtres partagent une seule rangée** (52px au lieu de 108) — c'est ce qui rend le mois respirable. Un calendrier masqué reste **visible et rappelable** (Nielsen 3), signalé par **trois** marques simultanées : bordure pointillée, texte barré, pastille grisée (jamais la couleur seule, UX-DR14/UX-DR26).
 
 ### FR Coverage Map (v2)
 
@@ -608,8 +610,8 @@ FR-E1: Epic 9 — Micro-tuile Électricité (conso + prix + coût, reflect-only)
 FR-E2: Epic 9 — Heures creuses/pleines (période courante HA + tarif appliqué)
 FR-E3: Epic 9 — Micro-tuile Eau (SAUR, conso + prix + coût)
 FR-E4: Epic 9 — Source HA read-only + prix config + repli seam (transverse)
-FR-A1: Epic 10 — Agenda du jour sur l'accueil (lecture HA par requête)
-FR-A2: Epic 10 — Page détail Agenda (bascule semaine / mois)
+FR-A1: Epic 10 — Prochain rendez-vous sur l'accueil (micro-tuile, lecture HA par requête)
+FR-A2: Epic 10 — Page détail Agenda (bascule Jour / Semaine / Mois)
 FR-A3: Epic 10 — Filtre par calendrier
 FR-A4: Epic 10 — Lecture par requête `calendar.get_events` (transverse)
 
@@ -628,7 +630,7 @@ Des **micro-tuiles** dans la barre supérieure (moule météo/tortue/plante, Sto
 **FRs covered:** FR-E1, FR-E2, FR-E3, FR-E4
 
 ### Epic 10: Agenda — coup d'œil sur la journée
-Les événements **Google Calendar** du foyer, reflétés depuis HA en lecture seule : les rendez-vous **du jour** sur l'accueil, et une **page profonde semaine / mois** avec un **filtre par calendrier**. HA-natif de bout en bout (intégration Google côté HA, **aucun secret côté kiosque**, aucun second seam) — mais un **mode de lecture neuf** : la plage vient d'un **service à réponse** (`calendar.get_events`, AD-17), pas d'un état d'entité. Après cet epic, Florian voit sa journée en passant dans la cuisine, et déplie la semaine ou le mois d'un tap.
+Les événements **Google Calendar** du foyer, reflétés depuis HA en lecture seule : le **prochain rendez-vous** en micro-tuile sur l'accueil (UX-DR28), et une **page profonde jour / semaine / mois** avec un **filtre par calendrier**. HA-natif de bout en bout (intégration Google côté HA, **aucun secret côté kiosque**, aucun second seam) — mais un **mode de lecture neuf** : la plage vient d'un **service à réponse** (`calendar.get_events`, AD-17), pas d'un état d'entité. Après cet epic, Florian sait ce qui l'attend en passant dans la cuisine, et déplie sa journée, sa semaine ou son mois d'un tap.
 **FRs covered:** FR-A1, FR-A2, FR-A3, FR-A4
 
 ## Epic 7: Arrosage des plantes
@@ -871,21 +873,21 @@ Les événements des calendriers Google du foyer, reflétés depuis HA. Les stor
 
 > **Task 0 (hors-repo, préalable à cet epic) :** activer l'intégration **Google Calendar** dans HA (OAuth **côté HA**, jamais côté kiosque) ; vérifier que les calendriers voulus apparaissent en entités `calendar.*` ; relever leurs `entity_id` **et** leur libellé humain pour le mapping (AD-7) ; vérifier que **`calendar.get_events` répond** sur ces entités (HA ≥ 2023.8).
 >
-> **Réf. design :** **aucune maquette n'existe.** Le **placement sur l'accueil est une décision UX ouverte**, bornée par le budget de UX-DR25 (179px libres ; les trois options chiffrées y sont). À trancher avant la Story 10.1.
+> **Réf. design :** `ux-designs/ux-home-dashboard-2026-07-27/inputs/mock-agenda-approches.html` (3 approches de placement, rendues dans l'accueil complet à 1024×748) et `mock-agenda-detail.html` (page `/agenda` : jour, semaine, mois, états). **Placement tranché le 2026-07-27 : approche A** — micro-tuile « prochain rendez-vous » en barre supérieure (**UX-DR28**). Structure de la page détail : **UX-DR29**. Toutes les cotes des maquettes ont été mesurées au navigateur, pas estimées.
 
-### Story 10.1: Agenda du jour (accueil)
+### Story 10.1: Prochain rendez-vous (micro-tuile accueil)
 
-_Tracer bullet : fonde la **lecture par requête** (AD-17) — le chemin `calendar.get_events` dans `src/hakit/`, le mapping des calendriers (AD-7), et la surface « jour ». Lecture seule._
+_Tracer bullet : fonde la **lecture par requête** (AD-17) — le chemin `calendar.get_events` dans `src/hakit/`, le mapping des calendriers (AD-7), et la micro-tuile d'accueil. Lecture seule._
 
 As a Florian,
-I want voir les événements du jour sur l'accueil,
+I want voir mon prochain rendez-vous sur l'accueil,
 So that je sais ce qui m'attend sans ouvrir mon téléphone.
 
 **Acceptance Criteria:**
 
 **Given** l'intégration Google Calendar activée côté HA et les `entity_id` relevés (Task 0), inscrits dans le **mapping central** (AD-7, jamais en dur)
 **When** l'accueil s'affiche
-**Then** une surface **Agenda du jour** rend les événements du **jour courant** — heure de début, titre, calendrier d'origine — **triés par heure**, en **lecture seule** (AD-3, aucun optimiste, aucune écriture)
+**Then** une **micro-tuile** dans `TopBarSlots` (5ᵉ élément, moule des 4 existantes, **hauteur 52px** — UX-DR28) affiche le **prochain événement du jour** : libellé **PROCHAIN**, heure (tabular-nums), **délai relatif** (« dans 4h »), titre tronqué sur une ligne — en **lecture seule** (AD-3, aucun optimiste, aucune écriture)
 
 **Given** AD-17
 **When** la surface se monte
@@ -899,35 +901,36 @@ So that je sais ce qui m'attend sans ouvrir mon téléphone.
 **When** la surface se rend
 **Then** **dernière réponse connue + indicateur d'obsolescence**, **jamais** de blanc ni de spinner (AD-17/AD-6/NFR4)
 
-**Given** aucun événement aujourd'hui
-**When** la surface se rend
-**Then** « **Aucun événement aujourd'hui** » s'affiche dans **la même empreinte** que la version peuplée — pas de saut de mise en page (UX-DR27)
+**Given** plus aucun événement à venir aujourd'hui
+**When** la micro-tuile se rend
+**Then** un **état affiché** — « Rien aujourd'hui », ou la forme courte que la largeur de la puce permet — occupe **la même empreinte** que la version peuplée, pas de saut de mise en page (UX-DR27)
 
-**Given** le budget vertical de l'accueil (UX-DR25) et le placement tranché en UX
-**When** la surface est intégrée
-**Then** elle tient dans l'option retenue **sans repousser le contenu hors des 748px**, et le résultat est **vérifié sur l'iPad** — aucun test automatisé ne garde cet invariant (TD-9)
+**Given** l'approche A actée (UX-DR28) et le budget de UX-DR25
+**When** la micro-tuile est intégrée
+**Then** **la grille de l'accueil ne bouge pas** — les 179px de mou vertical restent libres et la barre supérieure garde ses 52px de haut ; vérifié **sur l'iPad**, aucun test automatisé ne garde cet invariant (TD-9)
 
-### Story 10.2: Page détail Agenda — semaine / mois
+### Story 10.2: Page détail Agenda — jour / semaine / mois
 
-_Page profonde (AD-10) sur le même chemin de lecture que 10.1 : seule la plage demandée change._
+_Page profonde (AD-10) sur le même chemin de lecture que 10.1 : seule la plage demandée change. La vue Jour porte la journée complète, que la micro-tuile ne montre pas._
 
 As a Florian,
-I want déplier la semaine ou le mois depuis l'agenda du jour,
+I want déplier ma journée, ma semaine ou mon mois depuis la micro-tuile,
 So that je situe un rendez-vous dans la durée sans sortir le téléphone.
 
 **Acceptance Criteria:**
 
-**Given** la surface d'accueil (Story 10.1)
+**Given** la micro-tuile d'accueil (Story 10.1)
 **When** je la tape
-**Then** une **page `/agenda`** s'ouvre (un niveau, AD-10) avec un **en-tête** = fil d'Ariane « ‹ Accueil · Agenda » + une **bascule Semaine / Mois** ; le retour ramène à l'accueil
+**Then** une **page `/agenda`** s'ouvre (un niveau, AD-10) **sur la vue Jour** — la journée complète, passé compris, que la micro-tuile ne montre pas — avec un **en-tête** = fil d'Ariane « ‹ Accueil · Agenda » + une **bascule Jour / Semaine / Mois** ; le retour ramène à l'accueil
 
-**Given** la bascule
+**Given** la bascule et les filtres, **sur une seule rangée de 52px** (UX-DR29 — deux rangées ne laisseraient pas respirer le mois)
 **When** je choisis une plage
-**Then** **`calendar.get_events`** est rejoué sur cette plage (**semaine courante** lun→dim, **mois courant**) et les événements sont **groupés par jour**, l'aujourd'hui distingué **pas seulement par la couleur** (UX-DR14)
+**Then** **`calendar.get_events`** est rejoué sur cette plage (**jour courant**, **semaine courante** lun→dim, **mois courant**) et les événements sont **groupés par jour**, l'aujourd'hui distingué **pas seulement par la couleur** (UX-DR14)
 
 **Given** le kiosque **1024×748 sans scroll** (invariant) et un mois chargé
 **When** la vue mois se rend
-**Then** elle **réduit la densité** plutôt que de déborder — grille jour × compteur/pastilles plutôt que titres complets — et **ne scrolle jamais**
+**Then** elle tient dans la **grille 7×6 de cellules 134×79px** mesurée en UX-DR29 — numéro du jour + **2 puces** + « **+N** » au-delà — et **ne scrolle jamais**
+**And** la **semaine se rend en 7 rangées**, pas 7 colonnes (UX-DR29)
 
 **Given** une plage sans événement, ou la requête en échec
 **When** la vue se rend

@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1024, initial-scale=1">
+<title>Epic 10 — Agenda : 3 approches de placement sur l'accueil</title>
+<style>
+  :root{
+    --g-indigo:#1a1140; --g-teal:#122a3a; --g-magenta:#251034;
+    --card:rgba(255,255,255,.06); --card-bd:rgba(255,255,255,.12);
+    --tile:rgba(255,255,255,.04); --tile-bd:rgba(255,255,255,.10);
+    --text:#f2f4fa; --muted:#aab3c8; --muted2:#7d849c;
+    --a-lights:#ffb23e; --a-climate:#35e0d8; --a-vacuum:#a06bff; --a-courses:#ff6faf;
+    --ok:#38d17a; --stale:#5b6172; --stale-text:#c2c8d6;
+    /* calendriers — teinte SUBORDONNÉE au nom (UX-DR26), jamais seule */
+    --cal-famille:#8b9dff; --cal-florian:#4aa3ff; --cal-ecole:#ffb23e;
+    --r-lg:20px; --r-md:14px; --r-sm:9px;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;}
+  body{font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    background:#0b0b12;color:#e8ebf5;display:flex;flex-direction:column;align-items:center;gap:34px;padding:32px 20px 60px;}
+  .num{font-variant-numeric:tabular-nums;}
+
+  /* ---------- page chrome (hors kiosque) ---------- */
+  .doc{width:1024px;}
+  .doc h1{font-size:21px;margin:0 0 6px;letter-spacing:-.01em;}
+  .doc .lead{font-size:13px;color:#98a0b8;margin:0 0 4px;line-height:1.55;}
+  .doc .lead b{color:#e8ebf5;}
+  .caption{width:1024px;font-size:12.5px;color:#98a0b8;line-height:1.6;}
+  .caption b{color:#e8ebf5;}
+  .tag{display:inline-block;font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+    padding:3px 8px;border-radius:20px;border:1px solid #2a2f45;color:#9aa3bd;margin-right:6px;}
+  .tag.reco{color:#38d17a;border-color:rgba(56,209,122,.4);}
+  .tag.cost{color:#ffb23e;border-color:rgba(255,178,62,.4);}
+  .hd{width:1024px;display:flex;align-items:baseline;gap:12px;margin-top:10px;}
+  .hd h2{font-size:17px;margin:0;letter-spacing:-.01em;}
+  .hd .sub{font-size:12.5px;color:#98a0b8;}
+  table.cmp{width:1024px;border-collapse:collapse;font-size:12.5px;}
+  table.cmp th,table.cmp td{border:1px solid #22263a;padding:8px 10px;text-align:left;vertical-align:top;}
+  table.cmp th{background:#14172a;color:#c6cce0;font-weight:600;}
+  table.cmp td b{color:#e8ebf5;}
+
+  /* ---------- le kiosque, à l'échelle réelle ---------- */
+  .frame{width:1024px;height:748px;overflow:hidden;color:var(--text);user-select:none;padding:24px;
+    background-color:var(--g-indigo);
+    background-image:radial-gradient(1200px 800px at 15% 8%, rgba(88,66,168,.35), transparent 60%),
+      radial-gradient(1000px 720px at 85% 92%, rgba(74,26,96,.45), transparent 60%),
+      linear-gradient(135deg,var(--g-indigo),var(--g-teal) 50%,var(--g-magenta));
+    display:flex;flex-direction:column;gap:14px;border-radius:6px;position:relative;}
+  .frame::after{content:attr(data-label);position:absolute;left:10px;bottom:5px;font-size:10px;color:rgba(242,244,250,.35);}
+
+  /* top bar */
+  .header{display:flex;align-items:center;height:52px;flex:none;}
+  .clock .h{font-size:34px;font-weight:600;letter-spacing:-.02em;line-height:1;}
+  .clock .d{font-size:12px;color:var(--muted);text-transform:capitalize;margin-top:2px;}
+  .slots{display:flex;align-items:center;gap:12px;margin-left:44px;}
+  .chip{display:inline-flex;align-items:center;gap:9px;height:52px;padding:0 14px;border-radius:var(--r-md);
+    background:var(--card);border:1px solid var(--card-bd);}
+  .chip .ic{color:var(--muted);flex:none;display:flex;}
+  .chip.sq{padding:0;width:52px;justify-content:center;}
+
+  /* grille */
+  .floor{display:flex;flex-direction:column;gap:10px;flex:none;}
+  .h2{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);}
+  .grid{display:grid;gap:10px;}
+  .g4{grid-template-columns:repeat(4,1fr);}
+  .g5{grid-template-columns:repeat(5,1fr);}
+  .tile{border-radius:var(--r-md);border:1px solid var(--tile-bd);background:var(--tile);padding:12px 16px;
+    display:flex;flex-direction:column;gap:4px;overflow:hidden;}
+  .th{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600;}
+  .th .ic{color:var(--muted);flex:none;display:flex;}
+  .th .r{margin-left:auto;font-size:11px;color:var(--muted);display:flex;align-items:center;gap:4px;margin-top:-6px;margin-right:-8px;}
+  .temp{font-size:24px;font-weight:600;margin-top:2px;}
+  .meta{font-size:12px;color:var(--muted);display:flex;gap:8px;align-items:center;}
+  .meta .co2{color:var(--ok);}
+  .spark{flex:1;min-height:32px;display:flex;align-items:flex-end;margin-top:4px;}
+  .spark svg{width:100%;height:100%;}
+  .r192{height:192px;} .r196{height:196px;}
+  .batt{display:inline-flex;align-items:center;gap:4px;color:var(--ok);font-size:11px;}
+
+  /* ======== A — micro-tuile "prochain rendez-vous" ======== */
+  .chip.agenda{gap:11px;padding:0 15px;}
+  .chip.agenda .when{font-size:17px;font-weight:700;letter-spacing:-.01em;line-height:1.05;}
+  .chip.agenda .what{font-size:11.5px;color:var(--muted);line-height:1.2;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .chip.agenda .lbl{font-size:9.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--muted2);}
+
+  /* ======== B — tuile "journée" en 5e colonne ======== */
+  .ev{display:flex;gap:8px;align-items:baseline;font-size:12px;line-height:1.35;}
+  .ev .t{font-weight:700;flex:none;font-size:12px;}
+  .ev .n{color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .ev .dot{width:6px;height:6px;border-radius:50%;flex:none;align-self:center;}
+  .more{font-size:11.5px;color:var(--muted2);margin-top:2px;}
+
+  /* ======== C — bande temporelle ======== */
+  .band{height:165px;border-radius:var(--r-md);border:1px solid var(--tile-bd);background:var(--tile);
+    padding:12px 16px;display:flex;flex-direction:column;gap:8px;flex:none;overflow:hidden;}
+  .bandhead{display:flex;align-items:center;gap:10px;font-size:14px;font-weight:600;}
+  .bandhead .ic{color:var(--muted);display:flex;}
+  .bandhead .cnt{margin-left:auto;font-size:11.5px;color:var(--muted);font-weight:500;}
+  .axis{position:relative;flex:1;}
+  .hours{position:absolute;inset:0;display:flex;}
+  .hours .h{flex:1;border-left:1px solid rgba(255,255,255,.055);position:relative;}
+  .hours .h:first-child{border-left:none;}
+  .hours .h span{position:absolute;top:0;left:4px;font-size:9.5px;color:var(--muted2);}
+  .now{position:absolute;top:0;bottom:16px;width:2px;background:var(--a-climate);
+    box-shadow:0 0 8px rgba(53,224,216,.6);border-radius:2px;}
+  .now::after{content:"maintenant";position:absolute;bottom:-15px;left:-24px;font-size:9.5px;color:var(--a-climate);white-space:nowrap;}
+  .blocks{position:absolute;left:0;right:0;top:20px;height:74px;}
+  .blk{position:absolute;height:34px;border-radius:var(--r-sm);padding:0 9px;display:flex;align-items:center;gap:6px;
+    font-size:11.5px;font-weight:600;overflow:hidden;white-space:nowrap;border:1px solid;}
+  .blk .who{font-size:9.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;opacity:.85;}
+  .blk.famille{background:rgba(139,157,255,.18);border-color:rgba(139,157,255,.45);color:#cfd7ff;}
+  .blk.florian{background:rgba(74,163,255,.18);border-color:rgba(74,163,255,.45);color:#c4e0ff;}
+  .blk.ecole{background:rgba(255,178,62,.18);border-color:rgba(255,178,62,.45);color:#ffdba6;}
+  .dot.famille{background:var(--cal-famille);} .dot.florian{background:var(--cal-florian);} .dot.ecole{background:var(--cal-ecole);}
+
+  .free{width:976px;margin:0 auto;border:1px dashed rgba(255,255,255,.18);border-radius:8px;
+    height:179px;display:flex;align-items:center;justify-content:center;font-size:11.5px;color:rgba(242,244,250,.4);}
+</style>
+</head>
+<body>
+
+<div class="doc">
+  <h1>Epic 10 — Agenda : 3 approches de placement sur l'accueil</h1>
+  <p class="lead">
+    Maquettes à l'échelle réelle du kiosque : <b>1024 × 748</b> — pas 768. Le viewport PWA visible de l'iPad
+    mesure 748px de haut (mesuré le 2026-07-24) ; les 20px restants sont hors écran. Les maquettes précédentes
+    cadraient à 768 et surestimaient donc l'espace disponible de 20px.
+  </p>
+  <p class="lead">
+    Budget mesuré le 2026-07-27 : <b>179px libres</b> sous la dernière rangée · tuiles à <b>237px</b> en
+    4 colonnes, <b>187px</b> en 5 · barre supérieure : 4 éléments occupent 425px sur 824, soit
+    <b>~399px libres</b>. Chaque approche est rendue dans l'accueil complet, parce qu'aucune ne se juge isolée.
+  </p>
+  <p class="lead">
+    Contenu de démonstration : lundi 27 juillet, 4 événements, 3 calendriers (<b>Famille</b>, <b>Florian</b>,
+    <b>École</b>). La teinte de calendrier est toujours <b>doublée du nom ou d'une initiale</b> — jamais seule
+    (UX-DR26 / UX-DR14).
+  </p>
+</div>
+
+<!-- ============================================================ A ============================================================ -->
+<div class="hd">
+  <h2>A — « Le prochain rendez-vous »</h2>
+  <span class="sub">micro-tuile en barre supérieure · 5ᵉ élément</span>
+</div>
+<div class="caption">
+  <span class="tag reco">recommandée</span><span class="tag">coût grille : nul</span>
+  L'accueil ne répond qu'à <b>une</b> question — <i>qu'est-ce qui arrive ensuite ?</i> Le reste de la journée
+  vit sur <code>/agenda</code>, à un tap.
+</div>
+
+<div class="frame" data-label="A · 1024×748 · accueil inchangé, +1 micro-tuile">
+  <div class="header">
+    <div class="clock"><div class="h num">12:46</div><div class="d">Lundi 27 Juillet</div></div>
+    <div class="slots">
+      <div class="chip"><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4aa3ff" stroke-width="2"><path d="M17 16a4 4 0 0 0 0-8 6 6 0 0 0-11.7 1.7A3.5 3.5 0 0 0 6 16z"/></svg></span><span class="num" style="font-weight:600;font-size:14px">24.6 °C</span><span class="num" style="font-size:12px;color:var(--muted)">92 %</span></div>
+      <div class="chip"><span class="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="#ffb23e"><path d="M13 2 4 14h6l-1 8 10-12h-6z"/></svg></span><span class="num" style="font-weight:700;font-size:15px">1,84 <small style="font-size:11px;color:var(--muted)">€</small></span></div>
+      <div class="chip sq"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#aab3c8" stroke-width="1.8"><ellipse cx="12" cy="13" rx="8" ry="5.5"/><path d="M4 13c0-3 3.6-5.5 8-5.5s8 2.5 8 5.5"/></svg></div>
+      <div class="chip sq"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#38d17a" stroke-width="1.8"><path d="M12 20v-7M12 13c0-4 3-6 7-6 0 4-3 6-7 6zM12 13c0-3-2.5-4.5-5.5-4.5C6.5 11 9 13 12 13z"/></svg></div>
+      <!-- ★ la micro-tuile Agenda -->
+      <div class="chip agenda" style="border-color:rgba(139,157,255,.4);background:rgba(139,157,255,.10)">
+        <span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#8b9dff" stroke-width="1.8"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg></span>
+        <span>
+          <span class="lbl">Prochain</span>
+          <div class="when num">17:00 <span style="font-size:12px;font-weight:500;color:var(--muted)">dans 4h</span></div>
+          <div class="what">Piscine — Gaspard</div>
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <div class="floor">
+    <div class="h2">1er étage</div>
+    <div class="grid g4">
+      <div class="tile r192"><div class="th"><span class="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#aab3c8" stroke-width="1.8"><rect x="3" y="7" width="18" height="7" rx="2"/><path d="M7 17v2M12 17v2M17 17v2"/></svg></span>Climatisation</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:12px;gap:8px">
+          <div style="width:52px;height:52px;border-radius:var(--r-md);border:1px solid var(--tile-bd);background:rgba(255,255,255,.05);display:flex;align-items:center;justify-content:center;font-size:22px">−</div>
+          <div><span class="num" style="font-size:34px;font-weight:700;color:var(--a-climate)">26</span><span style="font-size:12px;color:var(--muted)">°C</span></div>
+          <div style="width:52px;height:52px;border-radius:var(--r-md);border:1px solid var(--tile-bd);background:rgba(255,255,255,.05);display:flex;align-items:center;justify-content:center;font-size:22px">+</div>
+        </div>
+        <div style="margin-top:auto;border-top:1px solid var(--tile-bd);padding-top:8px;font-size:12px;display:flex;align-items:center;gap:6px"><span style="width:6px;height:6px;border-radius:50%;background:var(--a-climate)"></span><b>Froid · Vitesse 1</b></div>
+      </div>
+      <div class="tile r192"><div class="th"><span class="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#aab3c8" stroke-width="1.8"><path d="M3 18v-5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v5M6 11V8h12v3"/></svg></span>Parents<span class="r batt"><svg width="18" height="11" viewBox="0 0 24 16" fill="none"><rect x="1.5" y="3.5" width="17" height="9" rx="2" stroke="#38d17a" stroke-width="1.5"/><rect x="20" y="6" width="2.5" height="4" rx="1" fill="#38d17a"/><rect x="3.5" y="5.5" width="12.6" height="5" rx=".5" fill="#38d17a"/></svg>97 %</span></div>
+        <div class="temp num">23.8 °C</div><div class="meta"><span class="co2">◍ 591 ppm</span><span>◌ 55 %</span></div>
+        <div class="spark"><svg viewBox="0 0 200 40" preserveAspectRatio="none"><path d="M0 30 L20 28 L40 26 L60 18 L80 10 L100 14 L120 22 L140 30 L160 20 L180 12 L200 16" fill="none" stroke="#35e0d8" stroke-width="2"/><path d="M0 22 L200 22" stroke="#ff5d5d" stroke-width="1.5" stroke-dasharray="5 4"/></svg></div>
+      </div>
+      <div class="tile r192"><div class="th"><span class="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#aab3c8" stroke-width="1.8"><path d="M3 18v-5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v5M6 11V8h12v3"/></svg></span>Gaspard<span class="r batt"><svg width="18" height="11" viewBox="0 0 24 16" fill="none"><rect x="1.5" y="3.5" width="17" height="9" rx="2" stroke="#38d17a" stroke-width="1.5"/><rect x="20" y="6" width="2.5" height="4" rx="1" fill="#38d17a"/><rect x="3.5" y="5.5" width="12.5" height="5" rx=".5" fill="#38d17a"/></svg>96 %</span></div>
+        <div class="temp num">25.0 °C</div><div class="meta"><span class="co2">◍ 616 ppm</span><span>◌ 56 %</span></div>
+        <div class="spark"><svg viewBox="0 0 200 40" preserveAspectRatio="none"><path d="M0 32 L25 30 L50 24 L75 14 L100 10 L125 16 L150 26 L175 18 L200 14" fill="none" stroke="#35e0d8" stroke-width="2"/><path d="M0 12 L200 12" stroke="#ff5d5d" stroke-width="1.5" stroke-dasharray="5 4"/></svg></div>
+      </div>
+      <div class="tile r192"><div class="th"><span class="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#aab3c8" stroke-width="1.8"><path d="M3 18v-5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v5M6 11V8h12v3"/></svg></span>Nathan<span class="r batt"><svg width="18" height="11" viewBox="0 0 24 16" fill="none"><rect x="1.5" y="3.5" width="17" height="9" rx="2" stroke="#38d17a" stroke-width="1.5"/><rect x="20" y="6" width="2.5" height="4" rx="1" fill="#38d17a"/><rect x="3.5" y="5.5" width="12.4" height="5" rx=".5" fill="#38d17a"/></svg>95 %</span></div>
+        <div class="temp num">25.0 °C</div><div class="meta"><span class="co2">◍ 597 ppm</span><span>◌ 54 %</span></div>
+        <div class="spark"><svg viewBox="0 0 200 40" preserveAspectRatio="none"><path d="M0 31 L25 29 L50 25 L75 15 L100 11 L125 17 L150 27 L175 17 L200 13" fill="none" stroke="#35e0d8" stroke-width="2"/><path d="M0 14 L200 14" stroke="#ff5d5d" stroke-width="1.5" stroke-dasharray="5 4"/></svg></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="floor">
+    <div class="h2">RDC</div>
+    <div class="grid g4">
+      <div class="tile r196"><div class="th"><span class="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#aab3c8" stroke-width="1.8"><path d="M4 18v-6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v6M7 10V7h10v3"/></svg></span>Salon</div>
+        <div class="temp num">25.4 °C</div><div class="meta"><span class="co2">◍ 535 ppm</span><span>◌ 52 %</span><span>◊ 41 dB</span></div>
+        <div class="spark"><svg viewBox="0 0 200 40" preserveAspectRatio="none"><path d="M0 26 L20 20 L40 28 L60 22 L80 30 L100 24 L120 28 L140 22 L160 8 L180 18 L200 20" fill="none" stroke="#35e0d8" stroke-width="2"/><path d="M0 14 L200 14" stroke="#ff5d5d" stroke-width="1.5" stroke-dasharray="5 4"/></svg></div>
+      </div>
+      <div class="tile r196"><div class="th"><span class="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#aab3c8" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/></svg></span>Aspirateur<span class="r batt"><svg width="18" height="11" viewBox="0 0 24 16" fill="none"><rect x="1.5" y="3.5" width="17" height="9" rx="2" stroke="#38d17a" stroke-width="1.5"/><rect x="20" y="6" width="2.5" height="4" rx="1" fill="#38d17a"/><rect x="3.5" y="5.5" width="13" height="5" rx=".5" fill="#38d17a"/></svg>100 %</span></div>
+        <div class="meta" style="color:var(--text);margin-top:2px"><span style="color:var(--ok)">⚡</span> En charge</div>
+        <div style="margin-top:auto;height:48px;border-radius:var(--r-sm);border:1px solid rgba(160,107,255,.5);background:rgba(160,107,255,.15);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600">Lancer</div>
+      </div>
+      <div class="tile r196" style="border-style:dashed;border-color:var(--stale);color:var(--stale-text)"><div class="th"><span class="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#aab3c8" stroke-width="1.8"><circle cx="9" cy="20" r="1"/><circle cx="18" cy="20" r="1"/><path d="M2 3h2l2.4 12a1 1 0 0 0 1 .8h9.2a1 1 0 0 0 1-.8L21 7H5"/></svg></span>Courses</div>
+        <div style="margin-top:2px"><span class="num" style="font-size:24px;font-weight:600">0</span><span style="font-size:12px;color:var(--muted);margin-left:8px">à acheter</span></div>
+        <div style="margin-top:auto"><span style="display:inline-flex;align-items:center;gap:6px;font-size:11.5px;border:1px solid var(--stale);border-radius:20px;padding:4px 10px">⌁ Hors ligne</span></div>
+      </div>
+      <div class="tile r196"><div class="th"><span class="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#aab3c8" stroke-width="1.8"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3 11v2h6v-2a6 6 0 0 0-3-11z"/></svg></span>Bureau<span class="r" style="margin-top:0">Éteint</span></div>
+        <div style="opacity:.3;pointer-events:none;margin-top:6px">
+          <div style="font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)">Intensité</div>
+          <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:5px;margin-top:5px">
+            <div style="height:30px;border:1px solid var(--tile-bd);border-radius:var(--r-sm);display:flex;align-items:center;justify-content:center;font-size:11px">20</div>
+            <div style="height:30px;border:1px solid var(--tile-bd);border-radius:var(--r-sm);display:flex;align-items:center;justify-content:center;font-size:11px">40</div>
+            <div style="height:30px;border:1px solid var(--tile-bd);border-radius:var(--r-sm);display:flex;align-items:center;justify-content:center;font-size:11px">60</div>
+            <div style="height:30px;border:1px solid var(--tile-bd);border-radius:var(--r-sm);display:flex;align-items:center;justify-content:center;font-size:11px">80</div>
+            <div style="height:30px;border:1px solid var(--tile-bd);border-radius:var(--r-sm);display:flex;align-items:center;justify-content:center;font-size:11px">100</div>
+          </div>
+          <div style="font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-top:10px">Température</div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-top:5px">
+            <div style="height:30px;border:1px solid var(--tile-bd);border-radius:var(--r-sm);display:flex;align-items:center;justify-content:center;font-size:11px">Chaud</div>
+            <div style="height:30px;border:1px solid var(--tile-bd);border-radius:var(--r-sm);display:flex;align-items:center;justify-content:center;font-size:11px">Neutre</div>
+            <div style="height:30px;border:1px solid var(--tile-bd);border-radius:var(--r-sm);display:flex;align-items:center;justify-content:center;font-size:11px">Froid</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="free">179px de budget vertical — intacts</div>
+</div>
+
+<div class="caption">
+  <b>Ce que ça sert :</b> Krug 3 (moitié des mots) et Nielsen 8 (minimalisme) — une ligne, zéro chrome ajouté,
+  la grille ne bouge pas.<br>
+  <b>Ce que ça coûte :</b> Nielsen 6 (reconnaissance) — « et le reste de ma journée ? » exige un tap.
+  Le libellé <b>PROCHAIN</b> est obligatoire : une icône calendrier seule serait du <i>mystery meat</i>.
+</div>
+
+<!-- ============================================================ B ============================================================ -->
+<div class="hd">
+  <h2>B — « La journée en tuile »</h2>
+  <span class="sub">5ᵉ colonne dans la rangée RDC</span>
+</div>
+<div class="caption">
+  <span class="tag cost">coût : toute la rangée passe de 237 à 187px</span>
+  L'agenda devient une tuile comme les autres. Même moule, même grammaire — mais les quatre voisines rétrécissent.
+</div>
+
+<div class="frame" data-label="B · 1024×748 · rangée RDC à 5 colonnes (187px chacune)">
+  <div class="header">
+    <div class="clock"><div class="h num">12:46</div><div class="d">Lundi 27 Juillet</div></div>
+    <div class="slots">
+      <div class="chip"><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4aa3ff" stroke-width="2"><path d="M17 16a4 4 0 0 0 0-8 6 6 0 0 0-11.7 1.7A3.5 3.5 0 0 0 6 16z"/></svg></span><span class="num" style="font-weight:600;font-size:14px">24.6 °C</span><span class="num" style="font-size:12px;color:var(--muted)">92 %</span></div>
+      <div class="chip"><span class="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="#ffb23e"><path d="M13 2 4 14h6l-1 8 10-12h-6z"/></svg></span><span class="num" style="font-weight:700;font-size:15px">1,84 <small style="font-size:11px;color:var(--muted)">€</small></span></div>
+      <div class="chip sq"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#aab3c8" stroke-width="1.8"><ellipse cx="12" cy="13" rx="8" ry="5.5"/><path d="M4 13c0-3 3.6-5.5 8-5.5s8 2.5 8 5.5"/></svg></div>
+      <div class="chip sq"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#38d17a" stroke-width="1.8"><path d="M12 20v-7M12 13c0-4 3-6 7-6 0 4-3 6-7 6zM12 13c0-3-2.5-4.5-5.5-4.5C6.5 11 9 13 12 13z"/></svg></div>
+    </div>
+  </div>
+
+  <div class="floor">
+    <div class="h2">1er étage</div>
+    <div class="grid g4">
+      <div class="tile r192"><div class="th">Climatisation</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:12px;gap:8px">
+          <div style="width:52px;height:52px;border-radius:var(--r-md);border:1px solid var(--tile-bd);background:rgba(255,255,255,.05);display:flex;align-items:center;justify-content:center;font-size:22px">−</div>
+          <div><span class="num" style="font-size:34px;font-weight:700;color:var(--a-climate)">26</span><span style="font-size:12px;color:var(--muted)">°C</span></div>
+          <div style="width:52px;height:52px;border-radius:var(--r-md);border:1px solid var(--tile-bd);background:rgba(255,255,255,.05);display:flex;align-items:center;justify-content:center;font-size:22px">+</div>
+        </div>
+        <div style="margin-top:auto;border-top:1px solid var(--tile-bd);padding-top:8px;font-size:12px"><b>Froid · Vitesse 1</b></div>
+      </div>
+      <div class="tile r192"><div class="th">Parents<span class="r batt">97 %</span></div><div class="temp num">23.8 °C</div><div class="meta"><span class="co2">◍ 591</span><span>◌ 55 %</span></div>
+        <div class="spark"><svg viewBox="0 0 200 40" preserveAspectRatio="none"><path d="M0 30 L40 26 L80 10 L120 22 L160 20 L200 16" fill="none" stroke="#35e0d8" stroke-width="2"/></svg></div></div>
+      <div class="tile r192"><div class="th">Gaspard<span class="r batt">96 %</span></div><div class="temp num">25.0 °C</div><div class="meta"><span class="co2">◍ 616</span><span>◌ 56 %</span></div>
+        <div class="spark"><svg viewBox="0 0 200 40" preserveAspectRatio="none"><path d="M0 32 L50 24 L100 10 L150 26 L200 14" fill="none" stroke="#35e0d8" stroke-width="2"/></svg></div></div>
+      <div class="tile r192"><div class="th">Nathan<span class="r batt">95 %</span></div><div class="temp num">25.0 °C</div><div class="meta"><span class="co2">◍ 597</span><span>◌ 54 %</span></div>
+        <div class="spark"><svg viewBox="0 0 200 40" preserveAspectRatio="none"><path d="M0 31 L50 25 L100 11 L150 27 L200 13" fill="none" stroke="#35e0d8" stroke-width="2"/></svg></div></div>
+    </div>
+  </div>
+
+  <div class="floor">
+    <div class="h2">RDC</div>
+    <div class="grid g5">
+      <div class="tile r196"><div class="th">Salon</div><div class="temp num">25.4 °C</div><div class="meta" style="font-size:11px"><span class="co2">◍ 535</span><span>◌ 52 %</span></div>
+        <div class="spark"><svg viewBox="0 0 200 40" preserveAspectRatio="none"><path d="M0 26 L40 28 L80 30 L120 28 L160 8 L200 20" fill="none" stroke="#35e0d8" stroke-width="2"/></svg></div></div>
+      <div class="tile r196"><div class="th">Aspirateur<span class="r batt" style="font-size:10px">100 %</span></div>
+        <div class="meta" style="color:var(--text);font-size:11.5px">⚡ En charge</div>
+        <div style="margin-top:auto;height:48px;border-radius:var(--r-sm);border:1px solid rgba(160,107,255,.5);background:rgba(160,107,255,.15);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600">Lancer</div></div>
+      <div class="tile r196" style="border-style:dashed;border-color:var(--stale);color:var(--stale-text)"><div class="th">Courses</div>
+        <div><span class="num" style="font-size:24px;font-weight:600">0</span><span style="font-size:11px;color:var(--muted);margin-left:6px">à acheter</span></div>
+        <div style="margin-top:auto;font-size:11px">⌁ Hors ligne</div></div>
+      <div class="tile r196"><div class="th">Bureau<span class="r" style="margin-top:0;font-size:10px">Éteint</span></div>
+        <div style="opacity:.3;margin-top:4px">
+          <div style="font-size:9.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)">Intensité</div>
+          <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:3px;margin-top:4px">
+            <div style="height:26px;border:1px solid var(--tile-bd);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:9.5px">20</div>
+            <div style="height:26px;border:1px solid var(--tile-bd);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:9.5px">40</div>
+            <div style="height:26px;border:1px solid var(--tile-bd);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:9.5px">60</div>
+            <div style="height:26px;border:1px solid var(--tile-bd);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:9.5px">80</div>
+            <div style="height:26px;border:1px solid var(--tile-bd);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:9.5px">100</div>
+          </div>
+        </div></div>
+      <!-- ★ la tuile Agenda -->
+      <div class="tile r196" style="border-color:rgba(139,157,255,.4);background:rgba(139,157,255,.08)">
+        <div class="th"><span class="ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#8b9dff" stroke-width="1.8"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg></span>Aujourd'hui<span class="r" style="margin-top:0;font-size:10px">4</span></div>
+        <div style="display:flex;flex-direction:column;gap:7px;margin-top:6px">
+          <div class="ev"><span class="dot ecole"></span><span class="t num">08:30</span><span class="n">Dentiste</span></div>
+          <div class="ev"><span class="dot florian"></span><span class="t num">12:30</span><span class="n">Déj. Marie</span></div>
+          <div class="ev"><span class="dot ecole"></span><span class="t num">17:00</span><span class="n">Piscine</span></div>
+          <div class="ev"><span class="dot famille"></span><span class="t num">19:30</span><span class="n">Dîner Martin</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="free">179px de budget vertical — intacts</div>
+</div>
+
+<div class="caption">
+  <b>Ce que ça sert :</b> Nielsen 4 (cohérence) — rien de neuf à apprendre — et Nielsen 6 : la journée se lit
+  sans agir.<br>
+  <b>Ce que ça coûte :</b> à 187px, « Dîner chez les Martin » devient « Dîner Martin » et le CO₂ des chambres
+  perd son unité. Surtout, <b>les sparklines rétrécissent de 21%</b> — celles-là mêmes qu'on a réparées cette
+  semaine pour un problème de largeur. On paie une régression de lisibilité sur des tuiles qui allaient bien.
+</div>
+
+<!-- ============================================================ C ============================================================ -->
+<div class="hd">
+  <h2>C — « La bande du jour »</h2>
+  <span class="sub">bande pleine largeur, 976 × 165px, sans titre de section</span>
+</div>
+<div class="caption">
+  <span class="tag cost">coût : la totalité des 179px</span>
+  Le temps devient un <b>axe</b>, pas une liste. « Ma matinée est prise, mon après-midi est libre » se lit
+  d'une saccade, sans lire un mot.
+</div>
+
+<div class="frame" data-label="C · 1024×748 · bande temporelle, budget vertical consommé">
+  <div class="header">
+    <div class="clock"><div class="h num">12:46</div><div class="d">Lundi 27 Juillet</div></div>
+    <div class="slots">
+      <div class="chip"><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4aa3ff" stroke-width="2"><path d="M17 16a4 4 0 0 0 0-8 6 6 0 0 0-11.7 1.7A3.5 3.5 0 0 0 6 16z"/></svg></span><span class="num" style="font-weight:600;font-size:14px">24.6 °C</span><span class="num" style="font-size:12px;color:var(--muted)">92 %</span></div>
+      <div class="chip"><span class="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="#ffb23e"><path d="M13 2 4 14h6l-1 8 10-12h-6z"/></svg></span><span class="num" style="font-weight:700;font-size:15px">1,84 <small style="font-size:11px;color:var(--muted)">€</small></span></div>
+      <div class="chip sq"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#aab3c8" stroke-width="1.8"><ellipse cx="12" cy="13" rx="8" ry="5.5"/><path d="M4 13c0-3 3.6-5.5 8-5.5s8 2.5 8 5.5"/></svg></div>
+      <div class="chip sq"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#38d17a" stroke-width="1.8"><path d="M12 20v-7M12 13c0-4 3-6 7-6 0 4-3 6-7 6zM12 13c0-3-2.5-4.5-5.5-4.5C6.5 11 9 13 12 13z"/></svg></div>
+    </div>
+  </div>
+
+  <div class="floor">
+    <div class="h2">1er étage</div>
+    <div class="grid g4">
+      <div class="tile r192"><div class="th">Climatisation</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:12px;gap:8px">
+          <div style="width:52px;height:52px;border-radius:var(--r-md);border:1px solid var(--tile-bd);background:rgba(255,255,255,.05);display:flex;align-items:center;justify-content:center;font-size:22px">−</div>
+          <div><span class="num" style="font-size:34px;font-weight:700;color:var(--a-climate)">26</span><span style="font-size:12px;color:var(--muted)">°C</span></div>
+          <div style="width:52px;height:52px;border-radius:var(--r-md);border:1px solid var(--tile-bd);background:rgba(255,255,255,.05);display:flex;align-items:center;justify-content:center;font-size:22px">+</div>
+        </div>
+        <div style="margin-top:auto;border-top:1px solid var(--tile-bd);padding-top:8px;font-size:12px"><b>Froid · Vitesse 1</b></div></div>
+      <div class="tile r192"><div class="th">Parents<span class="r batt">97 %</span></div><div class="temp num">23.8 °C</div><div class="meta"><span class="co2">◍ 591 ppm</span><span>◌ 55 %</span></div>
+        <div class="spark"><svg viewBox="0 0 200 40" preserveAspectRatio="none"><path d="M0 30 L40 26 L80 10 L120 22 L160 20 L200 16" fill="none" stroke="#35e0d8" stroke-width="2"/></svg></div></div>
+      <div class="tile r192"><div class="th">Gaspard<span class="r batt">96 %</span></div><div class="temp num">25.0 °C</div><div class="meta"><span class="co2">◍ 616 ppm</span><span>◌ 56 %</span></div>
+        <div class="spark"><svg viewBox="0 0 200 40" preserveAspectRatio="none"><path d="M0 32 L50 24 L100 10 L150 26 L200 14" fill="none" stroke="#35e0d8" stroke-width="2"/></svg></div></div>
+      <div class="tile r192"><div class="th">Nathan<span class="r batt">95 %</span></div><div class="temp num">25.0 °C</div><div class="meta"><span class="co2">◍ 597 ppm</span><span>◌ 54 %</span></div>
+        <div class="spark"><svg viewBox="0 0 200 40" preserveAspectRatio="none"><path d="M0 31 L50 25 L100 11 L150 27 L200 13" fill="none" stroke="#35e0d8" stroke-width="2"/></svg></div></div>
+    </div>
+  </div>
+
+  <div class="floor">
+    <div class="h2">RDC</div>
+    <div class="grid g4">
+      <div class="tile r196"><div class="th">Salon</div><div class="temp num">25.4 °C</div><div class="meta"><span class="co2">◍ 535 ppm</span><span>◌ 52 %</span><span>◊ 41 dB</span></div>
+        <div class="spark"><svg viewBox="0 0 200 40" preserveAspectRatio="none"><path d="M0 26 L40 28 L80 30 L120 28 L160 8 L200 20" fill="none" stroke="#35e0d8" stroke-width="2"/></svg></div></div>
+      <div class="tile r196"><div class="th">Aspirateur<span class="r batt">100 %</span></div><div class="meta" style="color:var(--text)">⚡ En charge</div>
+        <div style="margin-top:auto;height:48px;border-radius:var(--r-sm);border:1px solid rgba(160,107,255,.5);background:rgba(160,107,255,.15);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600">Lancer</div></div>
+      <div class="tile r196" style="border-style:dashed;border-color:var(--stale);color:var(--stale-text)"><div class="th">Courses</div>
+        <div><span class="num" style="font-size:24px;font-weight:600">0</span><span style="font-size:12px;color:var(--muted);margin-left:8px">à acheter</span></div>
+        <div style="margin-top:auto;font-size:11.5px">⌁ Hors ligne</div></div>
+      <div class="tile r196"><div class="th">Bureau<span class="r" style="margin-top:0">Éteint</span></div>
+        <div style="opacity:.3;margin-top:6px">
+          <div style="font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)">Intensité</div>
+          <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:5px;margin-top:5px">
+            <div style="height:30px;border:1px solid var(--tile-bd);border-radius:var(--r-sm);display:flex;align-items:center;justify-content:center;font-size:11px">20</div>
+            <div style="height:30px;border:1px solid var(--tile-bd);border-radius:var(--r-sm);display:flex;align-items:center;justify-content:center;font-size:11px">40</div>
+            <div style="height:30px;border:1px solid var(--tile-bd);border-radius:var(--r-sm);display:flex;align-items:center;justify-content:center;font-size:11px">60</div>
+            <div style="height:30px;border:1px solid var(--tile-bd);border-radius:var(--r-sm);display:flex;align-items:center;justify-content:center;font-size:11px">80</div>
+            <div style="height:30px;border:1px solid var(--tile-bd);border-radius:var(--r-sm);display:flex;align-items:center;justify-content:center;font-size:11px">100</div>
+          </div>
+        </div></div>
+    </div>
+  </div>
+
+  <!-- ★ la bande Agenda -->
+  <div class="band" style="border-color:rgba(139,157,255,.35);background:rgba(139,157,255,.07)">
+    <div class="bandhead">
+      <span class="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8b9dff" stroke-width="1.8"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg></span>
+      Aujourd'hui
+      <span class="cnt">4 événements · prochain à 17:00</span>
+    </div>
+    <div class="axis">
+      <div class="hours">
+        <div class="h"><span>7h</span></div><div class="h"><span>9h</span></div><div class="h"><span>11h</span></div>
+        <div class="h"><span>13h</span></div><div class="h"><span>15h</span></div><div class="h"><span>17h</span></div>
+        <div class="h"><span>19h</span></div><div class="h"><span>21h</span></div>
+      </div>
+      <div class="blocks">
+        <div class="blk ecole"   style="left:9.4%;width:15%">  <span class="who">École</span> 08:30 Dentiste</div>
+        <div class="blk florian" style="left:34.4%;width:19%;top:40px"><span class="who">Florian</span> 12:30 Déjeuner Marie</div>
+        <div class="blk ecole"   style="left:62.5%;width:14%"> <span class="who">École</span> 17:00 Piscine</div>
+        <div class="blk famille" style="left:78.1%;width:19%;top:40px"><span class="who">Famille</span> 19:30 Dîner Martin</div>
+      </div>
+      <div class="now" style="left:36.6%"></div>
+    </div>
+  </div>
+</div>
+
+<div class="caption">
+  <b>Ce que ça sert :</b> Nielsen 2 (correspondance avec le monde réel) — la <b>forme</b> porte l'information
+  avant le texte. C'est la seule des trois qui répond à « ma journée est-elle chargée ? » sans lecture.<br>
+  <b>Ce que ça coûte :</b> Nielsen 4 — moule inédit, aucun précédent dans le code. Et le budget vertical passe
+  à <b>zéro</b> : les epics 3 (Scènes), 4 (Sécurité) et 5 (Détail de pièce) n'auront plus de place sur l'accueil.
+</div>
+
+<!-- ============================================================ synthèse ============================================================ -->
+<div class="hd"><h2>Synthèse</h2></div>
+<table class="cmp">
+  <tr><th style="width:26%"></th><th>A — Prochain RDV</th><th>B — Tuile journée</th><th>C — Bande temporelle</th></tr>
+  <tr><td><b>« Quoi ensuite ? »</b></td><td>✅ direct</td><td>✅ direct</td><td>✅ direct</td></tr>
+  <tr><td><b>« Journée chargée ? »</b></td><td>❌ un tap</td><td>⚠️ par comptage</td><td>✅ d'une saccade</td></tr>
+  <tr><td><b>Coût sur l'existant</b></td><td><b>aucun</b></td><td>rangée à 187px, sparklines −21%</td><td>179px, soit tout le budget</td></tr>
+  <tr><td><b>Précédent dans le code</b></td><td>fort — 4 micro-tuiles</td><td>fort — moule tuile</td><td><b>aucun</b></td></tr>
+  <tr><td><b>Risque de build</b></td><td>faible</td><td>faible</td><td>élevé (densité à calibrer)</td></tr>
+  <tr><td><b>Réversibilité</b></td><td>totale</td><td>totale</td><td>faible</td></tr>
+</table>
+
+<div class="caption" style="margin-top:6px">
+  <b>Recommandation : A.</b> Sur un panneau mural, la question posée en passant est presque toujours
+  <i>« est-ce que j'ai un truc bientôt ? »</i> — semaine et mois relèvent d'une consultation assumée, qui mérite
+  un tap. A y répond au coût le plus bas et laisse les 179px intacts pour la suite.<br><br>
+  <b>Ce qui invaliderait ce choix :</b> si tu tapes la tuile plusieurs fois par jour pour voir la suite de la
+  journée, c'est que la question fréquente était B. Observable en une semaine d'usage — et passer de A à B ne
+  jette rien, le chemin de lecture (AD-17) est identique.<br><br>
+  <span class="tag">note</span> C n'est pas à écarter par principe : c'est la plus belle réponse au problème,
+  et la seule qui exploite vraiment le format mural. Elle est simplement <b>chère</b> — en budget et en
+  invention. Elle mériterait d'être reconsidérée si l'agenda devenait la fonction principale du kiosque.
+</div>
+
+</body>
+</html>
