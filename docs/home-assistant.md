@@ -533,13 +533,12 @@ secret Google**. Chaque calendrier partagé apparaît ensuite comme une entité 
 
 ### Contrat d'interface (⚠️ le code du dashboard en dépend)
 
-> 🚧 **La forme de la réponse ci-dessous est SUPPOSÉE, pas encore observée.** La story
-> 10.1 exigeait de rejouer l'appel sur la vraie instance avant d'écrire le parseur
-> (« Task 0 bis ») ; ça n'a pas pu être fait (revue du 2026-07-28 — Florian sans accès à
-> HA). Le parseur est donc défensif : si le payload réel a une autre forme, tout est
-> rejeté et la tuile affiche **« Indisponible »** avec un `console.warn` portant la
-> réponse — jamais « Rien aujourd'hui ». **À solder** : rejouer l'appel (§ 3 ci-dessous),
-> comparer, ajuster, puis retirer cet encadré.
+> ✅ **Forme OBSERVÉE sur la vraie instance le 2026-07-29** (Florian a rejoué l'action et
+> collé la réponse — la « Task 0 bis » de la story 10.1). Ce qui suit n'est plus une
+> hypothèse. Deux surprises par rapport à ce qui était supposé : les événements horodatés
+> sont en **ISO 8601 complet avec décalage** (`2026-07-01T08:45:00+02:00`) et non en forme
+> à espace, et ils peuvent porter un champ **`description`** multi-lignes que le dashboard
+> ignore.
 
 Le dashboard appelle **`calendar.get_events`** — une action HA **qui retourne des
 données** — sur la plage `[aujourd'hui 00:00 → demain 00:00)`, en **un seul appel**
@@ -552,20 +551,34 @@ La réponse est **keyée par `entity_id`**, chaque clé portant une liste `event
 ```yaml
 calendar.chats:
   events:
-    - summary: "Vétérinaire"
-      start: "2026-07-28 17:00:00" # avec heure ⇒ événement horodaté
-      end: "2026-07-28 17:30:00"
-calendar.anniversaires:
-  events:
-    - summary: "Anniversaire de Nathan"
-      start: "2026-07-28" # date SEULE ⇒ journée entière
-      end: "2026-07-29" # ⚠️ end est EXCLUSIVE
+    # Journée entière : dates SEULES, end EXCLUSIVE (le 1er dure un seul jour)
+    - start: "2026-07-01"
+      end: "2026-07-02"
+      summary: Gaspard - Centre aéré toute la journée
+    # Horodaté : ISO 8601 complet AVEC décalage — pas la forme à espace
+    - start: "2026-07-01T08:45:00+02:00"
+      end: "2026-07-01T09:15:00+02:00"
+      summary: Enfants - Florian
+      description: |- # champ réel, ignoré par le dashboard
+        MARI
+        5314
+    # Multi-jours : un SEUL événement qui couvre trois semaines
+    - start: "2026-07-27"
+      end: "2026-08-17"
+      summary: Enfants - Les croûtes
 ```
 
 - **Journée entière** = `start`/`end` **sans partie horaire**. L'app le détecte à la
   **forme de chaque événement** — c'est le seul signal disponible, et c'est pourquoi le
-  mapping ne porte **aucun** drapeau « ce calendrier est horodaté ». Aujourd'hui seul
-  `calendar.chats` produit des événements avec heure, mais rien dans le code n'en dépend.
+  mapping ne porte **aucun** drapeau « ce calendrier est horodaté ». La réponse réelle a
+  confirmé que ce choix était le bon : `calendar.chats` mélange les deux types (des
+  rendez-vous à l'heure **et** des multi-jours comme « Enfants - Les croûtes »), donc un
+  drapeau par calendrier aurait été faux.
+- **Les titres réels sont souvent saisis avec une espace en fin** (« Florian @Paris »,
+  « Cours tennis Audrey »). Le parseur les **rogne** — invisible sous `truncate`, mais ça
+  fuirait dans l'`aria-label` et dans le filtre de la Story 10.3.
+- **Champ `description`** : présent sur certains événements, multi-lignes. **Ignoré** par
+  le dashboard. Si 10.2 veut l'afficher, il est déjà dans la charge utile.
 - **`end` est exclusive** : un événement du 28 se termine `2026-07-29`.
 - Une entrée illisible est **ignorée** ; les autres sont conservées. Jamais de
   « Invalid Date » à l'écran. Un `summary` vide est la **seule** tolérance : l'événement

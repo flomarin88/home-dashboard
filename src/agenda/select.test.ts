@@ -487,3 +487,96 @@ describe("dayRange / haDateTimeString (AD-17 query window)", () => {
     expect(haDateTimeString(at(2026, 7, 28, 0, 0))).toBe("2026-07-28 00:00:00");
   });
 });
+
+describe("the REAL calendar.get_events payload (Florian's HA, 2026-07-29)", () => {
+  // Task 0 bis, finally answered. Story 10.1 required observing this BEFORE
+  // writing the parser; it shipped on an assumption instead. These fixtures are
+  // copied verbatim from the real reply, so the assumption can never silently
+  // drift back in.
+  //
+  // What the real payload confirmed: keyed by entity_id, `events` list, all-day
+  // as bare dates, `end` exclusive. What it CONTRADICTED: timed events do not
+  // use the space-separated form the docs assumed — they are full ISO 8601 with
+  // an explicit offset. And they carry a `description` field nobody knew about.
+  const REAL = {
+    "calendar.chats": {
+      events: [
+        {
+          start: "2026-07-01",
+          end: "2026-07-02",
+          summary: "Gaspard - Centre aéré toute la journée",
+        },
+        {
+          start: "2026-07-01T08:45:00+02:00",
+          end: "2026-07-01T09:15:00+02:00",
+          summary: "Enfants - Florian",
+          description: "MARI\n5314",
+        },
+        { start: "2026-07-02", end: "2026-07-04", summary: "Florian @Paris " },
+        {
+          start: "2026-07-27",
+          end: "2026-08-17",
+          summary: "Enfants - Les croûtes",
+        },
+        {
+          start: "2026-07-29T17:30:00+02:00",
+          end: "2026-07-29T23:45:00+02:00",
+          summary: "Surprise",
+        },
+      ],
+    },
+  };
+  const CHATS: readonly CalendarRef[] = [
+    { entityId: "calendar.chats", label: "Chats" },
+  ];
+
+  it("parses every entry — nothing in the real reply is dropped", () => {
+    expect(parseEvents(REAL, CHATS)).toHaveLength(5);
+  });
+
+  it("reads full ISO with an offset, which is what HA actually sends", () => {
+    // The docs claimed "2026-07-28 17:00:00". Reality is "…T08:45:00+02:00".
+    const e = parseEvents(REAL, CHATS).find(
+      (x) => x.summary === "Enfants - Florian",
+    )!;
+    expect(e.allDay).toBe(false);
+    expect(Number.isNaN(e.start.getTime())).toBe(false);
+  });
+
+  it("still tells all-day from timed by shape alone", () => {
+    const byName = Object.fromEntries(
+      parseEvents(REAL, CHATS).map((e) => [e.summary, e.allDay]),
+    );
+    expect(byName["Gaspard - Centre aéré toute la journée"]).toBe(true);
+    expect(byName["Enfants - Les croûtes"]).toBe(true);
+    expect(byName["Surprise"]).toBe(false);
+  });
+
+  it("trims the trailing spaces the real titles are full of", () => {
+    expect(parseEvents(REAL, CHATS).map((e) => e.summary)).toContain(
+      "Florian @Paris",
+    );
+  });
+
+  it("ignores the undocumented `description` field without choking", () => {
+    expect(() => parseEvents(REAL, CHATS)).not.toThrow();
+  });
+
+  it("picks the timed event over the three-week holiday covering the same day", () => {
+    // The exact scenario the 3-rank rule exists for: "Enfants - Les croûtes"
+    // spans 27 Jul → 17 Aug and would otherwise own the tile for three weeks.
+    const evs = parseEvents(REAL, CHATS);
+    const sel = selectNext(evs, at(2026, 7, 29, 9, 0));
+    expect(sel?.rank).toBe("timed");
+    expect(sel?.event.summary).toBe("Surprise");
+  });
+
+  it("once that event is under way, names its HOUR — not a date in the past", () => {
+    // Regression anchor for the review's D1 finding, on real data: before the
+    // fix this rendered "Jusqu'au 28 juil.".
+    const evs = parseEvents(REAL, CHATS);
+    const sel = selectNext(evs, at(2026, 7, 29, 20, 0));
+    expect(sel?.rank).toBe("ongoing");
+    expect(untilLabel(sel!.event)).toBe("Jusqu'à 23:45");
+  });
+});

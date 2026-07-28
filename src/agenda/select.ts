@@ -111,9 +111,13 @@ export function parseEvents(
       const e = parseHaDate(end);
       if (!s || !e) continue;
       out.push({
+        // Trimmed: the real calendar is full of titles typed with a trailing
+        // space ("Florian @Paris ", "Cours tennis Audrey "). Invisible under
+        // `truncate`, but it would leak into the aria-label and into any
+        // future comparison (Story 10.3 filters on these).
         summary:
           typeof summary === "string" && summary.trim() !== ""
-            ? summary
+            ? summary.trim()
             : "(sans titre)",
         start: s.date,
         end: e.date,
