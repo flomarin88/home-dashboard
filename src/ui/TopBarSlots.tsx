@@ -21,10 +21,21 @@ import type { ReactNode } from "react";
  * wider than 1024px. On the iPad (viewport = 1024 = stage) both frames coincide,
  * so the offsets validated on the device are unchanged. Same pattern as
  * `CommitTag`, which is already positioned against the stage.
+ *
+ * BOUNDED on the right (`right-6` + `overflow-hidden`), pays the "durcissement
+ * collision top-bar" debt opened at 6.4 — whose stated trigger, "revisit when a
+ * 5th element arrives", was reached when Story 10.1 made this a six-chip row
+ * (review 2026-07-28, D3). Until now the row was left-anchored and unbounded:
+ * one chip too many and the children simply ran past the stage edge, which on a
+ * kiosk that must NEVER scroll means a horizontal overflow, not a tidy ellipsis.
+ * Clipping is the deliberate failure mode — a visibly cut chip is a signal you
+ * can act on; a scrollbar on a wall-mounted iPad is not. This bounds the box, it
+ * does NOT prove the six chips fit: that is the device pass at 1024×748, still
+ * owed, on a day `BinTile` is showing.
  */
 export function TopBarSlots({ children }: { children: ReactNode }) {
   return (
-    <div className="absolute left-44 top-6 z-40 flex items-center gap-3">
+    <div className="absolute left-44 right-6 top-6 z-40 flex items-center gap-3 overflow-hidden">
       {children}
     </div>
   );

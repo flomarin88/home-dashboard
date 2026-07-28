@@ -21,6 +21,24 @@ describe("TopBarSlots (Story 6.4 — top-bar composition, TD-4)", () => {
     expect(region.className).toContain("flex");
   });
 
+  it("is bounded on the right — a row too wide clips, it never scrolls the kiosk", () => {
+    // Pays the "durcissement collision top-bar" debt opened at 6.4, whose
+    // trigger ("revisit when a 5th element arrives") was reached when Story
+    // 10.1 made this a six-chip row (review 2026-07-28, D3). Unbounded and
+    // left-anchored, one chip too many ran past the stage edge — a horizontal
+    // overflow on a kiosk whose first rule is that it never scrolls. Clipping
+    // is the chosen failure mode: a visibly cut chip is actionable, a scrollbar
+    // on a wall-mounted iPad is not.
+    const { container } = render(
+      <TopBarSlots>
+        <span>a</span>
+      </TopBarSlots>,
+    );
+    const region = container.firstElementChild as HTMLElement;
+    expect(region.className).toContain("right-6");
+    expect(region.className).toContain("overflow-hidden");
+  });
+
   it("a null child (conditional tile absent) leaves no gap and does not crash", () => {
     render(
       <TopBarSlots>
