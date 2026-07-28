@@ -7,7 +7,7 @@ import {
   haDateTimeString,
   type AgendaEvent,
   type CalendarResponse,
-} from "../widgets/agenda-select";
+} from "../agenda/select";
 
 /**
  * Default refresh period. These calendars barely move — birthdays, holidays,

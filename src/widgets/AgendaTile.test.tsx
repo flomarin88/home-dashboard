@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen } from "@testing-library/react";
-import type { AgendaEvent } from "./agenda-select";
+import type { AgendaEvent } from "../agenda/select";
 
 // The tile is tested against the READ hook's contract, not against HA: the query
 // path has its own suite (useCalendarEvents.test.ts).

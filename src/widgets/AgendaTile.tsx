@@ -6,7 +6,7 @@ import {
   relativeDelay,
   formatEventTime,
   untilLabel,
-} from "./agenda-select";
+} from "../agenda/select";
 import { CalendarIcon } from "./AgendaIcons";
 
 /** How often the relative delay is recomputed, so "dans 4h" ages with the clock. */

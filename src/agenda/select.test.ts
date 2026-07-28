@@ -7,7 +7,7 @@ import {
   untilLabel,
   dayRange,
   haDateTimeString,
-} from "./agenda-select";
+} from "./select";
 import type { CalendarRef } from "../entities";
 
 // A stand-in mapping — deliberately NOT the real one, so these tests keep
