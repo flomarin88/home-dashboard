@@ -5,14 +5,23 @@ import { MemoryRouter, Routes, Route } from "react-router-dom";
 const state = vi.hoisted(() => ({
   connectionStatus: "connected" as string,
   kwh: "8.2" as string,
-  price: "0.20" as string,
+  period: "on" as string,
+  priceCreuses: "0.0890" as string,
+  pricePleines: "0.1491" as string,
+  nextSwitch: "2026-07-28T06:08:00Z" as string,
 }));
 
 vi.mock("@hakit/core", () => ({
   useEntity: (id: string) => {
     const last_changed = "2026-07-23T09:00:00Z";
-    if (id.includes("prix"))
-      return { state: state.price, last_changed, attributes: {} };
+    if (id.includes("prix_kwh_creuses"))
+      return { state: state.priceCreuses, last_changed, attributes: {} };
+    if (id.includes("prix_kwh_pleines"))
+      return { state: state.pricePleines, last_changed, attributes: {} };
+    if (id.startsWith("binary_sensor."))
+      return { state: state.period, last_changed, attributes: {} };
+    if (id.includes("prochaine_bascule"))
+      return { state: state.nextSwitch, last_changed, attributes: {} };
     return {
       state: state.kwh,
       last_changed,
@@ -65,15 +74,17 @@ function renderPage(cfg = electricityConfig()) {
 beforeEach(() => {
   state.connectionStatus = "connected";
   state.kwh = "8.2";
-  state.price = "0.20";
+  state.period = "on";
+  state.priceCreuses = "0.0890";
+  state.pricePleines = "0.1491";
+  state.nextSwitch = "2026-07-28T06:08:00Z";
 });
 
-describe("ElectricityDetail (Story 9.1)", () => {
+describe("ElectricityDetail (Story 9.1, tariff-aware since 9.2)", () => {
   it("renders Aujourd'hui (derived cost + consumption + unit price) and the history chart", async () => {
     renderPage();
-    expect(screen.getByText(/1,64\s*€/)).toBeInTheDocument(); // 8.2 × 0.20
+    expect(screen.getByText(/0,73\s*€/)).toBeInTheDocument(); // 8.2 × 0.0890
     expect(screen.getByText(/8,2\s*kWh · depuis 00:00/)).toBeInTheDocument();
-    expect(screen.getByText(/0,20\s*€\/kWh/)).toBeInTheDocument();
     expect(
       await screen.findByRole("img", {
         name: /Historique de la consommation cumulée/i,
@@ -81,10 +92,70 @@ describe("ElectricityDetail (Story 9.1)", () => {
     ).toBeInTheDocument();
   });
 
-  it('shows the HC/HP tariff tile as an "À venir" seam (Story 9.2)', () => {
+  it("fills the HC/HP tile — the 9.1 seam is gone (Story 9.2)", () => {
+    // This test asserted the "À venir" placeholder in 9.1. Rewritten rather than
+    // deleted: the seam was the spec then, the real content is the spec now.
     renderPage();
     expect(screen.getByText("Heures creuses / pleines")).toBeInTheDocument();
-    expect(screen.getByText("À venir")).toBeInTheDocument();
+    expect(screen.queryByText("À venir")).toBeNull();
+  });
+
+  it("shows BOTH tariffs, spelled out, with four decimals", () => {
+    renderPage();
+    // The creuses price appears twice on purpose: once as the applied tariff on
+    // the "Aujourd'hui" line, once in the two-row tariff list.
+    expect(screen.getAllByText(/0,0890\s*€\/kWh/).length).toBeGreaterThan(0);
+    expect(screen.getByText(/0,1491\s*€\/kWh/)).toBeInTheDocument();
+    // "Creuses" appears twice while it is the current period: as the heading
+    // and as its tariff row. Both are wanted.
+    expect(screen.getAllByText("Creuses").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Pleines").length).toBeGreaterThan(0);
+  });
+
+  it("marks the applied tariff with a WORD, not with colour alone (UX-DR14)", () => {
+    renderPage();
+    const applied = screen.getByText("Appliqué");
+    expect(applied).toBeInTheDocument();
+    // It sits on the creuses row while the period is creuses.
+    expect(applied.closest("li")?.textContent).toMatch(/Creuses/);
+  });
+
+  it("moves the 'Appliqué' marker when the period flips", () => {
+    state.period = "off";
+    renderPage();
+    expect(screen.getByText("Appliqué").closest("li")?.textContent).toMatch(
+      /Pleines/,
+    );
+  });
+
+  it("reads the next switch from HA and names the period it leads to", () => {
+    // No deadline arithmetic in the app (AD-4): the hour is formatted from a
+    // timestamp sensor, and the wording follows the CURRENT period.
+    renderPage();
+    expect(
+      screen.getByText(/Passage en pleines à \d{2}h\d{2}/),
+    ).toBeInTheDocument();
+  });
+
+  it("an invalid next-switch state degrades to the house dash, never 'Invalid Date'", () => {
+    state.nextSwitch = "unavailable";
+    renderPage();
+    expect(screen.getByText(/Passage en pleines à —/)).toBeInTheDocument();
+    expect(screen.queryByText(/Invalid Date/)).toBeNull();
+  });
+
+  it("a period never seen: no applied tariff, no cost, both prices still listed", () => {
+    state.period = "unknown";
+    renderPage();
+    expect(screen.queryByText("Appliqué")).toBeNull();
+    expect(screen.getByText(/0,0890\s*€\/kWh/)).toBeInTheDocument();
+    expect(screen.getByText(/0,1491\s*€\/kWh/)).toBeInTheDocument();
+    expect(screen.queryByText(/NaN/)).toBeNull();
+  });
+
+  it("the 'Aujourd'hui' price line names the applied tariff, not a flat price", () => {
+    renderPage();
+    expect(screen.getByText(/0,0890\s*€\/kWh · Creuses/)).toBeInTheDocument();
   });
 
   it("back link navigates home", () => {
@@ -98,7 +169,8 @@ describe("ElectricityDetail (Story 9.1)", () => {
     renderPage();
     expect(screen.getByText(/Hors ligne/)).toBeInTheDocument();
     // Values frozen, not blanked.
-    expect(screen.getByText(/1,64\s*€/)).toHaveClass("text-stale-text");
+    // 8.2 kWh × 0.0890 = 0.7298 € → "0,73 €", frozen at its last value.
+    expect(screen.getByText(/0,73\s*€/)).toHaveClass("text-stale-text");
     expect(screen.queryByText(/NaN/)).toBeNull();
   });
 });

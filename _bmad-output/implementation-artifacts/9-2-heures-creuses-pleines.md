@@ -1,10 +1,10 @@
 ---
-baseline_commit: 643dd5b88da60fb0ef549b1d285f80757b4ca6fc
+baseline_commit: d916df2  # rafraîchi le 2026-07-28 : le précédent (643dd5b) était antérieur au merge de 10.1 et à sa revue, une revue de 9.2 aurait ressorti tout 10.1
 ---
 
 # Story 9.2: Heures creuses / pleines
 
-Status: ready-for-dev
+Status: review
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 <!-- Données réelles fournies par Florian 2026-07-27 : fenêtres HC 01h08–06h08 et 12h38–15h38 ; prix Creuses 0,0890 €/kWh, Pleines 0,1491 €/kWh. Les fenêtres vivent DANS HA (AD-4), jamais dans le bundle. -->
@@ -119,53 +119,54 @@ Contrat **à documenter** : `docs/home-assistant.md` § « Électricité — heu
   - [ ] **Confirmer les 4 `entity_id` réels** → remplacer les placeholders dans `mapping.ts`.
   - [ ] _(Doc écrite en Task 6 — guide de création + YAML fournis.)_
 
-- [ ] **Task 1 — Mapping HC/HP** (AC: 1, 2, 4, 5)
-  - [ ] `src/entities/mapping.ts` — étendre `ElectricityConfig` (moule `WeatherConfig`, `:420-451`) : garder `dailyKwhEntityId` ; **retirer `priceEntityId`** ; ajouter `periodEntityId` (`binary_sensor.*`), `priceCreusesEntityId`, `pricePleinesEntityId`, `nextSwitchEntityId`. Placeholders commentés `⚠️ Task 0`.
-  - [ ] `AUX_ENTITY_IDS` (`:554`) — **retirer** `ELECTRICITY.priceEntityId`, **ajouter les 4 neufs** (le `binary_sensor.*` passe `ENTITY_ID_RE` = `^[a-z_]+\.[a-z0-9_]+$`). Leçon **7.1 D4** : sans ça, une typo ship en tuile silencieusement atténuée.
-  - [ ] `src/entities/mapping.test.ts` (suite « auxiliary entity_ids », `:164`) — couvrir les nouveaux ids.
+- [x] **Task 1 — Mapping HC/HP** (AC: 1, 2, 4, 5)
+  - [x] `src/entities/mapping.ts` — étendre `ElectricityConfig` (moule `WeatherConfig`, `:420-451`) : garder `dailyKwhEntityId` ; **retirer `priceEntityId`** ; ajouter `periodEntityId` (`binary_sensor.*`), `priceCreusesEntityId`, `pricePleinesEntityId`, `nextSwitchEntityId`. Placeholders commentés `⚠️ Task 0`.
+  - [x] `AUX_ENTITY_IDS` (`:554`) — **retirer** `ELECTRICITY.priceEntityId`, **ajouter les 4 neufs** (le `binary_sensor.*` passe `ENTITY_ID_RE` = `^[a-z_]+\.[a-z0-9_]+$`). Leçon **7.1 D4** : sans ça, une typo ship en tuile silencieusement atténuée.
+  - [x] `src/entities/mapping.test.ts` (suite « auxiliary entity_ids », `:164`) — couvrir les nouveaux ids.
 
-- [ ] **Task 2 — Dérivation coût tarifée (pur)** (AC: 2, 5) — **TDD, à écrire en premier**
-  - [ ] `src/widgets/electricity-cost.ts` — **étendre** `electricityView` (⚠️ **signature cassante** : `{ kwh, price }` → `{ kwh, priceCreuses, pricePleines, period }` ; **les deux appelants** — tuile + page — migrent dans la même passe, `tsc` les nommera).
+- [x] **Task 2 — Dérivation coût tarifée (pur)** (AC: 2, 5) — **TDD, à écrire en premier**
+  - [x] `src/widgets/electricity-cost.ts` — **étendre** `electricityView` (⚠️ **signature cassante** : `{ kwh, price }` → `{ kwh, priceCreuses, pricePleines, period }` ; **les deux appelants** — tuile + page — migrent dans la même passe, `tsc` les nommera).
     Sorties : `{ kwh, period, priceCreuses, pricePleines, appliedPrice, cost }`.
     - `period` : normalisation du `binary_sensor` — `"on"` ⇒ `"creuses"`, `"off"` ⇒ `"pleines"`, **tout le reste** ⇒ `null`. Insensible à la casse, trim.
     - `appliedPrice` : `priceCreuses` si `period === "creuses"`, `pricePleines` si `"pleines"`, **`null` si la période est inconnue** (**pas de prix par défaut**).
     - `cost = kwh × appliedPrice`, **`null` si l'un des deux est `null`**.
     - **AUCUNE logique horaire** (AD-4) : la fonction ne connaît ni horloge, ni fenêtre, ni `Date.now()`. **Pur mapping**, testable sans faux timers. _(9.3 clonera le patron pour l'eau — prix unique, pas de période.)_
-  - [ ] `src/widgets/consumption-format.ts` — ajouter `periodLabel(period): "Creuses" | "Pleines" | "—"` (parité « — pour null »). Réutiliser `formatEuro`/`formatKwh`/`formatPrice` tels quels.
-  - [ ] Tests : `on` ⇒ prix creuses appliqué, `off` ⇒ prix pleines ; `unavailable`/`unknown`/`""`/casse mixte ⇒ `period` null **et** `cost` null ; conso manquante ⇒ `cost` null ; prix applicable manquant ⇒ `cost` null **même si l'autre prix est présent** (piège : ne pas retomber sur l'autre) ; `appliedPrice` exposé pour l'affichage.
+  - [x] `src/widgets/consumption-format.ts` — ajouter `periodLabel(period): "Creuses" | "Pleines" | "—"` (parité « — pour null »). Réutiliser `formatEuro`/`formatKwh`/`formatPrice` tels quels.
+  - [x] Tests : `on` ⇒ prix creuses appliqué, `off` ⇒ prix pleines ; `unavailable`/`unknown`/`""`/casse mixte ⇒ `period` null **et** `cost` null ; conso manquante ⇒ `cost` null ; prix applicable manquant ⇒ `cost` null **même si l'autre prix est présent** (piège : ne pas retomber sur l'autre) ; `appliedPrice` exposé pour l'affichage.
 
-- [ ] **Task 3 — Pill HC/HP sur `ElectricityTile`** (AC: 1, 2, 5) — **TDD (composant)**
-  - [ ] `src/widgets/ConsumptionIcons.tsx` — ajouter **`MoonIcon`** et **`SunIcon`** (SVG locaux 24×24, `stroke="currentColor"`, `strokeWidth="2"`, gabarit `BoltIcon`/`WeatherIcon`). **Pas de dépendance d'icônes externe.** Tracés repris du mock (`mock-conso-topbar.html:119` lune, `:161` soleil).
-  - [ ] `src/widgets/ElectricityTile.tsx` — lire les 5 entités via `useEntityValue` ; `anyStale` = **OU logique des 5** (règle de dimming unique, cohérente avec 9.1 et la famille top-bar) ; `electricityView(...)` → coût + période.
-    - [ ] Ajouter la **pill** à droite de la colonne coût/conso : `inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-caption` + fond **neutre** (`bg-card-fill` / bordure `card-border` — **pas** d'accent, UX-DR24) ; contenu = `MoonIcon`/`SunIcon` + `periodLabel(...)`. Période `null` ⇒ « Période — » sans icône.
-    - [ ] `aria-label` étendu : « Électricité : 0,73 € aujourd'hui, 8,2 kWh, heures creuses[ — hors ligne] — ouvrir le détail ».
-    - [ ] **PAS de `useService`/optimiste/undo** — read pur + navigation (invariant 9.1).
-  - [ ] Tests (`ElectricityTile.test.tsx`) — ⚠️ le mock actuel dispatche sur `id.includes("prix")` : **le réécrire** pour distinguer `prix_kwh_creuses` / `prix_kwh_pleines` / `binary_sensor.` / `prochaine_bascule`. Cas : `on` ⇒ coût au prix creuses + pill « Creuses » ; `off` ⇒ coût au prix pleines + pill « Pleines » ; **le coût change entre les deux** (c'est le comportement spécifié, l'asserter explicitement pour qu'il soit intentionnel et non accidentel) ; période `unavailable` **jamais vue** ⇒ « Période — » **et** coût « — » ; `disconnected` ⇒ `opacity-60` + dernières valeurs + **tap navigue toujours**.
+- [x] **Task 3 — Pill HC/HP sur `ElectricityTile`** (AC: 1, 2, 5) — **TDD (composant)**
+  - [x] `src/widgets/ConsumptionIcons.tsx` — ajouter **`MoonIcon`** et **`SunIcon`** (SVG locaux 24×24, `stroke="currentColor"`, `strokeWidth="2"`, gabarit `BoltIcon`/`WeatherIcon`). **Pas de dépendance d'icônes externe.** Tracés repris du mock (`mock-conso-topbar.html:119` lune, `:161` soleil).
+  - [x] `src/widgets/ElectricityTile.tsx` — lire les 5 entités via `useEntityValue` ; `anyStale` = **OU logique des 5** (règle de dimming unique, cohérente avec 9.1 et la famille top-bar) ; `electricityView(...)` → coût + période.
+    - [x] Ajouter la **pill** à droite de la colonne coût/conso : `inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-caption` + fond **neutre** (`bg-card-fill` / bordure `card-border` — **pas** d'accent, UX-DR24) ; contenu = `MoonIcon`/`SunIcon` + `periodLabel(...)`. Période `null` ⇒ « Période — » sans icône.
+    - [x] `aria-label` étendu : « Électricité : 0,73 € aujourd'hui, 8,2 kWh, heures creuses[ — hors ligne] — ouvrir le détail ».
+    - [x] **PAS de `useService`/optimiste/undo** — read pur + navigation (invariant 9.1).
+  - [x] Tests (`ElectricityTile.test.tsx`) — ⚠️ le mock actuel dispatche sur `id.includes("prix")` : **le réécrire** pour distinguer `prix_kwh_creuses` / `prix_kwh_pleines` / `binary_sensor.` / `prochaine_bascule`. Cas : `on` ⇒ coût au prix creuses + pill « Creuses » ; `off` ⇒ coût au prix pleines + pill « Pleines » ; **le coût change entre les deux** (c'est le comportement spécifié, l'asserter explicitement pour qu'il soit intentionnel et non accidentel) ; période `unavailable` **jamais vue** ⇒ « Période — » **et** coût « — » ; `disconnected` ⇒ `opacity-60` + dernières valeurs + **tap navigue toujours**.
 
-- [ ] **Task 4 — Tuile « Heures creuses / pleines » sur `/electricite`** (AC: 3, 4, 5) — **TDD (page)**
-  - [ ] `src/pages/ElectricityDetail.tsx` — **remplacer `<ComingSoon .../>`** (`:126`) par le contenu réel, dans le `Tile` existant (colonne droite, `min-h-0 flex-1`) :
+- [x] **Task 4 — Tuile « Heures creuses / pleines » sur `/electricite`** (AC: 3, 4, 5) — **TDD (page)**
+  - [x] `src/pages/ElectricityDetail.tsx` — **remplacer `<ComingSoon .../>`** (`:126`) par le contenu réel, dans le `Tile` existant (colonne droite, `min-h-0 flex-1`) :
     - période courante (icône + libellé) + pill « Hors ligne · HH:MM » si stale (moule `:74-79`) ;
     - **deux lignes tarifaires** : « 🌙 Creuses — 0,0890 €/kWh » / « ☀ Pleines — 0,1491 €/kWh », celle en cours marquée d'un **repère textuel** « Appliqué » (fond/bordure neutres en appui, **jamais la couleur seule**) ;
     - **prochaine bascule** : « Passage en pleines à 06h08 » — libellé dérivé de la période **courante**, heure via **`formatSunTime(nextSwitch.value)`** (importer depuis `weather-format.ts`, **ne pas réécrire un formatteur**).
-  - [ ] Tuile « Aujourd'hui » (`:71-99`) : la ligne prix passe du prix flat au **prix appliqué + période** (« 0,0890 €/kWh · Creuses »). Conso et graphe **inchangés** (compteur unique).
-  - [ ] Supprimer le helper `ComingSoon` (`:168-175`) s'il devient inutilisé (oxlint le signalera).
-  - [ ] Page **1024×768 sans scroll** : la colonne droite passe de ~4 lignes à ~8 — **vérifier `overflow-hidden`/`min-h-0`** et compacter si besoin.
-  - [ ] Tests (`ElectricityDetail.test.tsx`) : ⚠️ **mettre à jour** le test `:84` `shows the HC/HP tariff tile as an "À venir" seam` — il asserte le seam que cette story remplace. **Le réécrire pour asserter le contenu réel**, ne pas le supprimer (T0.3 : un test ne se plie pas au code, mais sa spec a légitimement changé ici). Ajouter : deux prix rendus, marquage « Appliqué » sur le bon selon la période, prochaine bascule formatée, `nextSwitch` invalide ⇒ « — », stale ⇒ dernières valeurs + pill.
+  - [x] Tuile « Aujourd'hui » (`:71-99`) : la ligne prix passe du prix flat au **prix appliqué + période** (« 0,0890 €/kWh · Creuses »). Conso et graphe **inchangés** (compteur unique).
+  - [x] Supprimer le helper `ComingSoon` (`:168-175`) s'il devient inutilisé (oxlint le signalera).
+  - [x] Page **1024×768 sans scroll** : la colonne droite passe de ~4 lignes à ~8 — **vérifier `overflow-hidden`/`min-h-0`** et compacter si besoin.
+  - [x] Tests (`ElectricityDetail.test.tsx`) : ⚠️ **mettre à jour** le test `:84` `shows the HC/HP tariff tile as an "À venir" seam` — il asserte le seam que cette story remplace. **Le réécrire pour asserter le contenu réel**, ne pas le supprimer (T0.3 : un test ne se plie pas au code, mais sa spec a légitimement changé ici). Ajouter : deux prix rendus, marquage « Appliqué » sur le bon selon la période, prochaine bascule formatée, `nextSwitch` invalide ⇒ « — », stale ⇒ dernières valeurs + pill.
 
-- [ ] **Task 5 — Device-proof top-bar (préparer, ne pas solder la dette)** (AC: 5)
-  - [ ] **Aucun changement de layout par défaut.** La pill élargit la 5ᵉ chip d'une barre à 5 éléments ; `TopBarSlots` est un `absolute left-44` **sans aucune barrière code** contre le chevauchement (`deferred-work.md:21`, dette déjà déclenchée par 9.1).
-  - [ ] **Échappatoire préparée** (à activer **seulement** si le device-proof montre une collision) : libellé compact « **HC** » / « **HP** » — UX-DR23 prévoit explicitement ce repli responsive. **Un seul point de changement** : `periodLabel` (Task 2). Le laisser trivialement basculable et le noter en commentaire.
-  - [ ] **NE PAS solder la dette collision ici** (borne `max-w` / couche grid = tâche distincte contrainte par TD-1, Rule 6). Si le device-proof la révèle ⇒ **escalader**, ne pas corriger dans cette story.
+- [x] **Task 5 — Device-proof top-bar (préparer, ne pas solder la dette)** (AC: 5)
+  > ⚠️ **Prémisse périmée au 2026-07-28.** Cette task décrivait `TopBarSlots` comme « un `absolute left-44` **sans aucune barrière code** » et interdisait de solder la dette. Les deux points ont bougé **avant** cette story : la revue de code de 10.1 a porté la barre à **six** chips, ce qui a atteint le déclencheur écrit dans `deferred-work.md` (« à revoir si un 5ᵉ élément arrive »), et Florian a tranché de **borner la rangée** (`right-6` + `overflow-hidden`, commit `3f0172a`). La dette est donc **soldée**, hors de cette story. Conséquence à connaître pour le device-proof : un débordement ne se voit plus par un dépassement franc, il **coupe** la chip en trop.
+  - [x] **Aucun changement de layout par défaut.** La pill élargit la 5ᵉ chip d'une barre à 5 éléments ; `TopBarSlots` est un `absolute left-44` **sans aucune barrière code** contre le chevauchement (`deferred-work.md:21`, dette déjà déclenchée par 9.1).
+  - [x] **Échappatoire préparée** (à activer **seulement** si le device-proof montre une collision) : libellé compact « **HC** » / « **HP** » — UX-DR23 prévoit explicitement ce repli responsive. **Un seul point de changement** : `periodLabel` (Task 2). Le laisser trivialement basculable et le noter en commentaire.
+  - [x] **NE PAS solder la dette collision ici** (borne `max-w` / couche grid = tâche distincte contrainte par TD-1, Rule 6). Si le device-proof la révèle ⇒ **escalader**, ne pas corriger dans cette story.
 
-- [ ] **Task 6 — Doc contrat HA** (Doc Impact) (AC: 1, 2, 4)
-  - [ ] `docs/home-assistant.md` — nouvelle section **« ## Électricité — heures creuses / pleines (Story 9.2) »** juste après la section 9.1, sur le moule des sections existantes : (1) `binary_sensor` template **avec les 4 horaires réels**, (2) capteur template `prochaine_bascule`, (3) les 2 helpers prix **avec les valeurs réelles**, **### Contrat d'interface (⚠️ le code du dashboard en dépend)**, **### Appliquer & tester**.
-  - [ ] **Documenter le compromis** : le coût est calculé au tarif de l'instant sur le cumul total ⇒ **il saute à chaque bascule** ; la correction, si un jour souhaitée, est **`tariffs:` sur le `utility_meter`** (côté HA), pas un patch app.
-  - [ ] **Mettre à jour la section 9.1** : la note « la Story 9.2 ajoutera un 2ᵉ prix » devient un renvoi ; signaler que **`input_number.prix_kwh` (flat) n'est plus lu** par le dashboard et peut être supprimé après migration.
-  - [ ] **C'est ici — et nulle part ailleurs — que vivent les horaires et les prix.**
+- [x] **Task 6 — Doc contrat HA** (Doc Impact) (AC: 1, 2, 4)
+  - [x] `docs/home-assistant.md` — nouvelle section **« ## Électricité — heures creuses / pleines (Story 9.2) »** juste après la section 9.1, sur le moule des sections existantes : (1) `binary_sensor` template **avec les 4 horaires réels**, (2) capteur template `prochaine_bascule`, (3) les 2 helpers prix **avec les valeurs réelles**, **### Contrat d'interface (⚠️ le code du dashboard en dépend)**, **### Appliquer & tester**.
+  - [x] **Documenter le compromis** : le coût est calculé au tarif de l'instant sur le cumul total ⇒ **il saute à chaque bascule** ; la correction, si un jour souhaitée, est **`tariffs:` sur le `utility_meter`** (côté HA), pas un patch app.
+  - [x] **Mettre à jour la section 9.1** : la note « la Story 9.2 ajoutera un 2ᵉ prix » devient un renvoi ; signaler que **`input_number.prix_kwh` (flat) n'est plus lu** par le dashboard et peut être supprimé après migration.
+  - [x] **C'est ici — et nulle part ailleurs — que vivent les horaires et les prix.**
 
-- [ ] **Task 7 — Validation (gates)** (AC: 5)
-  - [ ] `build` (sans token, garde AD-8 — cf. note 9.1 : déplacer temporairement `.env.local`, **le restaurer**) + `typecheck` + `lint` (oxlint) + `test` verts ; **0 `entity_id` en dur** hors `entities/` ; **0 token dans `dist/`** ; Prettier OK.
-  - [ ] **Gate spécifique AD-4/AD-16** : `rg -n '01:08|06:08|12:38|15:38|0\.0890|0\.1491' src/` ⇒ **aucun résultat**.
+- [x] **Task 7 — Validation (gates)** (AC: 5)
+  - [x] `build` (sans token, garde AD-8 — cf. note 9.1 : déplacer temporairement `.env.local`, **le restaurer**) + `typecheck` + `lint` (oxlint) + `test` verts ; **0 `entity_id` en dur** hors `entities/` ; **0 token dans `dist/`** ; Prettier OK.
+  - [x] **Gate spécifique AD-4/AD-16** : `rg -n '01:08|06:08|12:38|15:38|0\.0890|0\.1491' src/` ⇒ **aucun résultat**.
   - [ ] **Preuve device (Florian)** : pill correcte à l'instant T ; coût = `conso × prix de la période` (vérifier à la main) ; page `/electricite` (2 prix + « Appliqué » sur le bon + prochaine bascule) **sans scroll** ; `binary_sensor` coupé après avoir été vu ⇒ **dernier tarif conservé, coût toujours là** ; **ET pas de collision/scroll top-bar** à **1024×768** avec la pill. — _en attente Florian_
 
 ## Dev Notes
@@ -260,13 +261,46 @@ _(à remplir par dev-story)_
 
 ### Debug Log References
 
+- **Gate AD-4/AD-16 (horaires & prix hors du bundle)** — `rg '01:08|06:08|12:38|15:38|0\.0890|0\.1491' src --glob '!*.test.*'` ⇒ **vide**. Les occurrences restantes sont **toutes** des fixtures de test : ce sont elles qui prouvent l'arithmétique (+68 % entre les deux tarifs), et elles ne partent pas dans le bundle. Preuve décisive prise sur le **bundle réel** : `npm run build` sans token puis `rg -o '01:08|…|0\.1491' dist/ | wc -l` ⇒ **0**, et `rg -o 'eyJhbGciOi' dist/ | wc -l` ⇒ **0**. `.env.local` déplacé puis restauré, **empreinte SHA-256 identique avant/après** (`a71a750a…`).
+- **Gate AD-7** — aucun `entity_id` électricité hors `src/entities/`. Les seuls restes de la recherche sont `calendar.*` (un **domaine**, pas un id) et `calendar.get_events` (un **service**), pré-existants de 10.1.
+- **Piège de test rencontré** — les nouveaux champs du mock de `ElectricityDetail.test.tsx` n'étaient pas réinitialisés dans `beforeEach` : cinq tests échouaient par **pollution inter-tests** et passaient en isolation. Symptôme trompeur : les erreurs parlaient de texte introuvable, pas d'état résiduel.
+- **Deux pills « Hors ligne »** — ma première version en posait une sur la tuile HC/HP en plus de celle d'« Aujourd'hui ». L'AC5 en demande **une** sur la page ; la seconde a été retirée (l'atténuation de la tuile porte déjà l'information).
+
 ### Completion Notes List
 
+- **AC1–AC5 satisfaits côté app ; la preuve device reste due** (elle seule couvre la collision de barre supérieure et le rendu réel).
+- **+28 tests → 393 verts** (52 fichiers), typecheck, oxlint et Prettier propres, build sans token RC=0. Répartition : `electricity-cost` +12, `ElectricityTile` +10 (suite réécrite), `ElectricityDetail` +7, `mapping` +6, `consumption-format` +4.
+- **Écrit en TDD**, tâche par tâche : chaque suite a été vue **rouge** avant implémentation (5 échecs sur le mapping, 12 sur la dérivation, 10 sur la tuile, 11 sur la page).
+- **Le piège central de la story est verrouillé par un test dédié** : quand le prix de la période courante manque alors que l'autre est disponible, `appliedPrice` et `cost` valent `null`. Un `priceCreuses ?? pricePleines` factureraient les heures creuses au tarif plein — **+68 %** silencieux. Testé au niveau pur **et** au niveau composant.
+- **Le saut de coût à la bascule est asserté**, pas subi : un test compare les deux périodes et vérifie que le rapport vaut exactement `0,1491 / 0,0890`. Quiconque « corrigera » ce saut devra supprimer un test qui explique pourquoi il existe.
+- **Libellé compact « HC »/« HP » activé d'emblée** (décision Florian 2026-07-28) plutôt que gardé en réserve : la story 10.1 venait de porter la barre à six chips. `periodLabel` reste le point unique de bascule vers la forme longue. L'`aria-label` et la page, eux, épellent « heures creuses » — « HC » lu à voix haute ne dit rien (AC1).
+- **`formatPrice` passe à 4 décimales.** La Task 2 disait de réutiliser les formatteurs « tels quels », mais l'AC3 et la doc rendent « 0,0890 €/kWh » : à 2 décimales, 0,0890 et 0,0899 s'affichent identiquement. L'AC (comportement observable) l'emporte sur l'indication d'implémentation. Le coût, lui, reste à 2 décimales — c'est de l'argent qu'on lit, pas un tarif qu'on compare.
+- **Une seule pill « Hors ligne »** sur la page (AC5, parité 9.1), sur la tuile « Aujourd'hui ».
+- **`ComingSoon` supprimé** : plus aucun consommateur une fois le seam de 9.1 rempli. Son test a été **réécrit** (le seam était la spec en 9.1, le contenu réel l'est maintenant), pas supprimé.
+- **Ce qui reste (non-agent, Florian)** :
+  1. **Task 0** — créer les 2 capteurs template + les 2 helpers `input_number` (YAML fourni dans `docs/home-assistant.md`), puis confirmer les 4 `entity_id` réels et remplacer les placeholders du mapping.
+  2. **Preuve device** — pill correcte à l'instant T ; coût = `conso × prix de la période` vérifié à la main ; `/electricite` sans scroll ; période coupée après avoir été vue ⇒ dernier tarif conservé ; **et surtout la barre supérieure à 1024×768 avec `BinTile` affichée** — désormais à six chips **plus** cette pill.
+- **⚠️ Budget de barre supérieure** : la dette collision a été soldée pendant la revue de 10.1 (`TopBarSlots` borné, commit `3f0172a`), donc un débordement **coupe** au lieu de déborder. Ni 10.1 ni 9.2 n'ont encore été vues sur l'appareil — si la barre est trop chargée, le symptôme sera une chip tronquée.
+
 ### File List
+
+**Créés :** aucun — toute la story tient dans l'existant, comme prévu.
+
+**Modifiés :**
+
+- `src/entities/mapping.ts` + `.test.ts` — `ElectricityConfig` passe de 2 à 5 entités (`priceEntityId` retiré, `periodEntityId`/`priceCreusesEntityId`/`pricePleinesEntityId`/`nextSwitchEntityId` ajoutés) ; `AUX_ENTITY_IDS` mis à jour
+- `src/widgets/electricity-cost.ts` + `.test.ts` — `normalisePeriod` ajouté ; `electricityView` prend `{kwh, priceCreuses, pricePleines, period}` et rend `appliedPrice` en plus (signature cassée volontairement)
+- `src/widgets/consumption-format.ts` + `.test.ts` — `periodLabel` (compact) et `periodName` (épelé) ajoutés ; `formatPrice` passe à 4 décimales
+- `src/widgets/ConsumptionIcons.tsx` — `MoonIcon`, `SunIcon`, `PeriodIcon`
+- `src/widgets/ElectricityTile.tsx` + `.test.tsx` — 4 entités lues, pill HC/HP, `aria-label` étendu ; suite de tests réécrite (l'ancien mock dispatchait sur `id.includes("prix")`, qui ne discrimine plus)
+- `src/pages/ElectricityDetail.tsx` + `.test.tsx` — seam `ComingSoon` remplacé par la tuile réelle (période, deux tarifs, marqueur « Appliqué », prochaine bascule) ; helper `ComingSoon` supprimé
+- `docs/home-assistant.md` — section « Électricité — heures creuses / pleines (Story 9.2) » + note de dépréciation sur `input_number.prix_kwh`
+- `_bmad-output/implementation-artifacts/sprint-status.yaml`
 
 ## Change Log
 
 | Date | Version | Description |
 | --- | --- | --- |
+| 2026-07-28 | 0.3 | **Implémentée (dev-story).** Conscience tarifaire sur le patron 9.1 : `ElectricityConfig` passe de 2 à 5 entités, `electricityView` prend les deux prix + la période et rend `appliedPrice`, la micro-tuile porte une pill HC/HP, et la page `/electricite` remplit le seam « À venir » de 9.1 (période courante, **les deux** tarifs, marqueur textuel « Appliqué », prochaine bascule lue via `formatSunTime`). **Le piège de la story est verrouillé** : quand le prix de la période courante manque alors que l'autre est là, `appliedPrice` et `cost` valent `null` — un `??` aurait facturé les heures creuses au tarif plein, +68 % en silence. Testé au niveau pur ET composant. **Le saut de coût à la bascule est asserté**, pas subi : un test fixe le rapport à `0,1491/0,0890` pour qu'un futur « lissage » doive supprimer un test qui explique pourquoi il existe. **Écrit en TDD** — chaque suite vue rouge avant implémentation. **Libellé compact « HC »/« HP » activé d'emblée** (décision Florian) : la story 10.1 venait de porter la barre à six chips ; l'`aria-label` et la page épellent la période. **`formatPrice` passe à 4 décimales** — l'AC3 rend « 0,0890 €/kWh », que 2 décimales confondraient avec 0,0899. **Gates** : +28 tests → **393 verts**, typecheck/oxlint/Prettier propres, build sans token RC=0, **0 horaire, 0 prix et 0 token dans `dist/`** (vérifié sur le bundle, pas seulement sur `src/`), `.env.local` restauré à empreinte identique. **Reste** : Task 0 (2 capteurs template + 2 helpers côté HA, YAML fourni dans la doc) et la **preuve device** — d'autant que la barre supérieure porte désormais six chips **plus** cette pill, et qu'un débordement coupe au lieu de déborder depuis que `TopBarSlots` est borné. → review. |
 | 2026-07-27 | 0.2 | **Réécrite après décision Florian « on oublie la notion de tarifs »** : suppression du `utility_meter` avec `tariffs:`, des compteurs par tarif et de l'automation de bascule. Le compteur unique de 9.1 reste la seule source de conso. **Période courante = `binary_sensor.heures_creuses`** (template HA, `on` = creuses, fenêtres **01h08–06h08 / 12h38–15h38** côté HA). **Prix réels fournis** : Creuses **0,0890 €/kWh**, Pleines **0,1491 €/kWh**, en 2 helpers `input_number`. **Coût = `conso_totale × prix(période)`** — **saut de +68 % à chaque bascule documenté et assumé** (8,2 kWh : 0,73 € → 1,22 € à 06h08), avec interdiction explicite de compenser côté app et la porte de sortie nommée (`tariffs:` côté HA, nouvelle story). Task 0 allégée : **2 capteurs template + 2 helpers**, zéro automation. Le reste (pill sur la tuile, prochaine bascule via `formatSunTime`, remplacement du seam `ComingSoon`, gates AD-4) est inchangé. |
 | 2026-07-27 | 0.1 | Story 9.2 créée (create-story). Version initiale fondée sur des compteurs par tarif (`utility_meter` `tariffs:`) rendant le coût exact — **écartée par Florian** au profit d'un montage HA plus léger. Conservée en trace : l'analyse arithmétique (la journée traverse les deux tarifs) reste valide et explique pourquoi le coût saute dans la v0.2. |

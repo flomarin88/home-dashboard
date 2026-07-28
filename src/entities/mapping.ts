@@ -451,24 +451,48 @@ export function weatherConfig(): WeatherConfig {
 }
 
 /**
- * Electricity consumption (Story 9.1) — a daily-cumulative kWh sensor + a unit
- * price helper, reflected read-only (AD-16). Cost = kWh × price is a DISPLAY
- * derivation (never a stored state, AD-1). A single flat price for 9.1; Story
- * 9.2 splits it into HC/HP + adds the current-period sensor.
- * ⚠️ PLACEHOLDER ids until Task 0 (real Enedis / TotalÉnergies daily sensor +
- * `input_number` price helper) — confirm the real slugs at device-proof.
+ * Electricity consumption (Story 9.1, tariff-aware since 9.2) — reflected
+ * read-only (AD-16). Cost = kWh × price is a DISPLAY derivation, never a stored
+ * state (AD-1).
+ *
+ * 9.1 read a single flat price. 9.2 splits it in two and adds the current
+ * period, because the house is on a heures creuses / heures pleines tariff. The
+ * SCHEDULE is deliberately absent from this file and from the whole bundle: the
+ * app never decides which period it is, it reflects a `binary_sensor` that HA
+ * evaluates (AD-4). Same for the next switch — a timestamp sensor, read and
+ * formatted, never computed.
+ *
+ * The meter itself does NOT change: one `utility_meter` for the day's total.
+ * Florian ruled out per-tariff buckets, so the cost is `total × price of the
+ * current period` — which jumps when the period flips. That is specified
+ * behaviour, not a defect; smoothing it would mean persisted state (AD-1/AD-16)
+ * and tariff logic (AD-4). The fix, if ever wanted, is `tariffs:` on the HA
+ * meter — see docs/home-assistant.md.
+ *
+ * ⚠️ PLACEHOLDER ids until Task 0 (the two template sensors + two price helpers
+ * do not exist in HA yet) — confirm the real slugs at device-proof.
  */
 export interface ElectricityConfig {
   /** `sensor.*` — daily cumulative consumption in kWh (utility_meter `cycle: daily`, reset midnight HA). */
   readonly dailyKwhEntityId: string;
-  /** `input_number.*` — unit price €/kWh (flat; Story 9.2 splits into HC/HP). */
-  readonly priceEntityId: string;
+  /** `binary_sensor.*` — current tariff period. `on` = creuses, `off` = pleines. */
+  readonly periodEntityId: string;
+  /** `input_number.*` — unit price €/kWh during heures creuses. */
+  readonly priceCreusesEntityId: string;
+  /** `input_number.*` — unit price €/kWh during heures pleines. */
+  readonly pricePleinesEntityId: string;
+  /** `sensor.*` — next tariff transition, ISO 8601 (`device_class: timestamp`). */
+  readonly nextSwitchEntityId: string;
 }
 
 const ELECTRICITY: ElectricityConfig = {
-  // ⚠️ Placeholders (Task 0) — the real ids depend on the provider integration.
+  // ⚠️ Placeholders (Task 0) — the real ids depend on the provider integration
+  // and on the template sensors Florian still has to create.
   dailyKwhEntityId: "sensor.electricite_conso_jour",
-  priceEntityId: "input_number.prix_kwh",
+  periodEntityId: "binary_sensor.heures_creuses",
+  priceCreusesEntityId: "input_number.prix_kwh_creuses",
+  pricePleinesEntityId: "input_number.prix_kwh_pleines",
+  nextSwitchEntityId: "sensor.hc_hp_prochaine_bascule",
 };
 
 /** The electricity config (Story 9.1). */
@@ -606,7 +630,10 @@ const AUX_ENTITY_IDS: readonly string[] = [
   BINS.ack.jaune,
   BINS.ack.noire,
   ELECTRICITY.dailyKwhEntityId,
-  ELECTRICITY.priceEntityId,
+  ELECTRICITY.periodEntityId,
+  ELECTRICITY.priceCreusesEntityId,
+  ELECTRICITY.pricePleinesEntityId,
+  ELECTRICITY.nextSwitchEntityId,
   ...CALENDARS.map((c) => c.entityId),
 ];
 

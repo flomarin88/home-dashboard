@@ -336,19 +336,21 @@ input_number:
     unit_of_measurement: "€/kWh"
 ```
 
-> Un **seul prix flat** pour la Story 9.1. La **Story 9.2** ajoutera un **2ᵉ prix**
-> (heures creuses / heures pleines) + un capteur de **période courante** HC/HP.
+> ⚠️ **`input_number.prix_kwh` n'est plus lu par le dashboard depuis la Story 9.2.**
+> Il a été remplacé par deux helpers tarifés (`prix_kwh_creuses` / `prix_kwh_pleines`,
+> section suivante). Tu peux le supprimer côté HA quand tu veux — l'app ne le référence
+> plus. Il est laissé documenté ici pour que l'historique de la 9.1 reste lisible.
 
 ### Contrat d'interface (⚠️ le code du dashboard en dépend)
 
 | entité                          | rôle          | état attendu                           |
 | ------------------------------- | ------------- | -------------------------------------- |
 | `sensor.electricite_conso_jour` | conso du jour | nombre en **kWh** (cumul depuis 00:00) |
-| `input_number.prix_kwh`         | prix unitaire | nombre en **€/kWh**                    |
 
-Le **coût du jour** = `conso × prix`, calculé **côté app à l'affichage** (jamais
-persisté, AD-16). `unavailable`/`unknown`/socket perdue → **obsolescence** (dernière
-valeur + « Hors ligne », AD-6). Si tu changes un `entity_id`, mets à jour le mapping
+Le **coût du jour** = `conso × prix appliqué`, calculé **côté app à l'affichage**
+(jamais persisté, AD-16) — le prix appliqué vient de la section HC/HP ci-dessous.
+`unavailable`/`unknown`/socket perdue → **obsolescence** (dernière valeur + « Hors
+ligne », AD-6). Si tu changes un `entity_id`, mets à jour le mapping
 (`src/entities/mapping.ts`).
 
 ### 3. Appliquer & tester
@@ -358,6 +360,148 @@ valeur + « Hors ligne », AD-6). Si tu changes un `entity_id`, mets à jour le 
 - **Tester** : la tuile montre `conso × prix` (ex. 8,2 kWh × 0,18 €/kWh ⇒ 1,48 €) ;
   tap → page `/electricite` (coût + conso + prix + graphe conso + seam HC/HP). Coupe
   le capteur (`unavailable`) → dernière valeur + « Hors ligne », jamais de blanc.
+
+---
+
+## Électricité — heures creuses / pleines (Story 9.2)
+
+Le dashboard affiche **dans quelle période tarifaire tu es** et calcule le coût du
+jour **au prix de cette période**. Comme toujours, il ne **décide** rien : les
+horaires vivent dans HA (AD-4), l'app ne fait que refléter deux capteurs et deux
+helpers. **C'est ici — et nulle part ailleurs — que vivent les horaires et les prix.**
+
+### Horaires et tarifs réels
+
+|             | fenêtres                           | prix             |
+| ----------- | ---------------------------------- | ---------------- |
+| **Creuses** | **01h08–06h08** et **12h38–15h38** | **0,0890 €/kWh** |
+| **Pleines** | le reste de la journée             | **0,1491 €/kWh** |
+
+### 1. Capteur template `binary_sensor.heures_creuses`
+
+Un **template qui s'auto-évalue** — pas une automation, pas un compteur. Il n'écrit
+rien et ne déclenche rien.
+
+```yaml
+template:
+  - binary_sensor:
+      - name: "Heures creuses"
+        unique_id: heures_creuses
+        state: >
+          {% set n = now() %}
+          {% set m = n.hour * 60 + n.minute %}
+          {{ (68 <= m and m < 368) or (758 <= m and m < 938) }}
+```
+
+_(68 = 01h08, 368 = 06h08, 758 = 12h38, 938 = 15h38 — en minutes depuis minuit.)_
+
+### 2. Capteur template `sensor.hc_hp_prochaine_bascule`
+
+La **prochaine borne** parmi les quatre, sinon 01h08 du lendemain. `device_class:
+timestamp` ⇒ l'état est une **ISO 8601**, que l'app se contente de formater (même
+chemin que `sensor.sun_next_rising` sur `/meteo`).
+
+```yaml
+template:
+  - sensor:
+      - name: "HC HP prochaine bascule"
+        unique_id: hc_hp_prochaine_bascule
+        device_class: timestamp
+        state: >
+          {% set n = now() %}
+          {% set today = n.replace(hour=0, minute=0, second=0, microsecond=0) %}
+          {% set bornes = [68, 368, 758, 938] %}
+          {% set m = n.hour * 60 + n.minute %}
+          {% set ns = namespace(next=none) %}
+          {% for b in bornes %}
+            {% if ns.next is none and b > m %}{% set ns.next = b %}{% endif %}
+          {% endfor %}
+          {% if ns.next is none %}
+            {{ (today + timedelta(days=1, minutes=68)).isoformat() }}
+          {% else %}
+            {{ (today + timedelta(minutes=ns.next)).isoformat() }}
+          {% endif %}
+```
+
+### 3. Deux helpers `input_number` (les prix)
+
+**Paramètres → Appareils et services → Helpers → Créer un helper → Nombre.** Équivalent
+YAML :
+
+```yaml
+input_number:
+  prix_kwh_creuses:
+    name: Prix kWh creuses
+    min: 0
+    max: 1
+    step: 0.0001
+    unit_of_measurement: "€/kWh"
+  prix_kwh_pleines:
+    name: Prix kWh pleines
+    min: 0
+    max: 1
+    step: 0.0001
+    unit_of_measurement: "€/kWh"
+```
+
+Puis renseigne **0,0890** et **0,1491**. Modifiables **sans redeploy** : le dashboard
+les lit à chaque rendu.
+
+### Contrat d'interface (⚠️ le code du dashboard en dépend)
+
+| entité                           | rôle                 | état attendu                             |
+| -------------------------------- | -------------------- | ---------------------------------------- |
+| `binary_sensor.heures_creuses`   | période courante     | **`on` = creuses**, **`off` = pleines**  |
+| `input_number.prix_kwh_creuses`  | prix HC              | nombre en **€/kWh**                      |
+| `input_number.prix_kwh_pleines`  | prix HP              | nombre en **€/kWh**                      |
+| `sensor.hc_hp_prochaine_bascule` | prochaine transition | **ISO 8601** (`device_class: timestamp`) |
+
+- **`on` = creuses est le contrat.** L'app ne reconnaît que `on` et `off` (casse et
+  espaces tolérés). **Toute autre valeur** — `unavailable`, `unknown`, absente — donne
+  une période **inconnue** : la tuile affiche « Période — » et **aucun coût**.
+- **Aucun prix par défaut, jamais.** Si le prix de la période en cours manque, le coût
+  est « — », même si l'autre prix est disponible. Facturer des heures creuses au tarif
+  plein serait une erreur de **+68 %** : mieux vaut ne rien dire.
+- **Période déjà vue puis perdue** ⇒ le **dernier tarif connu** continue de s'appliquer,
+  tuile atténuée (AD-6). Le coût ne disparaît pas parce que la socket a hoqueté.
+- **Aucun horaire ni prix dans le bundle.** `01:08 / 06:08 / 12:38 / 15:38` et
+  `0.0890 / 0.1491` n'existent que dans ce fichier et dans HA. Un
+  `rg '01:08|12:38|0\.0890|0\.1491' src/` doit rester **vide** — c'est un gate de la story.
+
+### ⚠️ Le compromis à connaître : le coût saute à chaque bascule
+
+Le `utility_meter` reste **unique** (décision de Florian : pas de compteurs par tarif).
+L'app ne sait donc **pas** combien de kWh ont été consommés en creuses vs en pleines, et
+ne peut calculer que :
+
+```
+coût_du_jour = conso_totale_du_jour × prix(période_courante)
+```
+
+**Cette formule est fausse dès que la journée a traversé les deux périodes.** À 06h08, le
+chiffre de la tuile **saute de +68 % sans qu'un seul kWh n'ait été consommé** : 8,2 kWh
+passent de 0,73 € à 1,22 €, puis re-sautent en sens inverse à 12h38. Le coût affiché est
+**indicatif** (« à ce rythme et à ce tarif »), pas une facture.
+
+**C'est assumé, et la correction est côté HA, pas côté app.** Si le saut gêne à l'usage,
+ajoute `tariffs: [creuses, pleines]` au `utility_meter` : HA tient alors deux seaux et le
+coût devient exact. Le dashboard aurait juste besoin de deux entrées kWh de plus — le
+reste ne bougerait pas. **Ne pas essayer de lisser ça côté app** : ce serait de l'état
+persisté (AD-1/AD-16) et de la logique tarifaire (AD-4).
+
+### 4. Appliquer & tester
+
+- **Recharger** : Outils de dév → YAML → **Recharger les entités Template** (+ **Recharger
+  Input number** si les helpers sont en YAML).
+- **Tester la bascule sans attendre 06h08** : Outils de dév → **Template**, coller le bloc
+  `state:` du `binary_sensor` en remplaçant `{% set n = now() %}` par une heure forcée.
+  Ou, plus direct : Outils de dév → **États** → forcer `binary_sensor.heures_creuses` à
+  `off` et vérifier que la tuile passe **HC → HP** et que le coût monte.
+- **Tester la dégradation** : forcer la période à `unavailable` **après** l'avoir vue ⇒ le
+  dernier tarif reste appliqué, la tuile s'atténue. Recharger la page dans cet état ⇒
+  « Période — » et coût « — » (jamais vue).
+- **Vérifier le coût à la main** : `conso × prix de la période affichée`. S'ils divergent,
+  c'est le mapping ou le helper, pas le calcul.
 
 ---
 

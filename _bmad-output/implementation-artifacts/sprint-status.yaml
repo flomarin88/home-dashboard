@@ -150,7 +150,7 @@ development_status:
   # Epic 9 — Consommation : flux élec & eau (v2)
   epic-9: in-progress  # démarré 2026-07-23 — story 9.1 contextualisée (create-story)
   9-1-micro-tuile-electricite-conso-cout: done  # done 2026-07-27 — Task 0 HA + device-proof validés (Florian) ; dev-story 2026-07-23 : tuile+page /electricite, 293 tests verts, build sans token OK
-  9-2-heures-creuses-pleines: ready-for-dev  # story contextualisée 2026-07-27 (create-story, v0.2) ; fenêtres HC 01h08-06h08 / 12h38-15h38 et prix 0,0890 (HC) / 0,1491 (HP) €/kWh fournis par Florian. Pas de compteurs par tarif (choix Florian) ⇒ coût = conso_totale × prix(période), saut de +68% à chaque bascule assumé. Task 0 HA (binary_sensor template + capteur prochaine bascule + 2 helpers prix, zéro automation) requis pour le device-proof seulement
+  9-2-heures-creuses-pleines: review  # implémentée 2026-07-28 (dev-story, TDD) : 5 entités mappées, coût au tarif de la période, pill HC/HP compacte sur la tuile, page /electricite remplie (2 tarifs + « Appliqué » + prochaine bascule). 393 tests verts, 0 horaire/prix/token dans dist/. BLOQUANTS RESTANTS (Florian) : Task 0 — créer les 2 capteurs template + 2 helpers input_number puis confirmer les 4 entity_id réels ; preuve device 1024×768 — barre à 6 chips + cette pill, et TopBarSlots borné depuis 3f0172a donc un débordement coupe au lieu de déborder
   9-3-micro-tuile-eau-saur: backlog
   epic-9-retrospective: optional
 

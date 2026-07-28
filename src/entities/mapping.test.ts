@@ -178,17 +178,65 @@ describe("auxiliary entity_ids (counters + input_datetime, outside ENTITIES)", (
   });
 });
 
-describe("electricity mapping (Story 9.1)", () => {
-  it("exposes the daily-kWh sensor and the €/kWh price helper (placeholders until Task 0)", () => {
-    const e = electricityConfig();
-    expect(e.dailyKwhEntityId).toMatch(/^sensor\.[a-z0-9_]+$/);
-    expect(e.priceEntityId).toMatch(/^input_number\.[a-z0-9_]+$/);
+describe("electricity mapping (Story 9.1, tariff-aware since 9.2)", () => {
+  it("exposes the daily-kWh sensor (unchanged — it stays the single meter)", () => {
+    expect(electricityConfig().dailyKwhEntityId).toMatch(
+      /^sensor\.[a-z0-9_]+$/,
+    );
   });
 
-  it("registers both ids for aux well-formedness validation (leçon 7.1 D4)", () => {
+  it("exposes the current-period binary_sensor (Story 9.2)", () => {
+    // `on` = creuses is the interface contract; the windows themselves live in
+    // HA (AD-4) and must never appear in the bundle.
+    expect(electricityConfig().periodEntityId).toMatch(
+      /^binary_sensor\.[a-z0-9_]+$/,
+    );
+  });
+
+  it("exposes TWO price helpers, not one flat price (Story 9.2)", () => {
+    const e = electricityConfig();
+    expect(e.priceCreusesEntityId).toMatch(/^input_number\.[a-z0-9_]+$/);
+    expect(e.pricePleinesEntityId).toMatch(/^input_number\.[a-z0-9_]+$/);
+    expect(e.priceCreusesEntityId).not.toBe(e.pricePleinesEntityId);
+  });
+
+  it("exposes the next-switch timestamp sensor (Story 9.2)", () => {
+    // Read and formatted, never computed: no schedule arithmetic in the app.
+    expect(electricityConfig().nextSwitchEntityId).toMatch(
+      /^sensor\.[a-z0-9_]+$/,
+    );
+  });
+
+  it("no longer carries the flat price helper of 9.1", () => {
+    // Leaving it would let a caller keep reading a price that no longer drives
+    // anything — two sources of truth for the same number.
+    expect(
+      (electricityConfig() as Record<string, unknown>).priceEntityId,
+    ).toBeUndefined();
+  });
+
+  it("registers all five ids for aux well-formedness validation (leçon 7.1 D4)", () => {
     // They are part of the default AUX_ENTITY_IDS, so the real-ids check covers
-    // them; a typo in either would throw at dev-time instead of shipping dimmed.
+    // them; a typo in any would throw at dev-time instead of shipping dimmed.
     expect(() => assertWellFormedAuxIds()).not.toThrow();
+    const e = electricityConfig();
+    for (const id of [
+      e.dailyKwhEntityId,
+      e.periodEntityId,
+      e.priceCreusesEntityId,
+      e.pricePleinesEntityId,
+      e.nextSwitchEntityId,
+    ]) {
+      expect(() => assertWellFormedAuxIds([id])).not.toThrow();
+    }
+  });
+
+  it("keeps every tariff window and price OUT of the mapping (AD-4)", () => {
+    // The gate of Task 7, asserted in code so it cannot rot: the schedule and
+    // the euros live in docs/home-assistant.md and in HA, nowhere else.
+    const serialised = JSON.stringify(electricityConfig());
+    expect(serialised).not.toMatch(/01:08|06:08|12:38|15:38/);
+    expect(serialised).not.toMatch(/0\.0890|0\.1491/);
   });
 });
 

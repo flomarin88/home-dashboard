@@ -7,13 +7,18 @@ import { electricityConfig } from "../entities";
 import type { ElectricityConfig } from "../entities";
 import { useEntityValue } from "../hakit/useEntityValue";
 import { formatSince } from "../hakit/stale";
-import { electricityView } from "../widgets/electricity-cost";
+import {
+  electricityView,
+  type TariffPeriod,
+} from "../widgets/electricity-cost";
 import {
   formatEuro,
   formatKwh,
   formatPrice,
+  periodName,
 } from "../widgets/consumption-format";
-import { BoltIcon } from "../widgets/ConsumptionIcons";
+import { formatSunTime } from "../widgets/weather-format";
+import { BoltIcon, PeriodIcon } from "../widgets/ConsumptionIcons";
 import { SPARKLINE_HOURS } from "../config";
 
 // Lazy so Recharts stays code-split off the home warm-start bundle (shared chunk
@@ -26,10 +31,12 @@ const SensorHistoryChart = lazy(() => import("../widgets/SensorHistoryChart"));
  * top bar belong to `KioskShell` (TD-1). Landscape 2-column grid of frosted
  * tiles, fits the 1024×768 kiosk viewport with NO scroll.
  *
- * Left: Aujourd'hui (derived cost + consumption + unit price) + Historique
- * (cumulative daily-kWh chart). Right: the HC/HP tariff tile as an "à venir"
- * seam, filled by Story 9.2 (current period + two prices + next switch). All
- * reflect-only (AD-3); cost is a display derivation (AD-16), never persisted.
+ * Left: Aujourd'hui (derived cost + consumption + applied tariff) + Historique
+ * (cumulative daily-kWh chart). Right: the HC/HP tariff tile — current period,
+ * BOTH prices with the one in force marked, and the next switch (Story 9.2,
+ * filling the seam 9.1 left). All reflect-only (AD-3); cost is a display
+ * derivation (AD-16), never persisted, and no tariff schedule is computed here
+ * (AD-4) — the period and the switch time are both read from HA.
  */
 export function ElectricityDetail() {
   const cfg = electricityConfig();
@@ -46,9 +53,23 @@ export function ElectricityDetail() {
 
 export function ElectricityDetailContent({ cfg }: { cfg: ElectricityConfig }) {
   const kwh = useEntityValue(cfg.dailyKwhEntityId as EntityName);
-  const price = useEntityValue(cfg.priceEntityId as EntityName);
-  const view = electricityView({ kwh: kwh.value, price: price.value });
-  const anyStale = kwh.isStale || price.isStale;
+  const period = useEntityValue(cfg.periodEntityId as EntityName);
+  const priceCreuses = useEntityValue(cfg.priceCreusesEntityId as EntityName);
+  const pricePleines = useEntityValue(cfg.pricePleinesEntityId as EntityName);
+  const nextSwitch = useEntityValue(cfg.nextSwitchEntityId as EntityName);
+
+  const view = electricityView({
+    kwh: kwh.value,
+    priceCreuses: priceCreuses.value,
+    pricePleines: pricePleines.value,
+    period: period.value,
+  });
+  const anyStale =
+    kwh.isStale ||
+    period.isStale ||
+    priceCreuses.isStale ||
+    pricePleines.isStale ||
+    nextSwitch.isStale;
 
   // Cumulative daily-kWh history. The sensor resets to 0 at midnight, so over a
   // 24 h window the curve climbs then drops at the midnight boundary — that
@@ -94,7 +115,11 @@ export function ElectricityDetailContent({ cfg }: { cfg: ElectricityConfig }) {
             </div>
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-meta tabular-nums text-text-muted">
               <span>{formatKwh(view.kwh)} · depuis 00:00</span>
-              <span>{formatPrice(view.price)}</span>
+              {/* The tariff actually billing right now, named — a bare price
+                  would no longer say which of the two it is. */}
+              <span>
+                {`${formatPrice(view.appliedPrice)} · ${periodName(view.period)}`}
+              </span>
             </div>
           </Tile>
 
@@ -120,10 +145,53 @@ export function ElectricityDetailContent({ cfg }: { cfg: ElectricityConfig }) {
           </Tile>
         </div>
 
-        {/* Right column — HC/HP tariff seam, filled by Story 9.2. */}
+        {/* Right column — the HC/HP tariff detail (Story 9.2). */}
         <div className="flex min-h-0 flex-col gap-grid-gap overflow-hidden">
+          {/* No second "Hors ligne" pill here: AC5 asks for one on the page,
+              and the tile family already dims as a whole. Repeating it would be
+              noise on a screen read from three metres away. */}
           <Tile title="Heures creuses / pleines" className="min-h-0 flex-1">
-            <ComingSoon note="Ajouté par la Story 9.2 : période courante (HA) + les deux tarifs HC/HP + la prochaine bascule." />
+            {/* Current period — glyph AND word, never colour alone (UX-DR14). */}
+            <div className="flex items-center gap-2">
+              <PeriodIcon
+                period={view.period}
+                size={22}
+                className={anyStale ? "text-stale-text" : "text-text-muted"}
+              />
+              <span
+                className={`text-numeric-lg font-semibold ${
+                  anyStale ? "text-stale-text" : "text-text"
+                }`}
+              >
+                {periodName(view.period)}
+              </span>
+              <span className="text-meta text-text-muted">en ce moment</span>
+            </div>
+
+            {/* Both tariffs, always both — the one in force is marked by a WORD.
+                A border or a tint alone would fail UX-DR14, and the user needs
+                to see the other rate to know what they are avoiding. */}
+            <ul className="flex flex-col gap-1">
+              <TariffRow
+                period="creuses"
+                price={view.priceCreuses}
+                applied={view.period === "creuses"}
+              />
+              <TariffRow
+                period="pleines"
+                price={view.pricePleines}
+                applied={view.period === "pleines"}
+              />
+            </ul>
+
+            {/* Next switch: READ from a timestamp sensor and formatted with the
+                same helper /meteo uses for sunrise. No deadline arithmetic, no
+                window, no timer, no Date.now() (AD-4). */}
+            <span className="text-meta tabular-nums text-text-muted">
+              {`Passage en ${
+                view.period === "creuses" ? "pleines" : "creuses"
+              } à ${formatSunTime(nextSwitch.value)}`}
+            </span>
           </Tile>
         </div>
       </div>
@@ -164,13 +232,35 @@ function Tile({
   );
 }
 
-/** Placeholder for a capability awaiting a later story (here: HC/HP, Story 9.2). */
-function ComingSoon({ note }: { note: string }) {
+/**
+ * One tariff line: glyph, name, price, and — for the one currently billing — the
+ * word "Appliqué". The marker is textual on purpose: a coloured border or a tint
+ * would carry the meaning in colour alone (UX-DR14), and the neutral background
+ * behind it is only reinforcement, never the signal (UX-DR24).
+ */
+function TariffRow({
+  period,
+  price,
+  applied,
+}: {
+  period: TariffPeriod;
+  price: number | null;
+  applied: boolean;
+}) {
   return (
-    <div className="flex flex-col gap-1">
-      <span className="text-label font-semibold text-text">À venir</span>
-      <span className="text-meta text-text-muted">{note}</span>
-    </div>
+    <li
+      className={`flex items-center gap-2 rounded-md px-2 py-1 text-meta ${
+        applied ? "border border-card-border bg-card-fill" : ""
+      }`}
+    >
+      <PeriodIcon period={period} size={16} className="text-text-muted" />
+      <span className="text-text-muted">{periodName(period)}</span>
+      <span className="tabular-nums text-text">{formatPrice(price)}</span>
+      <span className="flex-1" />
+      {applied ? (
+        <span className="text-caption font-semibold text-text">Appliqué</span>
+      ) : null}
+    </li>
   );
 }
 
