@@ -16,6 +16,7 @@ import {
   formatKwh,
   formatPrice,
   periodName,
+  periodTone,
 } from "../widgets/consumption-format";
 import { formatSunTime } from "../widgets/weather-format";
 import { BoltIcon, PeriodIcon } from "../widgets/ConsumptionIcons";
@@ -151,16 +152,21 @@ export function ElectricityDetailContent({ cfg }: { cfg: ElectricityConfig }) {
               and the tile family already dims as a whole. Repeating it would be
               noise on a screen read from three metres away. */}
           <Tile title="Heures creuses / pleines" className="min-h-0 flex-1">
-            {/* Current period — glyph AND word, never colour alone (UX-DR14). */}
+            {/* Current period — tinted per the mock, but the glyph and the word
+                say it too: colour is never the sole carrier (UX-DR14). Stale
+                overrides the tint, because an out-of-date period must not look
+                as confident as a live one. */}
             <div className="flex items-center gap-2">
               <PeriodIcon
                 period={view.period}
                 size={22}
-                className={anyStale ? "text-stale-text" : "text-text-muted"}
+                className={
+                  anyStale ? "text-stale-text" : periodTone(view.period).text
+                }
               />
               <span
                 className={`text-numeric-lg font-semibold ${
-                  anyStale ? "text-stale-text" : "text-text"
+                  anyStale ? "text-stale-text" : periodTone(view.period).text
                 }`}
               >
                 {periodName(view.period)}
@@ -247,18 +253,26 @@ function TariffRow({
   price: number | null;
   applied: boolean;
 }) {
+  const tone = periodTone(period);
   return (
     <li
       className={`flex items-center gap-2 rounded-md px-2 py-1 text-meta ${
-        applied ? "border border-card-border bg-card-fill" : ""
+        applied ? `border ${tone.border} ${tone.soft}` : ""
       }`}
     >
-      <PeriodIcon period={period} size={16} className="text-text-muted" />
-      <span className="text-text-muted">{periodName(period)}</span>
+      <PeriodIcon period={period} size={16} className={tone.text} />
+      <span className={applied ? tone.text : "text-text-muted"}>
+        {periodName(period)}
+      </span>
       <span className="tabular-nums text-text">{formatPrice(price)}</span>
       <span className="flex-1" />
+      {/* The marker stays a WORD. The tint and the border above are
+          reinforcement; strip all colour and this row still tells you which
+          tariff is billing (UX-DR14). */}
       {applied ? (
-        <span className="text-caption font-semibold text-text">Appliqué</span>
+        <span className={`text-caption font-semibold ${tone.text}`}>
+          Appliqué
+        </span>
       ) : null}
     </li>
   );

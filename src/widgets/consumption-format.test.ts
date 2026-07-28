@@ -5,6 +5,7 @@ import {
   formatPrice,
   periodLabel,
   periodName,
+  periodTone,
 } from "./consumption-format";
 
 describe("consumption-format (Story 9.1)", () => {
@@ -55,5 +56,21 @@ describe("periodLabel / periodName (Story 9.2)", () => {
   it("both degrade to the house dash when the period is unknown", () => {
     expect(periodLabel(null)).toBe("—");
     expect(periodName(null)).toBe("—");
+  });
+});
+
+describe("periodTone (Story 9.2 — the mock's tints, Florian 2026-07-28)", () => {
+  it("gives each period its own hue", () => {
+    expect(periodTone("creuses").text).toBe("text-tariff-creuses");
+    expect(periodTone("pleines").text).toBe("text-tariff-pleines");
+    expect(periodTone("creuses").soft).not.toBe(periodTone("pleines").soft);
+  });
+
+  it("leaves an unknown period muted rather than inventing a third colour", () => {
+    // "We don't know" is not a tariff; giving it a hue would suggest it is.
+    const t = periodTone(null);
+    expect(t.text).toBe("text-text-muted");
+    expect(t.soft).not.toMatch(/tariff/);
+    expect(t.border).not.toMatch(/tariff/);
   });
 });

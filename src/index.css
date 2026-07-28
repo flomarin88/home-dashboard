@@ -33,6 +33,24 @@
   --color-security-ok: #38d17a;
   --color-security-alert: #ff5d5d;
 
+  /* Tariff periods — heures creuses / pleines (Story 9.2).
+   *
+   * Taken verbatim from the mock (`mock-conso-topbar.html:13-14`) on Florian's
+   * call (2026-07-28), reversing the story's own "pill neutre, teintes du mock
+   * écartées" decision. Two collisions to know about, both deliberate:
+   *   - `creuses` sits next to `--color-security-ok` (#38d17a). Green is
+   *     reserved for safety (UX-DR18), so a permanently green pill spends a
+   *     little of that signal.
+   *   - `pleines` IS `--color-accent-lights`. The pill therefore wears the
+   *     Éclairage domain colour.
+   * Reverting is these four tokens; the components read nothing else. Colour is
+   * never the only carrier — glyph and word ride along (UX-DR14).
+   */
+  --color-tariff-creuses: #5fd39a;
+  --color-tariff-creuses-soft: rgba(95, 211, 154, 0.16);
+  --color-tariff-pleines: #ffb23e;
+  --color-tariff-pleines-soft: rgba(255, 178, 62, 0.16);
+
   /* Stale / offline */
   --color-stale: #5b6172;
   --color-stale-text: #c2c8d6;

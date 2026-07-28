@@ -120,6 +120,28 @@ describe("ElectricityDetail (Story 9.1, tariff-aware since 9.2)", () => {
     expect(applied.closest("li")?.textContent).toMatch(/Creuses/);
   });
 
+  it("tints the applied row with its OWN period colour, not a generic one", () => {
+    // Creuses is billing → the marked row wears green; flipping the period must
+    // move the amber, not repaint the same row.
+    const { container, unmount } = renderPage();
+    const li = screen.getByText("Appliqué").closest("li")!;
+    expect(li.className).toMatch(/tariff-creuses/);
+    expect(container.innerHTML).toMatch(/text-tariff-creuses/);
+    unmount();
+
+    state.period = "off";
+    renderPage();
+    expect(screen.getByText("Appliqué").closest("li")!.className).toMatch(
+      /tariff-pleines/,
+    );
+  });
+
+  it("keeps the 'Appliqué' WORD — strip the colour and the row still reads", () => {
+    // The tint is reinforcement (UX-DR14); the marker itself is text.
+    renderPage();
+    expect(screen.getByText("Appliqué")).toBeInTheDocument();
+  });
+
   it("moves the 'Appliqué' marker when the period flips", () => {
     state.period = "off";
     renderPage();

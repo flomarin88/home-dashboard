@@ -67,3 +67,39 @@ export function periodLabel(p: TariffPeriod | null): string {
 export function periodName(p: TariffPeriod | null): string {
   return p === "creuses" ? "Creuses" : p === "pleines" ? "Pleines" : "—";
 }
+
+/**
+ * The Tailwind classes that tint a period — green for creuses, amber for
+ * pleines, straight from the mock (Florian, 2026-07-28). Lives here so the tile
+ * and the detail page cannot drift on which shade means what; the values
+ * themselves are four tokens in `index.css`.
+ *
+ * An unknown period gets the muted treatment, NOT a third colour: "we don't
+ * know" is not a tariff, and inventing a hue for it would suggest it is.
+ *
+ * Colour is always an addition here, never the message — every caller also
+ * renders the glyph and the word (UX-DR14).
+ */
+export function periodTone(p: TariffPeriod | null): {
+  text: string;
+  soft: string;
+  border: string;
+} {
+  if (p === "creuses")
+    return {
+      text: "text-tariff-creuses",
+      soft: "bg-tariff-creuses-soft",
+      border: "border-tariff-creuses",
+    };
+  if (p === "pleines")
+    return {
+      text: "text-tariff-pleines",
+      soft: "bg-tariff-pleines-soft",
+      border: "border-tariff-pleines",
+    };
+  return {
+    text: "text-text-muted",
+    soft: "bg-card-fill",
+    border: "border-card-border",
+  };
+}

@@ -149,12 +149,35 @@ describe("ElectricityTile (Story 9.1, tariff-aware since 9.2)", () => {
     expect(screen.getByText("—")).toBeInTheDocument();
   });
 
-  it("renders no domain accent — the pill stays neutral (UX-DR24)", () => {
-    // The mock's green/orange tints were explicitly dropped: green is reserved
-    // for safety (UX-DR18), and colour alone must never carry meaning (UX-DR14).
+  it("tints the pill per period — green for creuses, amber for pleines", () => {
+    // Reverses the story's original "pill neutre" decision (Florian,
+    // 2026-07-28): the mock's tints are back. Note the previous version of this
+    // test asserted the OPPOSITE and would have passed regardless once the
+    // classes became `bg-tariff-*` — it never matched them.
+    const { container, unmount } = renderTile();
+    expect(container.innerHTML).toMatch(/bg-tariff-creuses-soft/);
+    expect(container.innerHTML).toMatch(/text-tariff-creuses/);
+    expect(container.innerHTML).not.toMatch(/tariff-pleines/);
+    unmount();
+
+    state.period = "off";
+    const second = renderTile();
+    expect(second.container.innerHTML).toMatch(/bg-tariff-pleines-soft/);
+    expect(second.container.innerHTML).not.toMatch(/tariff-creuses/);
+  });
+
+  it("never leans on the tint alone — glyph and letters say it too (UX-DR14)", () => {
+    // The point of the guard: if every colour were stripped, the chip must
+    // still tell you which period you are in.
     const { container } = renderTile();
-    expect(container.innerHTML).not.toMatch(
-      /bg-(green|emerald|orange|amber|red)-/,
-    );
+    expect(screen.getByText("HC")).toBeInTheDocument();
+    expect(container.querySelector("svg")).toBeInTheDocument();
+  });
+
+  it("an unknown period gets the muted treatment, not a third colour", () => {
+    // Inventing a hue for "we don't know" would make it look like a tariff.
+    state.period = "unavailable";
+    const { container } = renderTile();
+    expect(container.innerHTML).not.toMatch(/tariff-(creuses|pleines)/);
   });
 });

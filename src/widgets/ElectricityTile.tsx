@@ -8,6 +8,7 @@ import {
   formatKwh,
   periodLabel,
   periodName,
+  periodTone,
 } from "./consumption-format";
 import { BoltIcon, PeriodIcon } from "./ConsumptionIcons";
 
@@ -61,6 +62,7 @@ export function ElectricityTile() {
 
   const costLabel = formatEuro(view.cost);
   const kwhLabel = formatKwh(view.kwh);
+  const tone = periodTone(view.period);
   const spokenPeriod =
     view.period === null
       ? "période inconnue"
@@ -86,12 +88,16 @@ export function ElectricityTile() {
           {kwhLabel}
         </span>
       </span>
-      {/* Neutral pill: the chip's own fill and border, no accent (UX-DR24). The
-          accessible name above already carries the period, so the pill is
-          decorative to a screen reader rather than read twice. */}
+      {/* Tinted pill — green for creuses, amber for pleines, per the mock
+          (Florian, 2026-07-28). The glyph and the letters carry the meaning on
+          their own; the colour only makes it readable at a glance from across
+          the kitchen (UX-DR14). Dimming wins over the tint when stale, because
+          the chip's opacity applies to the whole button. The accessible name
+          above already spells the period, so the pill stays decorative rather
+          than being read twice. */}
       <span
         aria-hidden="true"
-        className="inline-flex items-center gap-1 rounded-full border border-card-border bg-card-fill px-2 py-0.5 text-caption text-text-muted"
+        className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-caption ${tone.soft} ${tone.text}`}
       >
         <PeriodIcon period={view.period} size={12} />
         {view.period === null
