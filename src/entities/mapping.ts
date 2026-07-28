@@ -469,8 +469,11 @@ export function weatherConfig(): WeatherConfig {
  * and tariff logic (AD-4). The fix, if ever wanted, is `tariffs:` on the HA
  * meter — see docs/home-assistant.md.
  *
- * ⚠️ PLACEHOLDER ids until Task 0 (the two template sensors + two price helpers
- * do not exist in HA yet) — confirm the real slugs at device-proof.
+ * The four TARIFF ids are REAL (Florian's HA, 2026-07-28): he created the two
+ * template sensors and the two price helpers, and the slugs came back exactly as
+ * proposed. `dailyKwhEntityId` is the one still waiting — Story 9.1's Task 0 has
+ * never been done, so the consumption sensor does not exist yet and the cost
+ * stays "—" until it does. The period and the two prices, however, are live.
  */
 export interface ElectricityConfig {
   /** `sensor.*` — daily cumulative consumption in kWh (utility_meter `cycle: daily`, reset midnight HA). */
@@ -486,9 +489,10 @@ export interface ElectricityConfig {
 }
 
 const ELECTRICITY: ElectricityConfig = {
-  // ⚠️ Placeholders (Task 0) — the real ids depend on the provider integration
-  // and on the template sensors Florian still has to create.
+  // ⚠️ STILL A PLACEHOLDER — Story 9.1's Task 0 is open. Without this sensor
+  // there is no kWh, so there is no cost, whatever the tariff says.
   dailyKwhEntityId: "sensor.electricite_conso_jour",
+  // Real ids, confirmed by Florian 2026-07-28 (Story 9.2, Task 0 done).
   periodEntityId: "binary_sensor.heures_creuses",
   priceCreusesEntityId: "input_number.prix_kwh_creuses",
   pricePleinesEntityId: "input_number.prix_kwh_pleines",

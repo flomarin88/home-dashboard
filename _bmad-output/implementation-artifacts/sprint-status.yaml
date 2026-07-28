@@ -150,7 +150,7 @@ development_status:
   # Epic 9 — Consommation : flux élec & eau (v2)
   epic-9: in-progress  # démarré 2026-07-23 — story 9.1 contextualisée (create-story)
   9-1-micro-tuile-electricite-conso-cout: done  # done 2026-07-27 — Task 0 HA + device-proof validés (Florian) ; dev-story 2026-07-23 : tuile+page /electricite, 293 tests verts, build sans token OK
-  9-2-heures-creuses-pleines: review  # implémentée 2026-07-28 (dev-story, TDD) : 5 entités mappées, coût au tarif de la période, pill HC/HP compacte sur la tuile, page /electricite remplie (2 tarifs + « Appliqué » + prochaine bascule). 393 tests verts, 0 horaire/prix/token dans dist/. BLOQUANTS RESTANTS (Florian) : Task 0 — créer les 2 capteurs template + 2 helpers input_number puis confirmer les 4 entity_id réels ; preuve device 1024×768 — barre à 6 chips + cette pill, et TopBarSlots borné depuis 3f0172a donc un débordement coupe au lieu de déborder
+  9-2-heures-creuses-pleines: review  # implémentée 2026-07-28 (dev-story, TDD) : 5 entités mappées, coût au tarif de la période, pill HC/HP compacte sur la tuile, page /electricite remplie (2 tarifs + « Appliqué » + prochaine bascule). 393 tests verts, 0 horaire/prix/token dans dist/. Task 0 FAITE 2026-07-28 (4 entity_id réels, identiques aux placeholders). BLOQUANT RESTANT : la Task 0 de la story 9.1 (capteur de conso) n'est PAS faite, donc le coût reste « — » ; la pill HC/HP et les 2 prix, eux, sont live. Reste aussi la preuve device 1024×768 — barre à 6 chips + cette pill, et TopBarSlots borné depuis 3f0172a donc un débordement coupe au lieu de déborder
   9-3-micro-tuile-eau-saur: backlog
   epic-9-retrospective: optional
 
