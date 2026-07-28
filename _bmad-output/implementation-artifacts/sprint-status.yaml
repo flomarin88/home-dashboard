@@ -42,7 +42,7 @@
 # - Retrospective appends its action items to action_items; sprint-status surfaces open ones
 
 generated: 2026-07-13
-last_updated: 2026-07-27
+last_updated: 2026-07-28
 # EPIC 1 (Fondation) DONE — stories 1.1-1.6 done (2026-07-15). Epic-1 retrospective optional. Next: epic-2 (pilotage).
 # v2 (2026-07-20): epics 7 (Arrosage) + 8 (Courses/NutriClaude) ajoutés au backlog depuis epics.md. Aucun fichier story v2 encore créé. Task 0 hors-repo requis avant epic-8.
 # v2b (2026-07-21): epic-9 (Consommation élec/eau — flux d'affichage HA read-only) ajouté au backlog via correct-course (sprint-change-proposal-2026-07-21.md). Aucun fichier story créé. Task 0 HA (capteurs conso + HC/HP + prix) requis avant device-proof.
@@ -156,7 +156,7 @@ development_status:
 
   # Epic 10 — Agenda : coup d'œil sur la journée (v2)
   epic-10: in-progress  # démarré 2026-07-27 — story 10.1 contextualisée (create-story). Task 0 HA LEVÉE : intégration Google Calendar active, 4 entity_id réels fournis. Placement tranché (UX-DR28, approche A)
-  10-1-agenda-du-jour-accueil: review  # story contextualisée 2026-07-27 (create-story) ; 4 calendriers réels (chats horodaté + anniversaires/scolaire/jours fériés en journée entière) ⇒ règle de sélection à 3 rangs tranchée avec Florian. Corrections d'AC consignées : 6ᵉ élément top-bar (pas 5ᵉ), hauteur min-h-[56px] (pas 52px). Risque dominant : barre supérieure saturée, en concurrence avec 9.2
+  10-1-agenda-du-jour-accueil: in-progress  # revue de code 2026-07-28 (multi-agent, Opus) : 20 constats, 16 patchés, 365 tests verts. Défaut dominant corrigé — un RDV horodaté en cours affichait « Jusqu'au <hier> ». TopBarSlots borné (dette 6.4 soldée), agenda-select sorti de widgets/ vers src/agenda/. BLOQUANTS RESTANTS (Florian, hors agent) : Task 0 bis — coller une vraie réponse calendar.get_events (différée, sans accès HA le 2026-07-28) ; preuve device 1024×748 avec BinTile affichée. Toujours en concurrence de budget top-bar avec 9.2
   10-2-page-detail-agenda-semaine-mois: backlog
   10-3-filtre-par-calendrier: backlog
   epic-10-retrospective: optional
