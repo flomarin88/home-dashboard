@@ -490,33 +490,30 @@ export interface CalendarRef {
   readonly entityId: string;
   /** Human label, shown to the user (Story 10.3 filter). */
   readonly label: string;
-  /**
-   * True when this calendar publishes timed events (start/end carry an hour).
-   * Documentation only — the parser detects all-day per EVENT, from the payload
-   * shape, never from this flag. Kept so the mapping records what Florian
-   * confirmed (2026-07-27): only `chats` is timed; the other three are all-day.
-   */
-  readonly timed: boolean;
 }
 
 /**
  * ⚠️ ORDER IS SIGNIFICANT: it breaks ties between two events sharing the same
  * start instant, which keeps `selectNext` deterministic (and its tests stable).
- * Timed calendars first so a real appointment wins a coin-flip against a
- * whole-day marker.
+ * The tie-break only ever runs WITHIN a rank, so this is a stable-sort seed, not
+ * a priority scheme — a timed event and a whole-day one are never compared.
+ *
+ * Which calendar carries hours is deliberately NOT recorded here: the parser
+ * reads all-day off each EVENT's payload shape, so a flag on the calendar would
+ * be a second source of truth nothing reads (review 2026-07-28, P9). Today
+ * `chats` is the only timed one; that fact belongs in `docs/home-assistant.md`,
+ * not in a field.
  */
 const CALENDARS: readonly CalendarRef[] = [
-  { entityId: "calendar.chats", label: "Chats", timed: true },
-  { entityId: "calendar.anniversaires", label: "Anniversaires", timed: false },
+  { entityId: "calendar.chats", label: "Chats" },
+  { entityId: "calendar.anniversaires", label: "Anniversaires" },
   {
     entityId: "calendar.calendrier_scolaire_zone_c",
     label: "Vacances scolaires",
-    timed: false,
   },
   {
     entityId: "calendar.jours_feries_et_autres_fetes_en_france",
     label: "Jours fériés",
-    timed: false,
   },
 ];
 

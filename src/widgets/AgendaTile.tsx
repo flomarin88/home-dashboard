@@ -40,7 +40,7 @@ interface TileText {
  * Not interactive in 10.1: tapping through to `/agenda` is Story 10.2.
  */
 export function AgendaTile() {
-  const { events, isStale, loading, since } = useCalendarEvents();
+  const { events, isStale, loading, since, unreadable } = useCalendarEvents();
   const [now, setNow] = useState(() => new Date());
 
   // Same tick pattern as `Clock` (30 s is enough for minute-grain wording).
@@ -51,14 +51,16 @@ export function AgendaTile() {
     return () => clearInterval(id);
   }, []);
 
-  const text = tileText({ events, now, loading, isStale, since });
+  const text = tileText({ events, now, loading, isStale, since, unreadable });
 
   return (
     <div
       role="status"
       aria-label={text.aria}
       className={`inline-flex min-h-[56px] items-center gap-2 rounded-lg border border-card-border bg-card-fill px-4 backdrop-blur-glass ${
-        isStale ? "opacity-60" : ""
+        // An unparsable answer is a degraded state too — dim it like an offline
+        // one, so a format drift can never look like a healthy empty day (D2).
+        isStale || unreadable ? "opacity-60" : ""
       }`}
     >
       <CalendarIcon size={20} className="shrink-0 text-text-muted" />
@@ -96,12 +98,14 @@ function tileText({
   loading,
   isStale,
   since,
+  unreadable,
 }: {
   events: ReturnType<typeof useCalendarEvents>["events"];
   now: Date;
   loading: boolean;
   isStale: boolean;
   since: string | undefined;
+  unreadable: boolean;
 }): TileText {
   const offline =
     isStale && since ? ` — hors ligne · ${formatSince(since)}` : "";
@@ -123,6 +127,18 @@ function tileText({
       delay: null,
       title: "",
       aria: "Agenda indisponible — Home Assistant injoignable",
+    };
+  }
+
+  // HA answered, the answer had entries, none of them parsed. "Rien
+  // aujourd'hui" would be a lie on a full day, so name the real fault — the
+  // console carries the payload for whoever debugs it (D2).
+  if (unreadable) {
+    return {
+      when: "Indisponible",
+      delay: null,
+      title: "",
+      aria: "Agenda indisponible — réponse de Home Assistant illisible",
     };
   }
 
@@ -159,7 +175,9 @@ function tileText({
     };
   }
 
-  const until = untilLabel(event.end, now);
+  // Rank 3 — already running. The label knows whether it is naming a day or an
+  // hour; this branch just renders it (D1).
+  const until = untilLabel(event);
   return {
     when: until,
     delay: null,

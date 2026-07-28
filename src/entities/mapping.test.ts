@@ -208,10 +208,17 @@ describe("calendars mapping (Story 10.1)", () => {
     );
   });
 
-  it("puts the timed calendar first — the order breaks ties in selectNext", () => {
-    // Deterministic tie-break (same start instant) depends on this order, so a
-    // reshuffle must be a conscious edit, not a silent one.
-    expect(calendarsConfig()[0].timed).toBe(true);
+  it("keeps a fixed order — it seeds the stable tie-break inside a rank", () => {
+    // Deterministic tie-break (same start instant, same rank) depends on this
+    // order, so a reshuffle must be a conscious edit, not a silent one. The
+    // order itself is the contract; no calendar carries a "timed" flag, because
+    // all-day is read per EVENT from the payload (review 2026-07-28, P9).
+    expect(calendarsConfig().map((c) => c.entityId)).toEqual([
+      "calendar.chats",
+      "calendar.anniversaires",
+      "calendar.calendrier_scolaire_zone_c",
+      "calendar.jours_feries_et_autres_fetes_en_france",
+    ]);
   });
 
   it("registers the calendar ids for aux well-formedness validation (leçon 7.1 D4)", () => {

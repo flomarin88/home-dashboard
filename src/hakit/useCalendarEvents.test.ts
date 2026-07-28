@@ -163,6 +163,111 @@ describe("useCalendarEvents — the query-read path (AD-17)", () => {
     expect(second.start_date_time).toBe("2026-07-29 00:00:00");
   });
 
+  it("retries 60s after a failure — an error must not burn the refresh budget", async () => {
+    // Review 2026-07-28 (P4): `lastFetchAt` was stamped BEFORE the await, so a
+    // rejected call consumed the whole 15-minute period and a transient blip
+    // pinned the tile to stale data for a quarter of an hour.
+    vi.useFakeTimers();
+    hass.callService.mockRejectedValue(new Error("boom"));
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    renderHook(() => useCalendarEvents(15 * 60_000));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(hass.callService).toHaveBeenCalledTimes(1);
+    // Logged like every other HA failure in this app — on a wall-mounted iPad
+    // this is the only diagnostic there is (P1).
+    expect(warn).toHaveBeenCalledWith(
+      "agenda: calendar.get_events failed",
+      expect.any(Error),
+    );
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(61_000);
+    });
+    expect(hass.callService).toHaveBeenCalledTimes(2);
+    warn.mockRestore();
+  });
+
+  it("a slow reply landing after a newer one does not overwrite it", async () => {
+    // Review 2026-07-28 (P5): three triggers can fire with nothing sequencing
+    // them. A late resolution used to rewind `since`, restore the old window and
+    // clear a genuine failure.
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 6, 28, 12, 0, 0));
+
+    let releaseFirst: (v: unknown) => void = () => {};
+    hass.callService
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            releaseFirst = resolve;
+          }),
+      )
+      .mockResolvedValue(okResponse("Récent"));
+
+    const { result } = renderHook(() => useCalendarEvents(60_000));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    // Second trigger (the tick) answers first, with the newer data.
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(61_000);
+    });
+    expect(result.current.events).toHaveLength(1);
+    expect(result.current.events[0].summary).toBe("Récent");
+
+    // Now the very first request finally resolves — with older content.
+    await act(async () => {
+      releaseFirst(okResponse("Périmé"));
+      await vi.advanceTimersByTimeAsync(0);
+    });
+
+    expect(result.current.events[0].summary).toBe("Récent");
+  });
+
+  it("flags an unreadable answer instead of reporting an empty day", async () => {
+    // Review 2026-07-28 (D2): entries came back, none parsed, and the tile said
+    // "Rien aujourd'hui" on a full day. Task 0 bis (observing the real payload)
+    // is still open, so this guard is what stands between a format drift and a
+    // silent lie.
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    hass.callService.mockResolvedValue({
+      context: {},
+      response: {
+        "calendar.chats": {
+          events: [
+            { summary: "X", start: { dateTime: "2026-07-28T17:00:00" } },
+          ],
+        },
+      },
+    });
+
+    const { result } = renderHook(() => useCalendarEvents());
+    await waitFor(() => expect(result.current.unreadable).toBe(true));
+
+    expect(result.current.events).toHaveLength(0);
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringMatching(/aucun lisible/i),
+      expect.anything(),
+    );
+    warn.mockRestore();
+  });
+
+  it("a genuinely empty day is NOT flagged unreadable", async () => {
+    hass.callService.mockResolvedValue({
+      context: {},
+      response: { "calendar.chats": { events: [] } },
+    });
+
+    const { result } = renderHook(() => useCalendarEvents());
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    expect(result.current.unreadable).toBe(false);
+    expect(result.current.events).toHaveLength(0);
+  });
+
   it("stops its timer and listener on unmount (no leak, leçon timers 2.1)", async () => {
     vi.useFakeTimers();
     const { unmount } = renderHook(() => useCalendarEvents(60_000));

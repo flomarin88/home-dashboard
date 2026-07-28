@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   parseEvents,
+  countRawEntries,
   selectNext,
   relativeDelay,
   formatEventTime,
@@ -13,9 +14,9 @@ import type { CalendarRef } from "../entities";
 // A stand-in mapping — deliberately NOT the real one, so these tests keep
 // passing if Florian renames a calendar. Order matters: it breaks ties.
 const CALS: readonly CalendarRef[] = [
-  { entityId: "calendar.chats", label: "Chats", timed: true },
-  { entityId: "calendar.anniversaires", label: "Anniversaires", timed: false },
-  { entityId: "calendar.scolaire", label: "Vacances scolaires", timed: false },
+  { entityId: "calendar.chats", label: "Chats" },
+  { entityId: "calendar.anniversaires", label: "Anniversaires" },
+  { entityId: "calendar.scolaire", label: "Vacances scolaires" },
 ];
 
 /** Local-time Date, so tests never depend on the runner's timezone offset. */
@@ -105,6 +106,48 @@ describe("parseEvents (AD-17 payload → domain)", () => {
     expect(evs.map((e) => e.summary)).toEqual(["Bon"]);
   });
 
+  it("rejects an out-of-range date instead of letting it roll over (review P8)", () => {
+    // `new Date(2026, 12, 45)` is NOT NaN — it silently becomes 2027-02-14. The
+    // shape regex admits these, so only reading the components back catches
+    // them. This is the one corruption class that produced a confident wrong
+    // date on screen rather than being dropped.
+    const evs = parseEvents(
+      response({
+        "calendar.anniversaires": [
+          { summary: "Impossible", start: "2026-13-45", end: "2026-13-46" },
+          {
+            summary: "29 février inexistant",
+            start: "2026-02-30",
+            end: "2026-03-01",
+          },
+          { summary: "Valide", start: "2026-07-28", end: "2026-07-29" },
+        ],
+      }),
+      CALS,
+    );
+    expect(evs.map((e) => e.summary)).toEqual(["Valide"]);
+  });
+
+  it("keeps an event whose summary is blank, rendering it '(sans titre)'", () => {
+    // The dates are what the tile ranks on, so a nameless event still answers
+    // "something is happening at 17:00". Documented behaviour, not an accident
+    // (review P12).
+    const evs = parseEvents(
+      response({
+        "calendar.chats": [
+          {
+            summary: "  ",
+            start: "2026-07-28 17:00:00",
+            end: "2026-07-28 18:00:00",
+          },
+        ],
+      }),
+      CALS,
+    );
+    expect(evs).toHaveLength(1);
+    expect(evs[0].summary).toBe("(sans titre)");
+  });
+
   it("survives a missing / malformed calendar key without throwing", () => {
     expect(() => parseEvents({}, CALS)).not.toThrow();
     expect(parseEvents({}, CALS)).toEqual([]);
@@ -126,6 +169,55 @@ describe("parseEvents (AD-17 payload → domain)", () => {
       CALS,
     );
     expect(evs).toEqual([]);
+  });
+});
+
+describe("countRawEntries — telling a format drift from an empty day (review D2)", () => {
+  it("counts entries the response carried, parsable or not", () => {
+    const payload = response({
+      "calendar.chats": [
+        {
+          summary: "A",
+          start: "2026-07-28 17:00:00",
+          end: "2026-07-28 18:00:00",
+        },
+      ],
+      "calendar.anniversaires": [
+        { summary: "B", start: "pas une date", end: "pas une date" },
+      ],
+    });
+    expect(countRawEntries(payload, CALS)).toBe(2);
+    // One parsed, one not — so this is NOT the "nothing readable" case.
+    expect(parseEvents(payload, CALS)).toHaveLength(1);
+  });
+
+  it("separates a genuinely empty day from a payload we cannot read", () => {
+    const emptyDay = response({ "calendar.chats": [] });
+    expect(countRawEntries(emptyDay, CALS)).toBe(0);
+    expect(parseEvents(emptyDay, CALS)).toHaveLength(0);
+
+    // A Google-shaped payload (objects instead of strings) is the drift we
+    // cannot rule out while Task 0 bis is open: 1 entry in, 0 out.
+    const unreadable = {
+      "calendar.chats": {
+        events: [{ summary: "X", start: { dateTime: "2026-07-28T17:00:00" } }],
+      },
+    };
+    expect(countRawEntries(unreadable, CALS)).toBe(1);
+    expect(parseEvents(unreadable, CALS)).toHaveLength(0);
+  });
+
+  it("ignores unmapped calendars, like the parser does", () => {
+    expect(
+      countRawEntries(
+        response({
+          "calendar.inconnu": [
+            { summary: "X", start: "2026-07-28", end: "2026-07-29" },
+          ],
+        }),
+        CALS,
+      ),
+    ).toBe(0);
   });
 });
 
@@ -212,6 +304,49 @@ describe("selectNext — the 3-rank rule (Florian, 2026-07-27)", () => {
     const sel = selectNext(evs, at(2026, 7, 28, 13, 0));
     expect(sel?.rank).toBe("ongoing");
     expect(sel?.event.summary).toBe("Vacances d'été");
+  });
+
+  it("rank 3: a TIMED appointment already under way still shows (review D1)", () => {
+    // The bug this pins down: the running filter had no all-day guard AND the
+    // label subtracted a day, so a 09:00–18:00 vet visit at 13:00 rendered
+    // "Jusqu'au <yesterday>". Rank 3 keeps it — falling through to "Rien
+    // aujourd'hui" while the appointment runs would be a lie — and the label
+    // now follows the kind.
+    const evs = parseEvents(
+      response({
+        "calendar.chats": [
+          {
+            summary: "Vétérinaire",
+            start: "2026-07-28 09:00:00",
+            end: "2026-07-28 18:00:00",
+          },
+        ],
+      }),
+      CALS,
+    );
+    const sel = selectNext(evs, at(2026, 7, 28, 13, 0));
+    expect(sel?.rank).toBe("ongoing");
+    expect(sel?.event.allDay).toBe(false);
+    expect(untilLabel(sel!.event)).toBe("Jusqu'à 18:00");
+  });
+
+  it("rank 1 ignores an event starting TOMORROW, however wide the response", () => {
+    // The query window bounds the reply today, but nothing in the rule did:
+    // a wider window (Story 10.2 reuses these helpers) would have promoted
+    // tomorrow's 00:15 to "next today" (review P7).
+    const evs = parseEvents(
+      response({
+        "calendar.chats": [
+          {
+            summary: "Trop tôt",
+            start: "2026-07-29 00:15:00",
+            end: "2026-07-29 01:00:00",
+          },
+        ],
+      }),
+      CALS,
+    );
+    expect(selectNext(evs, at(2026, 7, 28, 23, 0))).toBeNull();
   });
 
   it("returns null when nothing qualifies — the tile renders 'Rien aujourd'hui'", () => {
@@ -312,9 +447,25 @@ describe("formatEventTime", () => {
 });
 
 describe("untilLabel (rank 3)", () => {
-  it("names the LAST day, accounting for the exclusive end", () => {
+  const running = (allDay: boolean, end: Date) => ({
+    summary: "X",
+    start: at(2026, 10, 20),
+    end,
+    allDay,
+    calendarId: "calendar.scolaire",
+  });
+
+  it("names the LAST day of an all-day event, accounting for the exclusive end", () => {
     // end = 4 nov (exclusive) ⇒ the event's last day is 3 nov.
-    expect(untilLabel(at(2026, 11, 4), at(2026, 10, 25))).toMatch(/3 nov/);
+    expect(untilLabel(running(true, at(2026, 11, 4)))).toMatch(/3 nov/);
+  });
+
+  it("names the HOUR of a timed event — the exclusive-end rule must not apply", () => {
+    // The 2026-07-28 review bug: subtracting a day from a wall-clock end printed
+    // a date in the past ("Jusqu'au 27 juil." for a visit ending at 18:00 today).
+    expect(untilLabel(running(false, at(2026, 7, 28, 18, 0)))).toBe(
+      "Jusqu'à 18:00",
+    );
   });
 });
 

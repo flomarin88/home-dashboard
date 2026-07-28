@@ -389,6 +389,14 @@ secret Google**. Chaque calendrier partagé apparaît ensuite comme une entité 
 
 ### Contrat d'interface (⚠️ le code du dashboard en dépend)
 
+> 🚧 **La forme de la réponse ci-dessous est SUPPOSÉE, pas encore observée.** La story
+> 10.1 exigeait de rejouer l'appel sur la vraie instance avant d'écrire le parseur
+> (« Task 0 bis ») ; ça n'a pas pu être fait (revue du 2026-07-28 — Florian sans accès à
+> HA). Le parseur est donc défensif : si le payload réel a une autre forme, tout est
+> rejeté et la tuile affiche **« Indisponible »** avec un `console.warn` portant la
+> réponse — jamais « Rien aujourd'hui ». **À solder** : rejouer l'appel (§ 3 ci-dessous),
+> comparer, ajuster, puis retirer cet encadré.
+
 Le dashboard appelle **`calendar.get_events`** — une action HA **qui retourne des
 données** — sur la plage `[aujourd'hui 00:00 → demain 00:00)`, en **un seul appel**
 ciblant les 4 entités. Il ne lit **jamais** les attributs d'une entité `calendar.*` :
@@ -411,16 +419,26 @@ calendar.anniversaires:
 ```
 
 - **Journée entière** = `start`/`end` **sans partie horaire**. L'app le détecte à la
-  **forme** de la chaîne — c'est le seul signal disponible.
+  **forme de chaque événement** — c'est le seul signal disponible, et c'est pourquoi le
+  mapping ne porte **aucun** drapeau « ce calendrier est horodaté ». Aujourd'hui seul
+  `calendar.chats` produit des événements avec heure, mais rien dans le code n'en dépend.
 - **`end` est exclusive** : un événement du 28 se termine `2026-07-29`.
 - Une entrée illisible est **ignorée** ; les autres sont conservées. Jamais de
-  « Invalid Date » à l'écran.
+  « Invalid Date » à l'écran. Un `summary` vide est la **seule** tolérance : l'événement
+  est gardé et affiché « (sans titre) », parce que ce sont les dates qui portent
+  l'information.
+- **Si AUCUNE entrée n'est lisible** alors que la réponse en contenait, la tuile affiche
+  **« Indisponible »** (atténuée) et journalise la réponse. C'est la garde contre une
+  dérive de format qui se déguiserait en journée vide.
 
 **Quel événement s'affiche** — les calendriers étant surtout en journée entière, un tri
 chronologique afficherait « Vacances de la Toussaint » pendant deux semaines. La règle
 est donc à trois rangs : (1) un événement **horodaté encore à venir** aujourd'hui, sinon
-(2) un événement **journée entière commençant aujourd'hui**, sinon (3) un **multi-jours
-en cours**, sinon « Rien aujourd'hui ».
+(2) un événement **journée entière commençant aujourd'hui**, sinon (3) **ce qui est
+encore en cours**, sinon « Rien aujourd'hui ». Au rang 3, le libellé suit la nature de
+l'événement : **« Jusqu'au 3 nov. »** pour un multi-jours, **« Jusqu'à 18:00 »** pour un
+rendez-vous horodaté commencé — la date de fin d'un journée entière étant exclusive, la
+même arithmétique appliquée à une heure afficherait la veille.
 
 **Fraîcheur** — cette donnée **n'est pas poussée** par le WebSocket : une socket vivante
 ne dit **rien** sur l'âge de la réponse. Le dashboard rejoue donc la requête au montage,
