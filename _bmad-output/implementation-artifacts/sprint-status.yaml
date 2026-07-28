@@ -150,13 +150,13 @@ development_status:
   # Epic 9 — Consommation : flux élec & eau (v2)
   epic-9: in-progress  # démarré 2026-07-23 — story 9.1 contextualisée (create-story)
   9-1-micro-tuile-electricite-conso-cout: done  # done 2026-07-27 — Task 0 HA + device-proof validés (Florian) ; dev-story 2026-07-23 : tuile+page /electricite, 293 tests verts, build sans token OK
-  9-2-heures-creuses-pleines: review  # implémentée 2026-07-28 (dev-story, TDD) : 5 entités mappées, coût au tarif de la période, pill HC/HP compacte sur la tuile, page /electricite remplie (2 tarifs + « Appliqué » + prochaine bascule). 393 tests verts, 0 horaire/prix/token dans dist/. Task 0 FAITE 2026-07-28 (4 entity_id réels, identiques aux placeholders). BLOQUANT RESTANT : la Task 0 de la story 9.1 (capteur de conso) n'est PAS faite, donc le coût reste « — » ; la pill HC/HP et les 2 prix, eux, sont live. Reste aussi la preuve device 1024×768 — barre à 6 chips + cette pill, et TopBarSlots borné depuis 3f0172a donc un débordement coupe au lieu de déborder
+  9-2-heures-creuses-pleines: done  # ✅ validée par Florian 2026-07-29. Task 0 faite (4 entity_id réels), jeu de couleurs de la maquette appliqué (AC1 amendé). Reste hors story : le capteur de conso de 9.1, sans lequel le coût affiche « — »
   9-3-micro-tuile-eau-saur: backlog
   epic-9-retrospective: optional
 
   # Epic 10 — Agenda : coup d'œil sur la journée (v2)
   epic-10: in-progress  # démarré 2026-07-27 — story 10.1 contextualisée (create-story). Task 0 HA LEVÉE : intégration Google Calendar active, 4 entity_id réels fournis. Placement tranché (UX-DR28, approche A)
-  10-1-agenda-du-jour-accueil: in-progress  # revue de code 2026-07-28 (multi-agent, Opus) : 20 constats, 16 patchés, 365 tests verts. Défaut dominant corrigé — un RDV horodaté en cours affichait « Jusqu'au <hier> ». TopBarSlots borné (dette 6.4 soldée), agenda-select sorti de widgets/ vers src/agenda/. BLOQUANTS RESTANTS (Florian, hors agent) : Task 0 bis — coller une vraie réponse calendar.get_events (différée, sans accès HA le 2026-07-28) ; preuve device 1024×748 avec BinTile affichée. Toujours en concurrence de budget top-bar avec 9.2
+  10-1-agenda-du-jour-accueil: in-progress  # revue de code 2026-07-28 (20 constats, 16 patchés). Task 0 bis SOLDÉE 2026-07-29 : vraie réponse calendar.get_events observée, parseur validé 5/5, charge utile réelle inscrite en fixture. BLOQUANT RESTANT : preuve device 1024×748 avec BinTile affichée (barre à 6 chips + la pill HC/HP de 9.2)
   10-2-page-detail-agenda-semaine-mois: backlog
   10-3-filtre-par-calendrier: backlog
   epic-10-retrospective: optional

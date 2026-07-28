@@ -4,7 +4,7 @@ baseline_commit: d916df2  # rafraîchi le 2026-07-28 : le précédent (643dd5b) 
 
 # Story 9.2: Heures creuses / pleines
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 <!-- Données réelles fournies par Florian 2026-07-27 : fenêtres HC 01h08–06h08 et 12h38–15h38 ; prix Creuses 0,0890 €/kWh, Pleines 0,1491 €/kWh. Les fenêtres vivent DANS HA (AD-4), jamais dans le bundle. -->
