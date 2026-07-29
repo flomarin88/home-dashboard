@@ -156,7 +156,7 @@ development_status:
 
   # Epic 10 — Agenda : coup d'œil sur la journée (v2)
   epic-10: in-progress  # démarré 2026-07-27 — story 10.1 contextualisée (create-story). Task 0 HA LEVÉE : intégration Google Calendar active, 4 entity_id réels fournis. Placement tranché (UX-DR28, approche A)
-  10-1-agenda-du-jour-accueil: in-progress  # revue de code 2026-07-28 (20 constats, 16 patchés). Task 0 bis SOLDÉE 2026-07-29 : vraie réponse calendar.get_events observée, parseur validé 5/5, charge utile réelle inscrite en fixture. BLOQUANT RESTANT : preuve device 1024×748 avec BinTile affichée (barre à 6 chips + la pill HC/HP de 9.2)
+  10-1-agenda-du-jour-accueil: done  # ✅ 2026-07-29 : Task 0 bis soldée (vraie réponse observée, inscrite en fixture) + preuve device validée par Florian, collision top-bar comprise (6 chips + pill HC/HP). Revue de code du 2026-07-28 : 20 constats, 16 patchés, 4 différés
   10-2-page-detail-agenda-semaine-mois: backlog
   10-3-filtre-par-calendrier: backlog
   epic-10-retrospective: optional
