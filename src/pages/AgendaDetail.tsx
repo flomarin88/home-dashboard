@@ -7,19 +7,28 @@ import {
   dayRange,
   weekRange,
   monthRange,
+  shiftAnchor,
+  rangeLabel,
   formatEventTime,
   type AgendaEvent,
+  type RangeUnit,
 } from "../agenda/select";
 import { groupByDay, capEvents, type DayBucket } from "../agenda/group";
 
 /** The three ranges the page can ask for. Local to the page, never persisted. */
 type AgendaView = "jour" | "semaine" | "mois";
 
-const VIEWS: readonly { id: AgendaView; label: string }[] = [
-  { id: "jour", label: "Jour" },
-  { id: "semaine", label: "Semaine" },
-  { id: "mois", label: "Mois" },
+const VIEWS: readonly { id: AgendaView; label: string; unit: RangeUnit }[] = [
+  { id: "jour", label: "Jour", unit: "day" },
+  { id: "semaine", label: "Semaine", unit: "week" },
+  { id: "mois", label: "Mois", unit: "month" },
 ];
+
+const UNIT: Record<AgendaView, RangeUnit> = {
+  jour: "day",
+  semaine: "week",
+  mois: "month",
+};
 
 /** How many event chips a month cell shows before collapsing into "+N". */
 const MONTH_CHIP_CAP = 2;
@@ -57,18 +66,33 @@ function isSameLocalDay(a: Date, b: Date): boolean {
  * where it does not fit, simply do not show it. Today is marked by a WORD plus a
  * plain bright border — never by a domain accent (UX-DR14).
  *
+ * Navigable since Florian asked for it (2026-07-29): `‹` `›` step by one day,
+ * one week or one month depending on the view, and the period on screen is
+ * spelled out between them. The story had excluded this on purpose — once you
+ * can leave the current week, "which week is this?" stops being obvious, which
+ * is exactly why the reminder ships with the arrows rather than after them.
+ *
  * Read only end to end: no write, no optimism, no undo, nothing persisted
- * (AD-1/AD-3) — including the selected view, which resets on every visit.
+ * (AD-1/AD-3) — including the selected view AND the anchor, both of which reset
+ * to today on every visit. That reset is what keeps a wall-mounted kiosk from
+ * being stranded three months into the future because someone tapped twice.
  */
 export function AgendaDetail() {
   const [view, setView] = useState<AgendaView>("jour");
+  // The date the displayed range is built from. Starts at today and moves with
+  // the arrows; kept across a view switch, so leaving the week of 3 August for
+  // the month view lands on August, not back on the current month.
+  const [anchor, setAnchor] = useState(() => new Date());
+  // The REAL today, for the "auj." marker. Deliberately not the anchor: every
+  // navigated page would otherwise sprout its own "today".
   const now = new Date();
+  const unit = UNIT[view];
   const range =
     view === "jour"
-      ? dayRange(now)
+      ? dayRange(anchor)
       : view === "semaine"
-        ? weekRange(now)
-        : monthRange(now);
+        ? weekRange(anchor)
+        : monthRange(anchor);
 
   const { events, isStale, loading, since, unreadable } =
     useCalendarEvents(range);
@@ -104,6 +128,24 @@ export function AgendaDetail() {
             </button>
           ))}
         </div>
+        <div className="flex items-center gap-1">
+          <NavButton
+            label="Période précédente"
+            onClick={() => setAnchor((a) => shiftAnchor(a, unit, -1))}
+          >
+            ‹
+          </NavButton>
+          <span className="min-w-[190px] text-center text-label font-semibold capitalize text-text">
+            {rangeLabel(anchor, unit)}
+          </span>
+          <NavButton
+            label="Période suivante"
+            onClick={() => setAnchor((a) => shiftAnchor(a, unit, 1))}
+          >
+            ›
+          </NavButton>
+        </div>
+
         <span className="flex-1" />
         {isStale ? (
           <span className="inline-flex items-center gap-1 rounded-full bg-stale/25 px-2 py-0.5 text-caption text-stale-text">
@@ -152,9 +194,37 @@ function AgendaBody({
     return (
       <Notice>Agenda indisponible — réponse de Home Assistant illisible</Notice>
     );
-  if (view === "jour") return <DayView bucket={buckets[0]} />;
+  if (view === "jour")
+    return (
+      <DayView
+        bucket={buckets[0]}
+        isToday={buckets[0] ? isSameLocalDay(buckets[0].date, now) : false}
+      />
+    );
   if (view === "semaine") return <WeekView buckets={buckets} now={now} />;
   return <MonthView buckets={buckets} now={now} />;
+}
+
+/** One arrow. Named for screen readers, sized for fingers (NFR2). */
+function NavButton({
+  label,
+  onClick,
+  children,
+}: {
+  label: string;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      onClick={onClick}
+      className="flex h-[44px] w-[44px] items-center justify-center rounded-md border border-tile-border bg-tile-fill text-label font-semibold text-text-muted"
+    >
+      {children}
+    </button>
+  );
 }
 
 function Notice({ children }: { children: React.ReactNode }) {
@@ -179,9 +249,18 @@ function whenLabel(e: AgendaEvent): string {
  * Day view — the whole day, PAST INCLUDED. That is its reason to exist next to
  * the micro-tile, which only ever shows what is still ahead.
  */
-function DayView({ bucket }: { bucket: DayBucket | undefined }) {
+function DayView({
+  bucket,
+  isToday,
+}: {
+  bucket: DayBucket | undefined;
+  isToday: boolean;
+}) {
+  // The empty state has to know WHICH day it is talking about. It was written
+  // when this view could only ever show today; navigation turned "Rien
+  // aujourd'hui" into a falsehood the moment you stepped to tomorrow.
   if (!bucket || bucket.events.length === 0)
-    return <Notice>Rien aujourd'hui</Notice>;
+    return <Notice>{isToday ? "Rien aujourd'hui" : "Rien ce jour-là"}</Notice>;
 
   return (
     <ul className="flex min-h-0 flex-1 flex-col gap-2 overflow-hidden">

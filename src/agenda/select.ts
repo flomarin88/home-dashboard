@@ -342,6 +342,78 @@ export function monthRange(now: Date): { start: Date; end: Date } {
   return { start, end };
 }
 
+/** The three grains the page navigates by (Story 10.2). */
+export type RangeUnit = "day" | "week" | "month";
+
+/**
+ * Move the page's anchor date by `delta` units — what the `‹` `›` arrows do
+ * (Florian, 2026-07-29).
+ *
+ * ⚠️ The month step lands on the **1st**, never on the anchor's day-of-month.
+ * `setMonth(m + 1)` on a 31st overflows: 31 January becomes 3 March, so three
+ * clicks skip February entirely. Snapping to the 1st also matches what the month
+ * view actually shows — a month, not a date.
+ *
+ * Day and week steps go through `setDate`, which already rolls months and years
+ * over correctly.
+ */
+export function shiftAnchor(
+  anchor: Date,
+  unit: RangeUnit,
+  delta: number,
+): Date {
+  if (unit === "month") {
+    return new Date(
+      anchor.getFullYear(),
+      anchor.getMonth() + delta,
+      1,
+      0,
+      0,
+      0,
+      0,
+    );
+  }
+  const step = unit === "week" ? 7 * delta : delta;
+  const next = new Date(anchor.getTime());
+  next.setDate(next.getDate() + step);
+  return next;
+}
+
+const LABEL_DAY_FMT = new Intl.DateTimeFormat("fr-FR", {
+  weekday: "long",
+  day: "numeric",
+  month: "long",
+});
+const LABEL_SHORT_FMT = new Intl.DateTimeFormat("fr-FR", {
+  day: "numeric",
+  month: "short",
+});
+const LABEL_MONTH_FMT = new Intl.DateTimeFormat("fr-FR", {
+  month: "long",
+  year: "numeric",
+});
+
+/**
+ * What period is on screen, in words — the reminder beside the arrows. Once you
+ * can navigate, "which week am I looking at?" stops being obvious, and a grid of
+ * bare day numbers answers it badly.
+ *
+ * The week label names the REAL week bounds (Monday→Sunday), not the anchor: you
+ * navigate from a Wednesday but you are looking at 27 July – 2 August.
+ *
+ * Named `rangeLabel`, deliberately not `periodLabel` — that one already exists
+ * in `consumption-format` for the HC/HP tariff periods, and two functions with
+ * the same name in the same app is a trap for whoever greps next.
+ */
+export function rangeLabel(anchor: Date, unit: RangeUnit): string {
+  if (unit === "day") return LABEL_DAY_FMT.format(anchor);
+  if (unit === "month") return LABEL_MONTH_FMT.format(anchor);
+  const { start, end } = weekRange(anchor);
+  const last = new Date(end.getTime());
+  last.setDate(last.getDate() - 1); // `end` is exclusive
+  return `${LABEL_SHORT_FMT.format(start)} – ${LABEL_SHORT_FMT.format(last)}`;
+}
+
 const pad = (n: number): string => String(n).padStart(2, "0");
 
 /**

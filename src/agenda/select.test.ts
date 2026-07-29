@@ -9,6 +9,8 @@ import {
   dayRange,
   weekRange,
   monthRange,
+  shiftAnchor,
+  rangeLabel,
   haDateTimeString,
 } from "./select";
 import type { CalendarRef } from "../entities";
@@ -666,5 +668,72 @@ describe("monthRange (Story 10.2 — mois STRICT, choix de Florian)", () => {
     const { start } = monthRange(at(2026, 7, 29, 13, 0));
     expect(start.getHours()).toBe(0);
     expect(haDateTimeString(start)).toBe("2026-07-01 00:00:00");
+  });
+});
+
+describe("shiftAnchor (Story 10.2 — navigation temporelle, Florian 2026-07-29)", () => {
+  const iso = (d: Date) =>
+    `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+
+  it("déplace d'un jour", () => {
+    expect(iso(shiftAnchor(at(2026, 7, 29), "day", 1))).toBe("2026-7-30");
+    expect(iso(shiftAnchor(at(2026, 7, 29), "day", -1))).toBe("2026-7-28");
+  });
+
+  it("déplace d'une semaine entière", () => {
+    expect(iso(shiftAnchor(at(2026, 7, 29), "week", 1))).toBe("2026-8-5");
+    expect(iso(shiftAnchor(at(2026, 7, 29), "week", -1))).toBe("2026-7-22");
+  });
+
+  it("⚠️ le pas mensuel s'ancre au 1er — 31 janvier + 1 mois n'est PAS le 3 mars", () => {
+    // Le piège classique : `setMonth(m+1)` sur un 31 déborde sur le mois
+    // suivant. Trois clics d'affilée et on saute février entièrement.
+    expect(iso(shiftAnchor(at(2026, 1, 31), "month", 1))).toBe("2026-2-1");
+    expect(iso(shiftAnchor(at(2026, 3, 31), "month", -1))).toBe("2026-2-1");
+  });
+
+  it("le pas mensuel reste stable si on l'enchaîne", () => {
+    let a = at(2026, 1, 31);
+    for (let i = 0; i < 3; i++) a = shiftAnchor(a, "month", 1);
+    expect(iso(a)).toBe("2026-4-1"); // jan → fév → mars → avril, aucun saut
+  });
+
+  it("passe d'une année à l'autre dans les deux sens", () => {
+    expect(iso(shiftAnchor(at(2026, 12, 15), "month", 1))).toBe("2027-1-1");
+    expect(iso(shiftAnchor(at(2026, 1, 15), "month", -1))).toBe("2025-12-1");
+    expect(iso(shiftAnchor(at(2026, 12, 31), "day", 1))).toBe("2027-1-1");
+  });
+
+  it("gère février d'une année bissextile", () => {
+    expect(iso(shiftAnchor(at(2028, 1, 15), "month", 1))).toBe("2028-2-1");
+    expect(iso(shiftAnchor(at(2028, 2, 29), "day", 1))).toBe("2028-3-1");
+  });
+
+  it("un delta nul ne bouge pas", () => {
+    expect(iso(shiftAnchor(at(2026, 7, 29), "week", 0))).toBe("2026-7-29");
+  });
+});
+
+describe("rangeLabel (Story 10.2 — le rappel de période)", () => {
+  it("nomme le jour en toutes lettres", () => {
+    expect(rangeLabel(at(2026, 7, 29), "day")).toMatch(/mercredi/i);
+    expect(rangeLabel(at(2026, 7, 29), "day")).toMatch(/29/);
+  });
+
+  it("borne la semaine du lundi au dimanche, pas la date d'ancrage", () => {
+    // Ancré un mercredi : le rappel doit dire 27 → 2, la semaine réelle.
+    const l = rangeLabel(at(2026, 7, 29), "week");
+    expect(l).toMatch(/27/);
+    expect(l).toMatch(/2/);
+    expect(l).toMatch(/août/i);
+  });
+
+  it("nomme le mois et l'année", () => {
+    expect(rangeLabel(at(2026, 7, 29), "month")).toMatch(/juillet/i);
+    expect(rangeLabel(at(2026, 7, 29), "month")).toMatch(/2026/);
+  });
+
+  it("suit l'ancrage quand on navigue", () => {
+    expect(rangeLabel(at(2026, 12, 1), "month")).toMatch(/décembre/i);
   });
 });

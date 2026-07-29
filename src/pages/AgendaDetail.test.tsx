@@ -242,4 +242,87 @@ describe("AgendaDetail (Story 10.2)", () => {
     for (const tab of screen.getAllByRole("tab"))
       expect(tab.className).toMatch(/h-\[44px\]/);
   });
+
+  it("rappelle la période affichée dans chaque vue", () => {
+    renderPage();
+    expect(screen.getByText(/mercredi 29 juillet/i)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("tab", { name: "Semaine" }));
+    expect(screen.getByText(/27 juil\..+2 août/i)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("tab", { name: "Mois" }));
+    expect(screen.getByText(/juillet 2026/i)).toBeInTheDocument();
+  });
+
+  it("la flèche suivante demande la plage SUIVANTE", () => {
+    renderPage();
+    read.ranges = [];
+    fireEvent.click(screen.getByRole("button", { name: /période suivante/i }));
+    expect(read.ranges[0].start.getDate()).toBe(30);
+    expect(screen.getByText(/jeudi 30 juillet/i)).toBeInTheDocument();
+  });
+
+  it("la flèche précédente demande la plage PRÉCÉDENTE", () => {
+    renderPage();
+    read.ranges = [];
+    fireEvent.click(
+      screen.getByRole("button", { name: /période précédente/i }),
+    );
+    expect(read.ranges[0].start.getDate()).toBe(28);
+  });
+
+  it("navigue par semaine entière en vue Semaine", () => {
+    renderPage();
+    fireEvent.click(screen.getByRole("tab", { name: "Semaine" }));
+    read.ranges = [];
+    fireEvent.click(screen.getByRole("button", { name: /période suivante/i }));
+    expect(read.ranges[0].start.getDate()).toBe(3); // lundi 3 août
+    expect(read.ranges[0].start.getMonth()).toBe(7);
+  });
+
+  it("navigue par mois entier, et le rappel suit", () => {
+    renderPage();
+    fireEvent.click(screen.getByRole("tab", { name: "Mois" }));
+    read.ranges = [];
+    fireEvent.click(screen.getByRole("button", { name: /période suivante/i }));
+    expect(read.ranges[0].start.getMonth()).toBe(7); // août
+    expect(screen.getByText(/août 2026/i)).toBeInTheDocument();
+  });
+
+  it("garde l'ancrage quand on change de vue", () => {
+    // On regarde la semaine du 3 août ; passer en mois doit montrer AOÛT,
+    // pas retomber sur le mois courant.
+    renderPage();
+    fireEvent.click(screen.getByRole("tab", { name: "Semaine" }));
+    fireEvent.click(screen.getByRole("button", { name: /période suivante/i }));
+    fireEvent.click(screen.getByRole("tab", { name: "Mois" }));
+    expect(screen.getByText(/août 2026/i)).toBeInTheDocument();
+  });
+
+  it("⚠️ « aujourd'hui » reste calé sur la VRAIE date, pas sur l'ancrage", () => {
+    // Sinon chaque page naviguée aurait son propre « aujourd'hui » — le repère
+    // ne voudrait plus rien dire.
+    renderPage();
+    fireEvent.click(screen.getByRole("tab", { name: "Mois" }));
+    expect(screen.getByText("auj.")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /période suivante/i }));
+    expect(screen.queryByText("auj.")).toBeNull(); // août ne contient pas le 29 juillet
+  });
+
+  it("les flèches sont des cibles d'au moins 44px (NFR2)", () => {
+    renderPage();
+    for (const nom of [/période précédente/i, /période suivante/i])
+      expect(screen.getByRole("button", { name: nom }).className).toMatch(
+        /h-\[44px\]/,
+      );
+  });
+
+  it("⚠️ ne dit pas « Rien AUJOURD'HUI » sur un autre jour que le jour même", () => {
+    // Défaut introduit par la navigation : l'état vide de la vue Jour était
+    // écrit quand la page ne montrait que le jour courant. Naviguer à demain le
+    // transformait en mensonge.
+    renderPage();
+    expect(screen.getByText("Rien aujourd'hui")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /période suivante/i }));
+    expect(screen.queryByText("Rien aujourd'hui")).toBeNull();
+    expect(screen.getByText(/rien ce jour-là/i)).toBeInTheDocument();
+  });
 });
