@@ -297,6 +297,51 @@ export function dayRange(now: Date): { start: Date; end: Date } {
   return { start, end };
 }
 
+/**
+ * The week the given instant falls in: [Monday 00:00 → next Monday 00:00), in
+ * LOCAL time (Story 10.2).
+ *
+ * ⚠️ `getDay()` returns 0 for SUNDAY, not 7. The naive `date - getDay()` walks
+ * back to the *following* week's Monday every Sunday — a bug that hides six days
+ * out of seven and surfaces on the one day you are least likely to be testing.
+ * Hence the explicit remap.
+ */
+export function weekRange(now: Date): { start: Date; end: Date } {
+  const dow = now.getDay(); // 0 = dimanche … 6 = samedi
+  const sinceMonday = dow === 0 ? 6 : dow - 1;
+  const start = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate() - sinceMonday,
+    0,
+    0,
+    0,
+    0,
+  );
+  const end = new Date(start.getTime());
+  end.setDate(end.getDate() + 7);
+  return { start, end };
+}
+
+/**
+ * The month the given instant falls in: [1st 00:00 → 1st of next month 00:00),
+ * in LOCAL time (Story 10.2).
+ *
+ * STRICT month, not the 7×6 grid the view draws (Florian, 2026-07-29). The grid
+ * therefore has cells outside this range with no data at all — they render as
+ * their day number alone, heavily dimmed, and deliberately show no "nothing on"
+ * state: saying nothing beats claiming a day is free when it was never asked
+ * about. Switching to the grid range later is this one function.
+ *
+ * Built by month arithmetic, never by adding days: `setMonth` handles February,
+ * leap years and December→January, which a 30/31-day offset cannot.
+ */
+export function monthRange(now: Date): { start: Date; end: Date } {
+  const start = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+  const end = new Date(now.getFullYear(), now.getMonth() + 1, 1, 0, 0, 0, 0);
+  return { start, end };
+}
+
 const pad = (n: number): string => String(n).padStart(2, "0");
 
 /**

@@ -37,9 +37,33 @@ export interface CalendarEventsRead {
   readonly unreadable: boolean;
 }
 
-/** Local day identity — the trigger for rebuilding the query window. */
+/** Local day identity — used to detect a date rollover under the default range. */
 const dayKey = (d: Date): string =>
   `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+
+/** A query window. `undefined` means "today", recomputed at fetch time. */
+export interface CalendarRange {
+  readonly start: Date;
+  readonly end: Date;
+}
+
+/**
+ * Which window the hook SHOULD be showing right now.
+ *
+ * Under an explicit range it is the range itself — it only changes when the
+ * caller switches view. Under the default it folds in the local date, so
+ * crossing midnight makes the needed window differ from the fetched one and
+ * triggers a refetch. One expression covers both, instead of a `dayKey`
+ * comparison that quietly lies the moment a week is requested (Story 10.2).
+ */
+const windowKey = (
+  startMs: number | undefined,
+  endMs: number | undefined,
+  now: Date,
+): string =>
+  startMs !== undefined && endMs !== undefined
+    ? `${startMs}-${endMs}`
+    : `today:${dayKey(now)}`;
 
 /**
  * The QUERY read path (Story 10.1, AD-17) — the first of its kind in this app.
@@ -67,10 +91,23 @@ const dayKey = (d: Date): string =>
  * `src/nutriclaude/` — no extra seam, no client secret (AD-2/AD-17).
  */
 export function useCalendarEvents(
+  range?: CalendarRange,
   refreshMs: number = CALENDAR_REFRESH_MS,
 ): CalendarEventsRead {
   const callService = useHass((s) => s.helpers.callService);
   const connected = useHass((s) => s.connectionStatus) === "connected";
+
+  // The range identity React tracks: two PRIMITIVES, not the object. Callers
+  // build a fresh range every render (`weekRange(new Date())`), so keying
+  // effects on the reference would re-arm them on every keystroke and hammer HA.
+  // Two numbers mean an equal range is the same range — and, unlike a derived
+  // string, they are genuinely read by the callback, so the dependency array
+  // states the truth rather than being decoration (Story 10.2).
+  //
+  // Both undefined keeps Story 10.1's behaviour: today, recomputed at fetch
+  // time, which is what makes the window follow the local date across midnight.
+  const startMs = range?.start.getTime();
+  const endMs = range?.end.getTime();
 
   const [events, setEvents] = useState<AgendaEvent[]>([]);
   const [since, setSince] = useState<string | undefined>(undefined);
@@ -81,7 +118,8 @@ export function useCalendarEvents(
   // Bookkeeping for the refresh policy — refs, so updating them never re-renders
   // and never re-arms the interval.
   const lastFetchAt = useRef(0);
-  const windowDay = useRef<string | null>(null);
+  // Which window the last SUCCESSFUL reply actually described.
+  const fetchedWindow = useRef<string | null>(null);
   // Monotonic request id. Three triggers (connection, tick, foreground) can fire
   // with nothing sequencing them, so a slow reply used to be able to land AFTER
   // a newer one and overwrite it — rewinding `since`, restoring yesterday's
@@ -97,7 +135,12 @@ export function useCalendarEvents(
 
   const fetchEvents = useCallback(async () => {
     const now = new Date();
-    const { start, end } = dayRange(now);
+    // No explicit range ⇒ today, computed HERE and not at mount: the kiosk never
+    // restarts, so a window captured once would keep describing yesterday.
+    const { start, end } =
+      startMs !== undefined && endMs !== undefined
+        ? { start: new Date(startMs), end: new Date(endMs) }
+        : dayRange(now);
     const seq = ++requestSeq.current;
     // Read the mapping once, and use the SAME list to target the call and to
     // parse the reply. The previous shape built the ids, threw the array away,
@@ -145,12 +188,12 @@ export function useCalendarEvents(
       setSince(new Date().toISOString());
       setFailed(false);
       lastFetchAt.current = now.getTime();
-      windowDay.current = dayKey(now);
+      fetchedWindow.current = windowKey(startMs, endMs, now);
     } catch (err) {
       if (!alive.current || seq !== requestSeq.current) return;
       // Keep the last known events on purpose (AD-17/NFR4): a failed refresh
       // degrades to "stale", never to a blank tile. But it must NOT consume the
-      // refresh budget — `lastFetchAt` and `windowDay` stay put, so the next
+      // refresh budget — `lastFetchAt` and `fetchedWindow` stay put, so the next
       // tick retries in 60s instead of waiting out the full period (P4).
       // Logged like every other HA write path in this app: on a wall-mounted
       // iPad a bad entity_id, a revoked permission and a dropped socket all
@@ -160,7 +203,7 @@ export function useCalendarEvents(
     } finally {
       if (alive.current && seq === requestSeq.current) setSettled(true);
     }
-  }, [callService]);
+  }, [callService, startMs, endMs]);
 
   // Initial query, and a retry once the connection comes up.
   useEffect(() => {
@@ -173,12 +216,16 @@ export function useCalendarEvents(
   useEffect(() => {
     const id = setInterval(() => {
       const now = new Date();
-      const dayChanged = windowDay.current !== dayKey(now);
+      // The window we ought to be showing vs the one we last got. Differs on a
+      // view switch AND on a midnight rollover — the two reasons the answer on
+      // screen stops describing what was asked for.
+      const windowChanged =
+        fetchedWindow.current !== windowKey(startMs, endMs, now);
       const periodElapsed = now.getTime() - lastFetchAt.current >= refreshMs;
-      if (dayChanged || periodElapsed) void fetchEvents();
+      if (windowChanged || periodElapsed) void fetchEvents();
     }, TICK_MS);
     return () => clearInterval(id);
-  }, [fetchEvents, refreshMs]);
+  }, [fetchEvents, refreshMs, startMs, endMs]);
 
   // Back to the foreground — the response may have aged while hidden.
   useEffect(() => {

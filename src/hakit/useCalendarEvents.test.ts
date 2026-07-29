@@ -130,7 +130,7 @@ describe("useCalendarEvents — the query-read path (AD-17)", () => {
 
   it("replays the query when the refresh period elapses", async () => {
     vi.useFakeTimers();
-    const { result } = renderHook(() => useCalendarEvents(60_000));
+    const { result } = renderHook(() => useCalendarEvents(undefined, 60_000));
     await act(async () => {
       await vi.advanceTimersByTimeAsync(0);
     });
@@ -147,7 +147,7 @@ describe("useCalendarEvents — the query-read path (AD-17)", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date(2026, 6, 28, 23, 59, 30));
     // A long refresh period: only the date change can trigger the second call.
-    renderHook(() => useCalendarEvents(3_600_000));
+    renderHook(() => useCalendarEvents(undefined, 3_600_000));
     await act(async () => {
       await vi.advanceTimersByTimeAsync(0);
     });
@@ -171,7 +171,7 @@ describe("useCalendarEvents — the query-read path (AD-17)", () => {
     hass.callService.mockRejectedValue(new Error("boom"));
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
 
-    renderHook(() => useCalendarEvents(15 * 60_000));
+    renderHook(() => useCalendarEvents(undefined, 15 * 60_000));
     await act(async () => {
       await vi.advanceTimersByTimeAsync(0);
     });
@@ -207,7 +207,7 @@ describe("useCalendarEvents — the query-read path (AD-17)", () => {
       )
       .mockResolvedValue(okResponse("Récent"));
 
-    const { result } = renderHook(() => useCalendarEvents(60_000));
+    const { result } = renderHook(() => useCalendarEvents(undefined, 60_000));
     await act(async () => {
       await vi.advanceTimersByTimeAsync(0);
     });
@@ -270,7 +270,7 @@ describe("useCalendarEvents — the query-read path (AD-17)", () => {
 
   it("stops its timer and listener on unmount (no leak, leçon timers 2.1)", async () => {
     vi.useFakeTimers();
-    const { unmount } = renderHook(() => useCalendarEvents(60_000));
+    const { unmount } = renderHook(() => useCalendarEvents(undefined, 60_000));
     await act(async () => {
       await vi.advanceTimersByTimeAsync(0);
     });
@@ -282,6 +282,82 @@ describe("useCalendarEvents — the query-read path (AD-17)", () => {
       document.dispatchEvent(new Event("visibilitychange"));
     });
 
+    expect(hass.callService).toHaveBeenCalledTimes(1);
+  });
+
+  it("interroge la plage EXPLICITE qu'on lui donne, pas la journée", async () => {
+    // Story 10.2 : la vue semaine/mois passe sa propre plage. Sans ça le hook
+    // resterait collé à aujourd'hui et les trois vues afficheraient la même chose.
+    const range = {
+      start: new Date(2026, 6, 27, 0, 0, 0, 0),
+      end: new Date(2026, 7, 3, 0, 0, 0, 0),
+    };
+    const { result } = renderHook(() => useCalendarEvents(range));
+    await waitFor(() => expect(result.current.events).toHaveLength(1));
+
+    const { start_date_time, end_date_time } =
+      hass.callService.mock.calls[0][0].serviceData;
+    expect(start_date_time).toBe("2026-07-27 00:00:00");
+    expect(end_date_time).toBe("2026-08-03 00:00:00");
+  });
+
+  it("sans plage, garde le comportement de 10.1 : aujourd'hui", async () => {
+    const { result } = renderHook(() => useCalendarEvents());
+    await waitFor(() => expect(result.current.events).toHaveLength(1));
+
+    const { start_date_time } = hass.callService.mock.calls[0][0].serviceData;
+    expect(start_date_time).toMatch(/^\d{4}-\d{2}-\d{2} 00:00:00$/);
+  });
+
+  it("re-interroge quand la plage CHANGE — c'est la bascule de vue", async () => {
+    vi.useFakeTimers();
+    const jour = {
+      start: new Date(2026, 6, 29, 0, 0, 0, 0),
+      end: new Date(2026, 6, 30, 0, 0, 0, 0),
+    };
+    const semaine = {
+      start: new Date(2026, 6, 27, 0, 0, 0, 0),
+      end: new Date(2026, 7, 3, 0, 0, 0, 0),
+    };
+    const { rerender } = renderHook(({ r }) => useCalendarEvents(r), {
+      initialProps: { r: jour },
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(hass.callService).toHaveBeenCalledTimes(1);
+
+    rerender({ r: semaine });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(hass.callService).toHaveBeenCalledTimes(2);
+    expect(hass.callService.mock.calls[1][0].serviceData.start_date_time).toBe(
+      "2026-07-27 00:00:00",
+    );
+  });
+
+  it("ne re-interroge PAS quand la plage est recréée à l'identique", async () => {
+    // Un objet neuf à chaque rendu est le cas nominal en React. Si le hook
+    // s'armait sur l'identité de l'objet, il martèlerait HA à chaque frappe.
+    vi.useFakeTimers();
+    const mk = () => ({
+      start: new Date(2026, 6, 29, 0, 0, 0, 0),
+      end: new Date(2026, 6, 30, 0, 0, 0, 0),
+    });
+    const { rerender } = renderHook(({ r }) => useCalendarEvents(r), {
+      initialProps: { r: mk() },
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(hass.callService).toHaveBeenCalledTimes(1);
+
+    rerender({ r: mk() });
+    rerender({ r: mk() });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
     expect(hass.callService).toHaveBeenCalledTimes(1);
   });
 });
