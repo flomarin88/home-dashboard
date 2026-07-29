@@ -149,7 +149,7 @@ development_status:
 
   # Epic 9 — Consommation : flux élec & eau (v2)
   epic-9: in-progress  # démarré 2026-07-23 — story 9.1 contextualisée (create-story)
-  9-1-micro-tuile-electricite-conso-cout: done  # done 2026-07-27 — Task 0 HA + device-proof validés (Florian) ; dev-story 2026-07-23 : tuile+page /electricite, 293 tests verts, build sans token OK
+  9-1-micro-tuile-electricite-conso-cout: review  # 🚧 BLOQUÉ EXTERNE 2026-07-29 : l'intégration fournisseur est HS (problème d'API), donc AUCUNE source de conso ⇒ le coût affiche « — » sur le kiosque et le graphe 24 h est vide. Code complet et testé ; la preuve device est la seule case ouverte et elle est INVALIDABLE tant qu'il n'y a rien à afficher. Contournement possible sans le fournisseur : n'importe quel capteur d'énergie HA enveloppé dans un utility_meter cycle: daily. Bloque aussi la clause « coût » de la preuve device de 9.2
   9-2-heures-creuses-pleines: done  # ✅ validée par Florian 2026-07-29. Task 0 faite (4 entity_id réels), jeu de couleurs de la maquette appliqué (AC1 amendé). Reste hors story : le capteur de conso de 9.1, sans lequel le coût affiche « — »
   9-3-micro-tuile-eau-saur: backlog
   epic-9-retrospective: optional

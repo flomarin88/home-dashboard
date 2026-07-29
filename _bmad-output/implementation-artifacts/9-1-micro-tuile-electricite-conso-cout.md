@@ -70,7 +70,9 @@ Contrat **à documenter** : `docs/home-assistant.md` § « Électricité — con
 
 ## Tasks / Subtasks
 
-- [ ] **Task 0 — ⚠️ PRÉREQUIS HA (Florian, hors app) : capteur conso journalière + helper prix** — _en attente Florian_
+- [ ] **Task 0 — 🚧 BLOQUÉ EXTERNE depuis le 2026-07-29 : l'intégration fournisseur est HS (problème d'API)**
+  > Ce n'est **pas** une tâche en attente d'être faite : il n'y a aujourd'hui **aucune source de consommation** exploitable. Tant que l'API du fournisseur ne répond pas, `sensor.electricite_conso_jour` ne peut pas exister, donc **le coût affiche « — » sur le kiosque** — sur la tuile comme sur `/electricite` — et le graphe 24 h reste vide. Le helper de prix flat, lui, est **caduc** : la story 9.2 l'a remplacé par deux helpers tarifés, déjà créés et fonctionnels.
+  > **Ce qui débloquerait sans le fournisseur** : n'importe quel capteur de puissance ou d'énergie déjà présent dans HA (prise connectée, Shelly, pince ampèremétrique, Linky en direct) enveloppé dans un `utility_meter` `cycle: daily`. Le dashboard ne demande qu'un `sensor.*` en kWh cumulés depuis minuit — sa provenance lui est indifférente.
   - [ ] Exposer/vérifier un **capteur de conso élec journalière** (Enedis/TotalÉnergies, ou `utility_meter` `cycle: daily`) en **kWh cumulés du jour**, **reset minuit côté HA**. Confirmer l'**`entity_id` réel** (`sensor.*`) → remplacer le placeholder `sensor.electricite_conso_jour` dans `mapping.ts`.
   - [ ] Créer un helper **`input_number`** pour le **prix €/kWh** (prix flat courant — 9.2 le scindera). Confirmer l'**`entity_id` réel** → remplacer `input_number.prix_kwh`.
   - [ ] **⚠️ Point ouvert transverse** (change-proposal §5) : **confirmer l'existence de l'intégration HA élec** par fournisseur. Sinon → **repli seam read-only** (exception AD-2 conditionnelle, précédent `src/nutriclaude/`) — **hors scope 9.1 si le capteur HA existe**.
