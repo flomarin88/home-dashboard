@@ -111,6 +111,14 @@ La réponse réelle de Florian (observée le 2026-07-29, inscrite en fixture dan
 
 ## Tasks / Subtasks
 
+- [x] **Task 9 — Navigation temporelle + rappel de période** (demande Florian 2026-07-29, après coup) — **TDD**
+  - [x] `src/agenda/select.ts` — `shiftAnchor(anchor, unit, delta)` **pur**. ⚠️ **Le pas mensuel doit s'ancrer au 1er** : `31 janvier + 1 mois` en arithmétique naïve donne le 3 mars. Tests : bascule d'année, 31→30, février bissextile, pas hebdomadaire à cheval sur deux mois.
+  - [x] `src/agenda/select.ts` — `rangeLabel(anchor, unit)` : « mercredi 29 juillet » / « 27 juil. – 2 août » / « juillet 2026 ». ⚠️ Ne pas confondre avec `periodLabel` de `consumption-format` (tarifs HC/HP) — **nom différent exigé**.
+  - [x] `src/pages/AgendaDetail.tsx` — la plage dérive d'une **date d'ancrage** en état, plus de `new Date()` au rendu. L'ancrage est **conservé** à la bascule de vue (on est sur la semaine du 27, on passe en mois → juillet) et **remis à aujourd'hui au montage** (état non persisté, AD-1/AD-3).
+  - [x] Flèches `‹` `›` dans la rangée de contrôle, cibles **≥ 44px**, `aria-label` explicites (« période précédente / suivante »), encadrant le rappel de période.
+  - [x] ⚠️ **Le repère « aujourd'hui » reste calé sur la vraie date**, pas sur l'ancrage — sinon chaque page naviguée aurait son « aujourd'hui ».
+  - [x] Tests : les flèches redemandent la bonne plage ; l'ancrage survit à la bascule de vue ; le rappel suit ; « aujourd'hui » ne se déplace pas.
+
 - [x] **Task 1 — Paramétrer la plage dans le seam** (AC: 3, 7) — **TDD, à faire en premier : tout le reste en dépend**
   - [x] `src/agenda/select.ts` — ajouter `weekRange(now)` (lundi 00:00 → lundi suivant, **semaine ISO**, `getDay()` renvoie 0 pour dimanche : le piège classique) et `monthRange(now)` (1er 00:00 → 1er du mois suivant). Sur le moule exact de `dayRange` : composants **locaux**, jamais `toISOString()`.
   - [x] Décider et implémenter la plage de la **grille mois** (cf. « Contrat d'interface » — recommandation : plage de la grille, pas du mois).
@@ -152,7 +160,7 @@ La réponse réelle de Florian (observée le 2026-07-29, inscrite en fixture dan
 
 - **Le filtre par calendrier** → **10.3**. Mais la rangée de contrôle doit **prévoir la place** (elle est partagée, UX-DR29).
 - **Toute écriture d'événement**, création, édition, suppression → hors epic 10 entier.
-- **Navigation temporelle** (semaine précédente/suivante, mois précédent/suivant) → **non demandé**. Les AC disent « semaine **courante** », « mois **courant** ». Ne pas ajouter de flèches « pour bien faire ».
+- ~~**Navigation temporelle** → non demandé~~ → **DEMANDÉE PAR FLORIAN le 2026-07-29, après implémentation.** Deux flèches `‹` `›` sur **chacune** des trois vues, plus un **rappel de la période affichée**. Voir Task 9.
 - **Vue agenda continue, vue liste infinie, drag & drop** → non.
 - **Persistance de la vue choisie** → non (AD-1/AD-3 : état local à la page, perdu au retour).
 - **Toucher à la barre supérieure au-delà de rendre la tuile tappable** — son absence de collision vient d'être validée sur l'appareil, ne pas la remettre en jeu.
@@ -230,12 +238,16 @@ La réponse réelle de Florian (observée le 2026-07-29, inscrite en fixture dan
 - **Dépendances React : primitives plutôt que chaîne dérivée.** Première tentative avec un `rangeKey` string : la callback ne le lisait pas, donc la dépendance était décorative — exactement le défaut P10 relevé en revue de 10.1. Remplacé par `startMs`/`endMs`, réellement lus dans le corps.
 - **Vérification que les tests mordent** : régression volontaire de `groupByDay` (groupement par `start` au lieu du recouvrement) ⇒ **4 tests tombent**, dont celui de bout en bout sur la page. Restauré et revérifié.
 - **Budget vertical du mois recalculé** avec les valeurs réellement écrites : chrome 222px ⇒ **526px de grille**, cellules **78,8px**. À deux pixels de la maquette (524 / 78). Cohérent, mais **aucun test ne garde ça** (TD-9).
+- **Navigation (Task 9) — un défaut introduit puis corrigé.** L'état vide de la vue Jour disait « Rien **aujourd'hui** » ; écrit quand la page ne pouvait montrer que le jour courant, il devient un mensonge dès qu'on navigue à demain. Devenu « Rien ce jour-là » hors du jour même, avec un test dédié. C'est le genre de régression qu'un ajout de portée introduit silencieusement : le texte n'a pas changé, c'est son contexte qui a changé sous lui.
+- **Deux régressions volontaires pour vérifier que les tests mordent (Task 9)** : « aujourd'hui » recalé sur l'ancrage ⇒ 1 test tombe ; pas mensuel naïf (`setMonth`) ⇒ 4 tests tombent, dont l'enchaînement qui saute février. Restaurés et revérifiés.
+- **Le budget vertical du mois n'a pas bougé** : la rangée de contrôle reste à `h-[52px]`, les flèches font 44px et tiennent dedans. Aucun pixel repris à la grille.
 - **Gates** : `rg 'useEntity\(' src/pages/AgendaDetail.tsx src/agenda/` ⇒ vide ; aucun `entity_id` en dur hors `entities/` ; build sans token RC=0, **0 token dans `dist/`**, `.env.local` restauré à empreinte identique.
 
 ### Completion Notes List
 
 - **AC1–AC8 satisfaits côté app ; la preuve device reste due** (les trois vues sans scroll à 1024×748).
-- **+50 tests → 456 verts** (54 fichiers), typecheck, oxlint et Prettier propres. Répartition : plages `weekRange`/`monthRange` +10, `group` +12, page `AgendaDetail` +21, hook +4, tuile +3.
+- **Navigation temporelle ajoutée après coup** (demande de Florian, la story l'avait explicitement exclue) : `‹` `›` sur les trois vues, pas d'un jour / une semaine / un mois, plus le rappel de la période entre les deux flèches. L'ancrage **survit à la bascule de vue** et **repart à aujourd'hui au montage** — ce qui évite qu'un kiosque mural reste bloqué trois mois dans le futur parce que quelqu'un a tapé deux fois.
+- **+70 tests → 476 verts** ; avant la Task 9 : **+50 tests → 456 verts** (54 fichiers), typecheck, oxlint et Prettier propres. Répartition : plages `weekRange`/`monthRange` +10, `group` +12, page `AgendaDetail` +21, hook +4, tuile +3.
 - **Le seam de 10.1 a tenu.** La story disait : « si elle demande de le réécrire, c'est qu'il ne l'était pas ». Il n'a pas fallu le réécrire — la plage est devenue un paramètre, le déclencheur de rafraîchissement a suivi, et **rien d'autre n'a bougé** : garde de séquence, journal d'erreur, garde `unreadable`, politique de 15 min sont intacts.
 - **Le piège du multi-jours est verrouillé à deux niveaux** : fonction pure et rendu de page. Un recouvrement, pas un groupement par `start` — et la fin exclusive tombe naturellement de l'écriture semi-ouverte, sans `−1` à oublier. **Vérifié mordant** : la régression volontaire fait tomber 4 tests.
 - **Le déclencheur de rafraîchissement a été repensé, pas rafistolé.** `windowDay` comparait une date du jour, ce qui ment dès qu'on demande une semaine. Remplacé par `windowKey`, qui vaut la plage sous plage explicite et `today:<date>` sous plage par défaut — une seule expression couvre la bascule de vue **et** le passage de minuit.
@@ -248,12 +260,12 @@ La réponse réelle de Florian (observée le 2026-07-29, inscrite en fixture dan
 
 **Créés :**
 
-- `src/pages/AgendaDetail.tsx` + `.test.tsx` — la page, ses trois vues, ses états
+- `src/pages/AgendaDetail.tsx` + `.test.tsx` — la page, ses trois vues, ses états, puis la navigation et le rappel de période (Task 9)
 - `src/agenda/group.ts` + `.test.ts` — `groupByDay`, `capEvents`
 
 **Modifiés :**
 
-- `src/agenda/select.ts` + `.test.ts` — `weekRange`, `monthRange`
+- `src/agenda/select.ts` + `.test.ts` — `weekRange`, `monthRange`, puis `shiftAnchor` et `rangeLabel` (Task 9)
 - `src/hakit/useCalendarEvents.ts` + `.test.ts` — plage paramétrée (`CalendarRange`), `windowKey` remplace `windowDay`
 - `src/widgets/AgendaTile.tsx` + `.test.tsx` — devient un `<button>` vers `/agenda`, sort de `role="status"`
 - `src/App.tsx` — route `/agenda`
@@ -264,5 +276,6 @@ La réponse réelle de Florian (observée le 2026-07-29, inscrite en fixture dan
 
 | Date | Version | Description |
 | --- | --- | --- |
+| 2026-07-29 | 0.3 | **Navigation temporelle (Task 9), demandée par Florian après implémentation** — la story l'avait explicitement écartée (« ne pas ajouter de flèches pour bien faire »). Deux flèches par vue, pas d'un jour / une semaine / un mois, et le rappel de la période affichée entre elles. La plage dérive désormais d'une **date d'ancrage** en état, conservée à la bascule de vue et remise à aujourd'hui au montage. **Deux pièges traités** : le pas mensuel s'ancre au 1er (`setMonth` sur un 31 donne le 3 mars, et trois clics sautent février — 4 tests le prouvent), et le repère « aujourd'hui » reste calé sur la **vraie** date, sinon chaque page naviguée aurait le sien. **Un défaut introduit puis corrigé** : « Rien aujourd'hui » devenait faux dès qu'on naviguait — l'état vide sait maintenant de quel jour il parle. **Le budget vertical du mois est intact** : la rangée de contrôle reste à 52px, les flèches de 44px tiennent dedans. **476 tests verts** (+20). |
 | 2026-07-29 | 0.2 | **Implémentée (dev-story, TDD).** Le seam de 10.1 a tenu : la plage devient un paramètre (`CalendarRange`), le reste du hook est intact. **Le déclencheur de rafraîchissement a été repensé** — `windowDay` comparait une date du jour et mentait dès qu'on demandait une semaine ; `windowKey` vaut désormais la plage, ou `today:<date>` sous plage par défaut, couvrant d'une seule expression la bascule de vue et le passage de minuit. **Groupement par recouvrement, pas par `start`** : un multi-jours apparaît sur chaque jour couvert et la fin exclusive tombe naturellement de l'écriture semi-ouverte. Vérifié mordant — la régression volontaire fait tomber 4 tests. **La tuile devient un `<button>`**, ce qui solde au passage le point a11y différé en revue de 10.1 (région live sur contenu masqué). **Arbitrages de Florian appliqués** : aucune couleur par calendrier, repère « aujourd'hui » en mot + bordure neutre, mois strict — ce dernier contre ma recommandation, atténué en ne faisant rien prétendre aux cellules hors mois. **Deux tests réécrits plutôt que supprimés** (spec légitimement changée). **`tsc` ne couvre pas les tests** : cinq appels au hook passaient le délai en premier argument et ne l'ont dit qu'à l'exécution. **456 tests verts** (+50), build sans token RC=0, 0 token dans `dist/`, budget du mois recalculé à 526px/78,8px — à deux pixels de la maquette. → review. |
 | 2026-07-29 | 0.1 | Story 10.2 contextualisée (create-story), baseline `9151398`. **Le cœur technique est identifié** : la plage doit devenir un paramètre de `useCalendarEvents`, et le déclencheur de rafraîchissement (`windowDay`, qui compare une date du jour) doit suivre — sinon il ment dès qu'on demande une semaine. **Le piège central du groupement est nommé** : un multi-jours doit apparaître dans chaque jour qu'il couvre, et `end` étant exclusive, `27/07 → 17/08` s'arrête le 16 — se tromper d'un jour étale l'événement sur une cellule de trop tous les mois. **Le budget vertical du mois est repris de la maquette, pas réestimé** : 224px de chrome sur 748 laissent ~524px, soit 6 rangées de 134×78px — ça tient, mais la marge résiduelle se compte en pixels, aucun test ne la garde (TD-9), et les leviers d'ajustement sont listés dans l'ordre. **Trois décisions ouvertes** remontées avant implémentation, toutes chromatiques ou de plage : couleur par calendrier (recommandation : aucune, le nom suffit), repère « aujourd'hui » (la maquette emprunte l'accent Climatisation), et plage de la grille mois. **Les leçons de la revue de 10.1 sont inscrites** : tests qui mordent, `className` ≠ CSS émis, et ne jamais republier une hypothèse en fait. → ready-for-dev. |
