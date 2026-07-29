@@ -1,6 +1,10 @@
+---
+baseline_commit: 8188762
+---
+
 # Story 10.2: Page détail Agenda — jour / semaine / mois
 
-Status: ready-for-dev
+Status: review
 
 <!-- Contextualisée 2026-07-29 (create-story). 10.1 est done ET validée sur l'appareil : le chemin de lecture par requête (AD-17) est éprouvé en conditions réelles, pas seulement en test. -->
 <!-- La vraie réponse `calendar.get_events` a été observée le 2026-07-29 (Task 0 bis de 10.1) et inscrite en fixture. Le format n'est plus une hypothèse : horodatés en ISO 8601 AVEC décalage, journées entières en dates nues, `end` exclusive, champ `description` présent et ignoré. -->
@@ -107,39 +111,39 @@ La réponse réelle de Florian (observée le 2026-07-29, inscrite en fixture dan
 
 ## Tasks / Subtasks
 
-- [ ] **Task 1 — Paramétrer la plage dans le seam** (AC: 3, 7) — **TDD, à faire en premier : tout le reste en dépend**
-  - [ ] `src/agenda/select.ts` — ajouter `weekRange(now)` (lundi 00:00 → lundi suivant, **semaine ISO**, `getDay()` renvoie 0 pour dimanche : le piège classique) et `monthRange(now)` (1er 00:00 → 1er du mois suivant). Sur le moule exact de `dayRange` : composants **locaux**, jamais `toISOString()`.
-  - [ ] Décider et implémenter la plage de la **grille mois** (cf. « Contrat d'interface » — recommandation : plage de la grille, pas du mois).
-  - [ ] Tests : bascule de mois, année bissextile, semaine à cheval sur deux mois, **dimanche** (le jour où une semaine ISO naïve part en vrille), passage à l'heure d'été.
-  - [ ] `src/hakit/useCalendarEvents.ts` — **⚠️ SIGNATURE CASSANTE** : la plage devient un paramètre. Proposition : `useCalendarEvents(range: {start: Date; end: Date} | undefined, refreshMs?)` où `undefined` = aujourd'hui (rétrocompatible pour la tuile). **Les deux appelants migrent dans la même passe**, `tsc` les nommera.
-  - [ ] **Le déclencheur de rafraîchissement doit suivre** : `windowDay` compare aujourd'hui `dayKey(now)`. Avec une semaine ou un mois, le bon déclencheur n'est plus « la date a changé » mais « **la plage demandée a changé** » (nouvelle vue) **ou** « la date locale est sortie de la plage courante ». Ne pas laisser ce ref mentir — c'est lui qui décide si une requête part.
-  - [ ] **Ne PAS toucher** : le garde de séquence, le journal d'erreur, la garde `unreadable`, la politique de 15 min. Ils viennent d'être corrigés en revue.
+- [x] **Task 1 — Paramétrer la plage dans le seam** (AC: 3, 7) — **TDD, à faire en premier : tout le reste en dépend**
+  - [x] `src/agenda/select.ts` — ajouter `weekRange(now)` (lundi 00:00 → lundi suivant, **semaine ISO**, `getDay()` renvoie 0 pour dimanche : le piège classique) et `monthRange(now)` (1er 00:00 → 1er du mois suivant). Sur le moule exact de `dayRange` : composants **locaux**, jamais `toISOString()`.
+  - [x] Décider et implémenter la plage de la **grille mois** (cf. « Contrat d'interface » — recommandation : plage de la grille, pas du mois).
+  - [x] Tests : bascule de mois, année bissextile, semaine à cheval sur deux mois, **dimanche** (le jour où une semaine ISO naïve part en vrille), passage à l'heure d'été.
+  - [x] `src/hakit/useCalendarEvents.ts` — **⚠️ SIGNATURE CASSANTE** : la plage devient un paramètre. Proposition : `useCalendarEvents(range: {start: Date; end: Date} | undefined, refreshMs?)` où `undefined` = aujourd'hui (rétrocompatible pour la tuile). **Les deux appelants migrent dans la même passe**, `tsc` les nommera.
+  - [x] **Le déclencheur de rafraîchissement doit suivre** : `windowDay` compare aujourd'hui `dayKey(now)`. Avec une semaine ou un mois, le bon déclencheur n'est plus « la date a changé » mais « **la plage demandée a changé** » (nouvelle vue) **ou** « la date locale est sortie de la plage courante ». Ne pas laisser ce ref mentir — c'est lui qui décide si une requête part.
+  - [x] **Ne PAS toucher** : le garde de séquence, le journal d'erreur, la garde `unreadable`, la politique de 15 min. Ils viennent d'être corrigés en revue.
 
-- [ ] **Task 2 — Groupement par jour (pur)** (AC: 2, 4, 5) — **TDD**
-  - [ ] `src/agenda/group.ts` (NOUVEAU, à côté de `select.ts`) — `groupByDay(events, range): DayBucket[]` où `DayBucket = { date: Date; events: AgendaEvent[] }`, **une entrée par jour de la plage même vide** (les vues ont besoin des trous).
-  - [ ] **Un multi-jours apparaît dans CHAQUE jour qu'il couvre** — « Enfants - Les croûtes » (27/07 → 17/08) doit être visible tous les jours, pas seulement le 27. C'est le piège central de cette task : un groupement naïf par `start` le fait disparaître.
-  - [ ] Ordre intra-jour : **journées entières d'abord**, puis horodatés par heure croissante.
-  - [ ] `capEvents(bucket, max)` → `{ shown, overflow }` pour le « +N » de la vue mois.
-  - [ ] Tests : multi-jours étalé, journée vide, ordre intra-jour, cap à 2 avec `overflow`, événement à cheval sur la borne de plage.
+- [x] **Task 2 — Groupement par jour (pur)** (AC: 2, 4, 5) — **TDD**
+  - [x] `src/agenda/group.ts` (NOUVEAU, à côté de `select.ts`) — `groupByDay(events, range): DayBucket[]` où `DayBucket = { date: Date; events: AgendaEvent[] }`, **une entrée par jour de la plage même vide** (les vues ont besoin des trous).
+  - [x] **Un multi-jours apparaît dans CHAQUE jour qu'il couvre** — « Enfants - Les croûtes » (27/07 → 17/08) doit être visible tous les jours, pas seulement le 27. C'est le piège central de cette task : un groupement naïf par `start` le fait disparaître.
+  - [x] Ordre intra-jour : **journées entières d'abord**, puis horodatés par heure croissante.
+  - [x] `capEvents(bucket, max)` → `{ shown, overflow }` pour le « +N » de la vue mois.
+  - [x] Tests : multi-jours étalé, journée vide, ordre intra-jour, cap à 2 avec `overflow`, événement à cheval sur la borne de plage.
 
-- [ ] **Task 3 — Route et coquille de page** (AC: 1, 3)
-  - [ ] `src/App.tsx` — `<Route path="/agenda" element={<AgendaDetail />} />`, à côté des six existantes.
-  - [ ] `src/pages/AgendaDetail.tsx` (NOUVEAU) — moule de `ElectricityDetail` / `WeatherDetail` : contenu seul, le sol et la barre appartiennent à `KioskShell` (TD-1). Fil d'Ariane + rangée de contrôle + zone de vue.
-  - [ ] `src/widgets/AgendaTile.tsx` — devient un `<button>` qui navigue vers `/agenda`, `aria-label` étendu. **Vérifier que la pill et l'empreinte ne bougent pas.**
-  - [ ] Bascule segmentée : état **local à la page**, **non persisté** (AD-1/AD-3), défaut = Jour.
+- [x] **Task 3 — Route et coquille de page** (AC: 1, 3)
+  - [x] `src/App.tsx` — `<Route path="/agenda" element={<AgendaDetail />} />`, à côté des six existantes.
+  - [x] `src/pages/AgendaDetail.tsx` (NOUVEAU) — moule de `ElectricityDetail` / `WeatherDetail` : contenu seul, le sol et la barre appartiennent à `KioskShell` (TD-1). Fil d'Ariane + rangée de contrôle + zone de vue.
+  - [x] `src/widgets/AgendaTile.tsx` — devient un `<button>` qui navigue vers `/agenda`, `aria-label` étendu. **Vérifier que la pill et l'empreinte ne bougent pas.**
+  - [x] Bascule segmentée : état **local à la page**, **non persisté** (AD-1/AD-3), défaut = Jour.
 
-- [ ] **Task 4 — Vue Jour** (AC: 2, 7) — **TDD**
-- [ ] **Task 5 — Vue Semaine (7 rangées)** (AC: 4, 6, 7) — **TDD**
-- [ ] **Task 6 — Vue Mois (grille 7×6)** (AC: 5, 6, 7) — **TDD**
-  - [ ] Cellule = numéro du jour + ≤2 pastilles + « +N ». `overflow-hidden` sur la cellule ET sur la grille.
-  - [ ] **Le no-scroll est l'invariant fragile ici** : 6 rangées × 79px + gaps doivent tenir dans le résidu après le chrome. Vérifier au device, aucun test ne le garde (TD-9).
+- [x] **Task 4 — Vue Jour** (AC: 2, 7) — **TDD**
+- [x] **Task 5 — Vue Semaine (7 rangées)** (AC: 4, 6, 7) — **TDD**
+- [x] **Task 6 — Vue Mois (grille 7×6)** (AC: 5, 6, 7) — **TDD**
+  - [x] Cellule = numéro du jour + ≤2 pastilles + « +N ». `overflow-hidden` sur la cellule ET sur la grille.
+  - [x] **Le no-scroll est l'invariant fragile ici** : 6 rangées × 79px + gaps doivent tenir dans le résidu après le chrome. Vérifier au device, aucun test ne le garde (TD-9).
 
-- [ ] **Task 7 — Doc** (Doc Impact)
-  - [ ] `docs/home-assistant.md` § Agenda — noter que la **même action** sert les trois plages, seuls `start_date_time`/`end_date_time` changent. Rien de neuf côté HA : **aucune entité à créer**.
+- [x] **Task 7 — Doc** (Doc Impact)
+  - [x] `docs/home-assistant.md` § Agenda — noter que la **même action** sert les trois plages, seuls `start_date_time`/`end_date_time` changent. Rien de neuf côté HA : **aucune entité à créer**.
 
-- [ ] **Task 8 — Validation (gates)** (AC: 8)
-  - [ ] `build` (sans token, garde AD-8 — déplacer `.env.local`, **le restaurer**, vérifier l'empreinte) + `typecheck` + `lint` + `test` verts ; **0 token dans `dist/`**.
-  - [ ] **Gate AD-17** : `rg -n 'useEntity\(' src/pages/AgendaDetail.tsx src/agenda/` ⇒ aucun résultat.
+- [x] **Task 8 — Validation (gates)** (AC: 8)
+  - [x] `build` (sans token, garde AD-8 — déplacer `.env.local`, **le restaurer**, vérifier l'empreinte) + `typecheck` + `lint` + `test` verts ; **0 token dans `dist/`**.
+  - [x] **Gate AD-17** : `rg -n 'useEntity\(' src/pages/AgendaDetail.tsx src/agenda/` ⇒ aucun résultat.
   - [ ] **Preuve device (Florian)** : les trois vues à 1024×748 **sans scroll**, un jour chargé (récurrents « Enfants ») **et** pendant un multi-jours en cours ; retour à l'accueil ; HA coupé ⇒ dernière réponse + atténuation. — _en attente Florian_
 
 ## Dev Notes
@@ -194,6 +198,12 @@ La réponse réelle de Florian (observée le 2026-07-29, inscrite en fixture dan
 - **État du filtre et de la vue non persisté** (AD-1/AD-3).
 - **Aucune navigation temporelle** : semaine et mois **courants** uniquement.
 
+### Arbitrages Florian (2026-07-29, avant implémentation)
+
+- **🎨 Couleur par calendrier → AUCUNE.** Le **nom** porte l'identité en vues Jour et Semaine (UX-DR26 l'impose déjà). En vue Mois, où une pastille de 17px ne peut pas porter un nom, les pastilles affichent **heure + titre tronqué** et **aucune identité de calendrier** — assumé : la vue mois est une carte de densité, pas un index. Palette intacte, zéro token neuf.
+- **🎨 Repère « aujourd'hui » → mot + bordure neutre appuyée.** « auj. » en mois, « · aujourd'hui » en semaine ; bordure en blanc à forte opacité plutôt que le turquoise de la maquette, qui est l'accent du domaine Climatisation.
+- **📐 Plage de la vue mois → LE MOIS STRICT** (contre la recommandation de la story, choix assumé de Florian). `[1er 00:00 → 1er du mois suivant 00:00)`. **Conséquence à connaître** : les cellules débordantes de la grille 7×6 n'ont aucune donnée, donc un rendez-vous du 31 août n'apparaît pas sur la grille de septembre. **Atténuation retenue** : ces cellules ne rendent **que leur numéro de jour**, fortement estompées (`out`), et **ne montrent jamais un état « rien »** — elles ne prétendent rien sur leur contenu plutôt que de mentir par omission. Rebasculer sur la plage de la grille reste un changement d'une fonction (`monthRange` → `monthGridRange`).
+
 ### Décisions ouvertes / dépendances
 
 - **🎨 Couleur par calendrier — à trancher AVANT la Task 4.** La maquette colore les pastilles par calendrier (3 calendriers inventés : famille / florian / école). La réalité en a **4** (`chats`, `anniversaires`, `calendrier_scolaire_zone_c`, `jours_feries_…`) et le système de couleurs **n'a aucun token de calendrier**. Ajouter 4 teintes entrerait en collision avec la palette d'accents de domaine — la story 9.2 vient déjà d'en consommer deux pour les tarifs, dont une **identique** à `--color-accent-lights`. **Options** : (a) pas de couleur par calendrier, le **nom** suffit (UX-DR26 l'impose déjà, la couleur n'est qu'un renfort) ; (b) 4 tokens neufs `--color-cal-*`, en assumant la dilution de la palette. **Recommandation : (a)** — la couleur ne porte aucune information que le nom ne porte déjà, et la contrainte du kiosque est la lisibilité à trois mètres, pas la richesse chromatique.
@@ -216,12 +226,43 @@ La réponse réelle de Florian (observée le 2026-07-29, inscrite en fixture dan
 
 ### Debug Log References
 
+- **`tsc` ne couvre PAS les fichiers de test.** La story pariait que « les deux appelants migrent, `tsc` les nommera » : faux pour les tests, qui sont hors du projet de typecheck. Cinq tests du hook passaient `60_000` en **premier** argument — devenu la plage — et ne l'ont dit qu'à l'exécution, dont un par un `TypeError` sur `range?.start.getTime()`. Le filet de types s'arrête à `src/**` hors tests.
+- **Dépendances React : primitives plutôt que chaîne dérivée.** Première tentative avec un `rangeKey` string : la callback ne le lisait pas, donc la dépendance était décorative — exactement le défaut P10 relevé en revue de 10.1. Remplacé par `startMs`/`endMs`, réellement lus dans le corps.
+- **Vérification que les tests mordent** : régression volontaire de `groupByDay` (groupement par `start` au lieu du recouvrement) ⇒ **4 tests tombent**, dont celui de bout en bout sur la page. Restauré et revérifié.
+- **Budget vertical du mois recalculé** avec les valeurs réellement écrites : chrome 222px ⇒ **526px de grille**, cellules **78,8px**. À deux pixels de la maquette (524 / 78). Cohérent, mais **aucun test ne garde ça** (TD-9).
+- **Gates** : `rg 'useEntity\(' src/pages/AgendaDetail.tsx src/agenda/` ⇒ vide ; aucun `entity_id` en dur hors `entities/` ; build sans token RC=0, **0 token dans `dist/`**, `.env.local` restauré à empreinte identique.
+
 ### Completion Notes List
 
+- **AC1–AC8 satisfaits côté app ; la preuve device reste due** (les trois vues sans scroll à 1024×748).
+- **+50 tests → 456 verts** (54 fichiers), typecheck, oxlint et Prettier propres. Répartition : plages `weekRange`/`monthRange` +10, `group` +12, page `AgendaDetail` +21, hook +4, tuile +3.
+- **Le seam de 10.1 a tenu.** La story disait : « si elle demande de le réécrire, c'est qu'il ne l'était pas ». Il n'a pas fallu le réécrire — la plage est devenue un paramètre, le déclencheur de rafraîchissement a suivi, et **rien d'autre n'a bougé** : garde de séquence, journal d'erreur, garde `unreadable`, politique de 15 min sont intacts.
+- **Le piège du multi-jours est verrouillé à deux niveaux** : fonction pure et rendu de page. Un recouvrement, pas un groupement par `start` — et la fin exclusive tombe naturellement de l'écriture semi-ouverte, sans `−1` à oublier. **Vérifié mordant** : la régression volontaire fait tomber 4 tests.
+- **Le déclencheur de rafraîchissement a été repensé, pas rafistolé.** `windowDay` comparait une date du jour, ce qui ment dès qu'on demande une semaine. Remplacé par `windowKey`, qui vaut la plage sous plage explicite et `today:<date>` sous plage par défaut — une seule expression couvre la bascule de vue **et** le passage de minuit.
+- **Effet de bord heureux : le point a11y différé en revue de 10.1 (W1) est soldé.** La tuile portait `role="status"` sur un contenu entièrement `aria-hidden` — une région live incapable d'annoncer quoi que ce soit. Devenue `<button>`, elle a simplement le bon rôle. Le point sort de `deferred-work.md`.
+- **Deux tests réécrits, pas supprimés** : « non interactive en 10.1 » (la spec a changé, l'invariant « une seule cible » reste asserté) et les six `getByRole("status")` migrés vers `button`.
+- **Arbitrages de Florian appliqués tels quels** : aucune couleur par calendrier (le nom porte l'identité là où il rentre, la vue mois n'en affiche aucune), repère « aujourd'hui » en mot + bordure neutre, et **mois strict**. Sur ce dernier, contre ma recommandation — atténué en ne faisant **rien prétendre** aux cellules hors mois plutôt qu'en leur faisant afficher « rien ».
+- **Ce qui reste (Florian)** : la **preuve device** — trois vues à 1024×748 sans scroll, un jour chargé et pendant un multi-jours en cours, retour à l'accueil, HA coupé.
+
 ### File List
+
+**Créés :**
+
+- `src/pages/AgendaDetail.tsx` + `.test.tsx` — la page, ses trois vues, ses états
+- `src/agenda/group.ts` + `.test.ts` — `groupByDay`, `capEvents`
+
+**Modifiés :**
+
+- `src/agenda/select.ts` + `.test.ts` — `weekRange`, `monthRange`
+- `src/hakit/useCalendarEvents.ts` + `.test.ts` — plage paramétrée (`CalendarRange`), `windowKey` remplace `windowDay`
+- `src/widgets/AgendaTile.tsx` + `.test.tsx` — devient un `<button>` vers `/agenda`, sort de `role="status"`
+- `src/App.tsx` — route `/agenda`
+- `docs/home-assistant.md` — les trois plages sur la même action, aucune entité à créer
+- `_bmad-output/implementation-artifacts/sprint-status.yaml`
 
 ## Change Log
 
 | Date | Version | Description |
 | --- | --- | --- |
+| 2026-07-29 | 0.2 | **Implémentée (dev-story, TDD).** Le seam de 10.1 a tenu : la plage devient un paramètre (`CalendarRange`), le reste du hook est intact. **Le déclencheur de rafraîchissement a été repensé** — `windowDay` comparait une date du jour et mentait dès qu'on demandait une semaine ; `windowKey` vaut désormais la plage, ou `today:<date>` sous plage par défaut, couvrant d'une seule expression la bascule de vue et le passage de minuit. **Groupement par recouvrement, pas par `start`** : un multi-jours apparaît sur chaque jour couvert et la fin exclusive tombe naturellement de l'écriture semi-ouverte. Vérifié mordant — la régression volontaire fait tomber 4 tests. **La tuile devient un `<button>`**, ce qui solde au passage le point a11y différé en revue de 10.1 (région live sur contenu masqué). **Arbitrages de Florian appliqués** : aucune couleur par calendrier, repère « aujourd'hui » en mot + bordure neutre, mois strict — ce dernier contre ma recommandation, atténué en ne faisant rien prétendre aux cellules hors mois. **Deux tests réécrits plutôt que supprimés** (spec légitimement changée). **`tsc` ne couvre pas les tests** : cinq appels au hook passaient le délai en premier argument et ne l'ont dit qu'à l'exécution. **456 tests verts** (+50), build sans token RC=0, 0 token dans `dist/`, budget du mois recalculé à 526px/78,8px — à deux pixels de la maquette. → review. |
 | 2026-07-29 | 0.1 | Story 10.2 contextualisée (create-story), baseline `9151398`. **Le cœur technique est identifié** : la plage doit devenir un paramètre de `useCalendarEvents`, et le déclencheur de rafraîchissement (`windowDay`, qui compare une date du jour) doit suivre — sinon il ment dès qu'on demande une semaine. **Le piège central du groupement est nommé** : un multi-jours doit apparaître dans chaque jour qu'il couvre, et `end` étant exclusive, `27/07 → 17/08` s'arrête le 16 — se tromper d'un jour étale l'événement sur une cellule de trop tous les mois. **Le budget vertical du mois est repris de la maquette, pas réestimé** : 224px de chrome sur 748 laissent ~524px, soit 6 rangées de 134×78px — ça tient, mais la marge résiduelle se compte en pixels, aucun test ne la garde (TD-9), et les leviers d'ajustement sont listés dans l'ordre. **Trois décisions ouvertes** remontées avant implémentation, toutes chromatiques ou de plage : couleur par calendrier (recommandation : aucune, le nom suffit), repère « aujourd'hui » (la maquette emprunte l'accent Climatisation), et plage de la grille mois. **Les leçons de la revue de 10.1 sont inscrites** : tests qui mordent, `className` ≠ CSS émis, et ne jamais republier une hypothèse en fait. → ready-for-dev. |
