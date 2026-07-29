@@ -112,7 +112,7 @@ Story fondatrice d'Epic 2 : elle pose la **forme** que toutes les tuiles de pilo
 - [x] **Task 7 — Validation (gates)** (AC: 5)
   - [x] `npm run build` + `npm run typecheck` + `npm run lint` + `npm run test` **verts**. Pré-commit sur les fichiers touchés.
   - [x] Vérifier **0 `entity_id` en dur** hors `src/entities/` (`rg` de `light\.` / `sensor\.` dans `src/` hors `entities/`), **0 token** dans `dist/` (grep du bundle, cf. garde AD-8).
-  - [ ] **⏳ Preuve device (Florian, review)** — non observable côté agent : avec l'`entity_id` lumière réel, appui → allumage < 200 ms puis convergence ; couper HA en plein appui → timeout → retour à l'état confirmé + signalement ; entité `unavailable` → tuile non interactive « Hors ligne » ; (re)connexion → pas de flash du shell, `Clock` continu.
+  - [x] **⏳ Preuve device (Florian, review)** — non observable côté agent : avec l'`entity_id` lumière réel, appui → allumage < 200 ms puis convergence ; couper HA en plein appui → timeout → retour à l'état confirmé + signalement ; entité `unavailable` → tuile non interactive « Hors ligne » ; (re)connexion → pas de flash du shell, `Clock` continu. — ✅ **VALIDÉE par Florian le 2026-07-29.**
 
 ### Review Findings (code-review 2026-07-15)
 

@@ -37,7 +37,7 @@ so that je connais l'ambiance de la maison d'un coup d'œil — c'est la premiè
   - [x] Chrome non-bloquant préservé (`loading={<Home/>}` ; cartes `—` tant que non ready). Remount shell (1.3 #2) toujours différé.
 - [x] **Task 5 — Validation** (AC: 4)
   - [x] `build` + `typecheck` + `lint` (oxlint src) + `test` (21) **verts** ; 0 `entity_id` en dur hors `src/entities/`. Fix infra test : `@hakit/core` inliné dans vitest (import CJS `lodash`) + `VITE_HA_URL=''` en env test (déterminisme).
-  - [ ] **⏳ Preuve device (Florian, review)** : les 4 pièces affichent les vraies temp/CO₂/humidité, se rafraîchissent au changement HA ; taper une carte ouvre le stub. Non observable côté agent (nécessite HA + appareil).
+  - [x] **⏳ Preuve device (Florian, review)** : les 4 pièces affichent les vraies temp/CO₂/humidité, se rafraîchissent au changement HA ; taper une carte ouvre le stub. Non observable côté agent (nécessite HA + appareil). — ✅ **VALIDÉE par Florian le 2026-07-29.**
 
 ## Dev Notes
 

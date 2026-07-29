@@ -169,7 +169,7 @@ Contrat **à documenter** : `docs/home-assistant.md` § « Électricité — heu
 - [x] **Task 7 — Validation (gates)** (AC: 5)
   - [x] `build` (sans token, garde AD-8 — cf. note 9.1 : déplacer temporairement `.env.local`, **le restaurer**) + `typecheck` + `lint` (oxlint) + `test` verts ; **0 `entity_id` en dur** hors `entities/` ; **0 token dans `dist/`** ; Prettier OK.
   - [x] **Gate spécifique AD-4/AD-16** : `rg -n '01:08|06:08|12:38|15:38|0\.0890|0\.1491' src/` ⇒ **aucun résultat**.
-  - [ ] **Preuve device (Florian)** : pill correcte à l'instant T ; coût = `conso × prix de la période` (vérifier à la main) ; page `/electricite` (2 prix + « Appliqué » sur le bon + prochaine bascule) **sans scroll** ; `binary_sensor` coupé après avoir été vu ⇒ **dernier tarif conservé, coût toujours là** ; **ET pas de collision/scroll top-bar** à **1024×768** avec la pill. — _en attente Florian_
+  - [x] **Preuve device (Florian)** : pill correcte à l'instant T ; coût = `conso × prix de la période` (vérifier à la main) ; page `/electricite` (2 prix + « Appliqué » sur le bon + prochaine bascule) **sans scroll** ; `binary_sensor` coupé après avoir été vu ⇒ **dernier tarif conservé, coût toujours là** ; **ET pas de collision/scroll top-bar** à **1024×768** avec la pill. — _en attente Florian_ — ✅ **VALIDÉE par Florian le 2026-07-29.** ⚠️ **Réserve explicite** : les clauses portant sur le **coût** (« coût = conso × prix, vérifié à la main », « coût toujours là » après coupure) n'ont PAS pu être éprouvées — le capteur de conso de la story 9.1 n'existe pas, donc le coût affiche « — ». Ont bien été validés : la pill, les deux prix, le marqueur « Appliqué », la prochaine bascule, l'absence de scroll et de collision top-bar. Le reste est porté par 9.1.
 
 ## Dev Notes
 

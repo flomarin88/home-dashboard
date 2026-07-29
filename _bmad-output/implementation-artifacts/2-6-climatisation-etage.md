@@ -4,7 +4,7 @@ baseline_commit: d54f7c67ba4bef831651a9eecc40d84e0ba51edc
 
 # Story 2.6: Climatisation — étage
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -122,7 +122,7 @@ Une entité `climate` n'est pas un domaine à **état-chaîne** simple comme `li
 
 - [x] **Task 6 — Intégration accueil** (AC: 1) — **TDD (Home)**
   - [x] `src/pages/Home.tsx` : peupler la **colonne « Climatisation »** (aujourd'hui un `<div />` vide, 3ᵉ colonne du grid Éclairage·Volets·Climatisation) avec `<ClimateTile entry={climateEntry} />`, gardé `isConfigured && climateEntry` (éviter le non-null assertion — pattern `vacuumEntry`). [Source: src/pages/Home.tsx:35-43,23]
-  - [ ] **⚠️ Device-proof (Florian)** — vérifier **no-scroll 1024×768** (mémoire target-device-and-layout) : la tuile clim tient dans sa colonne sans casser la grille ni introduire de scroll. Layout construit selon le budget (stepper en ligne · chips qui wrap · fan/swing une ligne) mais **non vérifiable sans écran réel** (jsdom n'a pas de moteur de layout). Idem 2.7 → device-proof séparé.
+  - [x] **⚠️ Device-proof (Florian)** — vérifier **no-scroll 1024×768** (mémoire target-device-and-layout) : la tuile clim tient dans sa colonne sans casser la grille ni introduire de scroll. Layout construit selon le budget (stepper en ligne · chips qui wrap · fan/swing une ligne) mais **non vérifiable sans écran réel** (jsdom n'a pas de moteur de layout). Idem 2.7 → device-proof séparé. — ✅ **VALIDÉE par Florian le 2026-07-29.**
   - [x] Mettre à jour le commentaire d'en-tête de `Home` (« Volets / Climatisation to come » → Climatisation posée).
 
 - [x] **Task 7 — Gates & DoD** (AC: 5)

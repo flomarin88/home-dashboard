@@ -37,7 +37,7 @@ so that je sais quand une valeur affichée n'est plus à jour — et l'écran ne
   - [x] `useEntityValue` pour temp/CO₂/humidité ; obsolète → dernière valeur + `OfflinePill` + horodatage + **bordure pointillée conditionnelle** (une seule utilitaire border/text par état — leçon cascade 1.2). Sparkline remplacée par la pill quand obsolète. Test (mock `@hakit` `useHass` `disconnected`) : pill + valeur figée + horodatage, jamais vide.
 - [x] **Task 5 — Validation** (AC: 5)
   - [x] `build` + `typecheck` + `lint` (oxlint src) + `test` (33) **verts** ; 0 `entity_id` en dur hors `src/entities/` ; 0 token dans `dist/`.
-  - [ ] **⏳ Preuve device (Florian, review)** : couper HA/réseau ou une source Netatmo → carte garde dernière valeur + « Hors ligne » + heure, jamais de blanc ; reconnexion → live. Non observable côté agent (nécessite HA + appareil).
+  - [x] **⏳ Preuve device (Florian, review)** : couper HA/réseau ou une source Netatmo → carte garde dernière valeur + « Hors ligne » + heure, jamais de blanc ; reconnexion → live. Non observable côté agent (nécessite HA + appareil). — ✅ **VALIDÉE par Florian le 2026-07-29.**
 
 ## Dev Notes
 

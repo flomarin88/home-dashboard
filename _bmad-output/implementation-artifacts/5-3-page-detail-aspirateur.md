@@ -92,7 +92,7 @@ Ajoutée en **correct-course** (2026-07-16) : c'est la **maison naturelle** des 
 
 - [x] **Task 4 — Validation (gates)** (AC: 4)
   - [x] `build` (sans token) + `typecheck` + `lint` + `test` **verts** ; 0 `entity_id` en dur hors `entities/` (code non-test) ; 0 token dans `dist/`.
-  - [ ] **⏳ Preuve device (Florian, review)** : tap tuile → `/aspirateur` ; contrôles OK ; sections affichent les vraies valeurs ; « à remplacer » sur consommable dû ; retour Accueil ; capteur coupé → obsolescence.
+  - [x] **⏳ Preuve device (Florian, review)** : tap tuile → `/aspirateur` ; contrôles OK ; sections affichent les vraies valeurs ; « à remplacer » sur consommable dû ; retour Accueil ; capteur coupé → obsolescence. — ✅ **VALIDÉE par Florian le 2026-07-29.**
 
 ## Dev Notes
 

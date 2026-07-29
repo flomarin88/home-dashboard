@@ -85,7 +85,7 @@ Coup d'œil météo extérieur. **Tout via HA** (décision Florian) : temp/humid
 
 - [x] **Task 6 — Validation (gates)** (AC: 3)
   - [x] `build` (sans token) + `typecheck` + `lint` + `test` **verts** (115 tests) ; 0 `entity_id` en dur hors `entities/` (code non-test) ; **0 `fetch` externe** ; 0 token dans `dist/`.
-  - [ ] **⏳ Preuve device (Florian, review)** : widget météo près de l'heure (temp/tendance/humidité/batterie réelles) ; tap → `/meteo` (Actuel + courbe historique) ; après ajout de l'intégration météo → condition + 7 j + pluie 1 h ; capteur coupé → obsolescence ; pas de scroll.
+  - [x] **⏳ Preuve device (Florian, review)** : widget météo près de l'heure (temp/tendance/humidité/batterie réelles) ; tap → `/meteo` (Actuel + courbe historique) ; après ajout de l'intégration météo → condition + 7 j + pluie 1 h ; capteur coupé → obsolescence ; pas de scroll. — ✅ **VALIDÉE par Florian le 2026-07-29.**
 
 ### Review Findings
 

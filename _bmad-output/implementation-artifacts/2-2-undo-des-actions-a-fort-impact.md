@@ -84,7 +84,7 @@ Story infra d'Epic 2 : le **filet de sécurité réversible**. `useOptimisticCon
 - [x] **Task 6 — Validation (gates)** (AC: 4)
   - [x] `npm run build` (sans token) + `npm run typecheck` + `npm run lint` + `npm run test` **verts**. Pré-commit sur les fichiers touchés.
   - [x] **0 token** dans `dist/` (garde AD-8). Pas d'`entity_id` en dur hors `entities/` (le mécanisme undo est agnostique aux entités).
-  - [ ] **⏳ Preuve device (Florian, review)** — non observable côté agent, **différée jusqu'à un déclencheur réel (2.3)** : « Tout éteindre » → toast 6-8 s + compte à rebours → « Annuler » avant expiration → les lumières reviennent à leur état précédent ; laisser expirer → l'action reste. (2.2 seul n'a pas de déclencheur réel à éprouver sur device.)
+  - [x] **⏳ Preuve device (Florian, review)** — non observable côté agent, **différée jusqu'à un déclencheur réel (2.3)** : « Tout éteindre » → toast 6-8 s + compte à rebours → « Annuler » avant expiration → les lumières reviennent à leur état précédent ; laisser expirer → l'action reste. (2.2 seul n'a pas de déclencheur réel à éprouver sur device.) — ✅ **VALIDÉE par Florian le 2026-07-29.**
 
 ### Review Findings (code-review 2026-07-16)
 

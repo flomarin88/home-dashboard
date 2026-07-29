@@ -63,10 +63,10 @@ so that on n'oublie jamais de sortir la bonne poubelle (jaune = tri · noire = o
 
 ## Tasks / Subtasks
 
-- [ ] **Task 0 — ⚠️ PRÉREQUIS HA (Florian, hors app) : capteur + helpers**
-  - [ ] **Créer** `sensor.poubelle_a_sortir` (**template**) respectant le **Contrat d'interface** ci-dessus (états `jaune`/`noire`/`oubli_jaune`/`oubli_noire`/`aucune`), avec les créneaux mardi/jeudi.
-  - [ ] **Créer** `input_datetime.poubelle_jaune_sortie` et `input_datetime.poubelle_noire_sortie` (Helpers → Date/heure).
-  - [ ] Confirmer les **`entity_id` réels** (les slugs peuvent différer — leçon 2.7). Le dev **ne devine pas** ; il mappe les ids fournis.
+- [x] **Task 0 — ✅ FAITE (cases rattrapées le 2026-07-29)** — jamais cochée à l'époque. La preuve device validée consistait à **taper « Sortie » et voir l'`input_datetime` écrit dans HA** : elle est impossible si le capteur template et les helpers n'existent pas. Leur existence est donc établie par la validation elle-même, pas supposée.
+  - [x] **Créer** `sensor.poubelle_a_sortir` (**template**) respectant le **Contrat d'interface** ci-dessus (états `jaune`/`noire`/`oubli_jaune`/`oubli_noire`/`aucune`), avec les créneaux mardi/jeudi.
+  - [x] **Créer** `input_datetime.poubelle_jaune_sortie` et `input_datetime.poubelle_noire_sortie` (Helpers → Date/heure).
+  - [x] Confirmer les **`entity_id` réels** (les slugs peuvent différer — leçon 2.7). Le dev **ne devine pas** ; il mappe les ids fournis.
 
 - [x] **Task 1 — Mapping poubelles** (AC: 1, 2, 3)
   - [x] `src/entities/mapping.ts` : config `BINS` (AD-7) : `stateEntityId: 'sensor.poubelle_a_sortir'` + map `sortie` par couleur `{ jaune: 'input_datetime.poubelle_jaune_sortie', noire: 'input_datetime.…_noire_sortie' }`. Accesseur `binsConfig()`.
@@ -89,7 +89,7 @@ so that on n'oublie jamais de sortir la bonne poubelle (jaune = tri · noire = o
 
 - [x] **Task 5 — Validation (gates)** (AC: 3)
   - [x] `build` (sans token) + `typecheck` + `lint` + `test` **verts** ; 0 `entity_id` en dur hors `entities/` (code non-test) ; 0 token dans `dist/`.
-  - [ ] **⏳ Preuve device (Florian, review)** : mardi soir → tuile jaune + tap « Sortie » → `input_datetime` écrit (visible dans HA) + tuile repasse `aucune` ; jeudi soir → noire ; oubli → rouge ; historique consultable dans HA (historique de l'`input_datetime`). Pas de scroll.
+  - [x] **⏳ Preuve device (Florian, review)** : mardi soir → tuile jaune + tap « Sortie » → `input_datetime` écrit (visible dans HA) + tuile repasse `aucune` ; jeudi soir → noire ; oubli → rouge ; historique consultable dans HA (historique de l'`input_datetime`). Pas de scroll. — ✅ **VALIDÉE par Florian le 2026-07-29.**
 
 ### Review Findings
 

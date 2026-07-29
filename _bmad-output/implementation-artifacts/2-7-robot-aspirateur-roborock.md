@@ -52,7 +52,7 @@ Première tuile de pilotage **d'un vrai appareil connecté** (`vacuum.roborock_s
     - `apply(entity, target)` : `cleaning → entity.service.start()` ; `docked → entity.service.returnToBase()` ; `idle → entity.service.stop()`
     - `timeoutMs ≈ 10000` (la commande doit prendre effet en ~10 s ; le long trajet `returning` est transitionnel, donc pas de timeout-échec pendant le retour).
   - [x] Tests : `isConverged` ; `isTransitional('returning')===true`, `('cleaning')===false` ; `apply` appelle le bon service par cible (mock `entity.service`).
-  - [ ] **⚠️ Point à vérifier au device-proof :** confirmer que `vacuum.stop` mène l'S8 à l'état **`idle`** (et non `paused`). Si l'intégration renvoie `paused` sur stop, ajuster la cible « Arrêter » (`idle` → `paused`) — noté en Dev Notes. Ne pas deviner : vérifier sur l'appareil.
+  - [x] **⚠️ Point à vérifier au device-proof :** confirmer que `vacuum.stop` mène l'S8 à l'état **`idle`** (et non `paused`). Si l'intégration renvoie `paused` sur stop, ajuster la cible « Arrêter » (`idle` → `paused`) — noté en Dev Notes. Ne pas deviner : vérifier sur l'appareil. — ✅ **VALIDÉE par Florian le 2026-07-29.**
 
 - [x] **Task 3 — Widget `VacuumTile`** (AC: 1, 2) — **TDD (composant)**
   - [x] `src/widgets/VacuumTile.tsx` : compose `useOptimisticControl(id, vacuumModel)` (état optimiste + `isStale` + `failed` + `send`) **et** un `useEntity(id)` direct pour l'attribut **`battery_level`** (le hook de contrôle n'expose pas les attributs ; 2 abonnements même id, dédupliqués par `@hakit`).
@@ -68,7 +68,7 @@ Première tuile de pilotage **d'un vrai appareil connecté** (`vacuum.roborock_s
 - [x] **Task 5 — Validation (gates)** (AC: 3)
   - [x] `npm run build` (sans token) + `npm run typecheck` + `npm run lint` + `npm run test` **verts**. Pré-commit sur les fichiers touchés.
   - [x] **0 `entity_id` en dur** dans le code non-test hors `src/entities/` ; **0 token** dans `dist/`.
-  - [ ] **⏳ Preuve device (Florian, review) — ENFIN RÉELLE :** l'S8 étant connecté, éprouver de bout en bout : accueil → tuile montre batterie + statut réel ; **Lancer** → l'aspi démarre, statut « En ménage » < 200 ms puis converge ; **Retour base** → statut « Retour à la base » (transitionnel) puis « En charge » sans timeout-échec ; **Arrêter** → statut confirmé (vérifier `idle` vs `paused`) ; couper HA en pleine commande → timeout → « Échec » + retour à l'état confirmé ; entité obsolète → « Hors ligne ». **C'est la 1ʳᵉ validation device du socle 2.1 sur un vrai appareil.**
+  - [x] **⏳ Preuve device (Florian, review) — ENFIN RÉELLE :** l'S8 étant connecté, éprouver de bout en bout : accueil → tuile montre batterie + statut réel ; **Lancer** → l'aspi démarre, statut « En ménage » < 200 ms puis converge ; **Retour base** → statut « Retour à la base » (transitionnel) puis « En charge » sans timeout-échec ; **Arrêter** → statut confirmé (vérifier `idle` vs `paused`) ; couper HA en pleine commande → timeout → « Échec » + retour à l'état confirmé ; entité obsolète → « Hors ligne ». **C'est la 1ʳᵉ validation device du socle 2.1 sur un vrai appareil.** — ✅ **VALIDÉE par Florian le 2026-07-29.**
 
 ## Dev Notes
 
