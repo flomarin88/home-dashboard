@@ -20,7 +20,14 @@ export default defineConfig({
     // Force an unconfigured HA in unit tests so they never depend on a local
     // .env.local (vitest loads it). Components that need HA are tested with
     // their own mocks; isConfigured stays false here, deterministically.
-    env: { VITE_HA_URL: "", VITE_HA_TOKEN: "" },
+    // ⚠️ TZ ÉPINGLÉ. Le kiosque vit dans une maison française et tout est
+    // formaté en fr-FR ; une suite qui dépend du fuseau de la machine qui la
+    // lance est verte chez le dev et rouge en CI. C'est exactement ce qui est
+    // arrivé le 2026-07-29 : une fixture reprise de la vraie réponse HA porte
+    // un instant absolu (`…T23:45:00+02:00`), rendu 23:45 à Paris et 21:45 sur
+    // un runner en UTC — huit déploiements en échec et la prod bloquée onze
+    // commits en arrière, sans que le pre-commit local puisse le voir.
+    env: { VITE_HA_URL: "", VITE_HA_TOKEN: "", TZ: "Europe/Paris" },
     // @hakit/core does `import { clamp } from 'lodash'` (CJS named import);
     // inline it so Vite transforms it instead of failing on the CJS interop.
     server: { deps: { inline: ["@hakit/core", "@hakit/components"] } },
