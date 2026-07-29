@@ -144,6 +144,21 @@ export function AgendaDetail() {
           >
             ›
           </NavButton>
+          {/* Retour au présent. Sans lui, revenir depuis mars demande de
+              recompter ses clics ou de quitter la page — et sur un écran mural
+              la seconde option n'est pas évidente.
+
+              Jamais `disabled` quand on y est déjà : un contrôle désactivé est
+              une cible morte que les lecteurs d'écran sautent (précédent
+              consigné en revue de 6.1). Le clic est simplement idempotent —
+              même ancrage, même plage, aucune requête. */}
+          <button
+            type="button"
+            onClick={() => setAnchor(new Date())}
+            className="ml-1 flex h-[44px] items-center rounded-md border border-tile-border bg-tile-fill px-3 text-label font-semibold text-text-muted"
+          >
+            Aujourd'hui
+          </button>
         </div>
 
         <span className="flex-1" />

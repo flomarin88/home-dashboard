@@ -179,7 +179,9 @@ describe("AgendaDetail (Story 10.2)", () => {
     fireEvent.click(screen.getByRole("tab", { name: "Mois" }));
     expect(screen.getByText("auj.")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("tab", { name: "Semaine" }));
-    expect(screen.getByText(/aujourd'hui/i)).toBeInTheDocument();
+    // Le repère précisément, pas le bouton « Aujourd'hui » ajouté depuis : il
+    // porte le point médian et vit dans la rangée du jour.
+    expect(screen.getByText(/· aujourd'hui/i)).toBeInTheDocument();
   });
 
   it("les cellules hors du mois ne prétendent RIEN sur leur contenu", () => {
@@ -324,5 +326,61 @@ describe("AgendaDetail (Story 10.2)", () => {
     fireEvent.click(screen.getByRole("button", { name: /période suivante/i }));
     expect(screen.queryByText("Rien aujourd'hui")).toBeNull();
     expect(screen.getByText(/rien ce jour-là/i)).toBeInTheDocument();
+  });
+
+  it("« Aujourd'hui » ramène à la période contenant la date réelle", () => {
+    renderPage();
+    fireEvent.click(screen.getByRole("button", { name: /période suivante/i }));
+    fireEvent.click(screen.getByRole("button", { name: /période suivante/i }));
+    expect(screen.queryByText(/mercredi 29 juillet/i)).toBeNull();
+
+    read.ranges = [];
+    fireEvent.click(screen.getByRole("button", { name: /^aujourd'hui$/i }));
+    expect(screen.getByText(/mercredi 29 juillet/i)).toBeInTheDocument();
+    expect(read.ranges[0].start.getDate()).toBe(29);
+  });
+
+  it("ramène sur la SEMAINE contenant aujourd'hui, pas sur le jour", () => {
+    renderPage();
+    fireEvent.click(screen.getByRole("tab", { name: "Semaine" }));
+    fireEvent.click(screen.getByRole("button", { name: /période suivante/i }));
+    read.ranges = [];
+    fireEvent.click(screen.getByRole("button", { name: /^aujourd'hui$/i }));
+    expect(read.ranges[0].start.getDate()).toBe(27); // lundi de la semaine du 29
+    expect(screen.getByText(/27 juil\..+2 août/i)).toBeInTheDocument();
+  });
+
+  it("ramène sur le MOIS contenant aujourd'hui", () => {
+    renderPage();
+    fireEvent.click(screen.getByRole("tab", { name: "Mois" }));
+    fireEvent.click(screen.getByRole("button", { name: /période suivante/i }));
+    expect(screen.queryByText("auj.")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: /^aujourd'hui$/i }));
+    expect(screen.getByText(/juillet 2026/i)).toBeInTheDocument();
+    expect(screen.getByText("auj.")).toBeInTheDocument(); // le repère revient
+  });
+
+  it("est idempotent : y cliquer en y étant déjà ne redemande rien", () => {
+    // Un contrôle qui relance une requête pour rien sur un kiosque mural, c'est
+    // du bruit ; et le rendre `disabled` en ferait une cible morte que les
+    // lecteurs d'écran sautent (précédent 6.1).
+    renderPage();
+    read.ranges = [];
+    fireEvent.click(screen.getByRole("button", { name: /^aujourd'hui$/i }));
+    expect(screen.getByText(/mercredi 29 juillet/i)).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /^aujourd'hui$/i }),
+    ).not.toBeDisabled();
+  });
+
+  it("est une cible d'au moins 44px, à droite des flèches", () => {
+    renderPage();
+    const btn = screen.getByRole("button", { name: /^aujourd'hui$/i });
+    expect(btn.className).toMatch(/h-\[44px\]/);
+    const suivante = screen.getByRole("button", { name: /période suivante/i });
+    // Même conteneur, et après la flèche « suivante » dans l'ordre du document.
+    expect(
+      suivante.compareDocumentPosition(btn) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
   });
 });
