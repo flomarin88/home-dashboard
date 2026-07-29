@@ -17,6 +17,7 @@ import { WeatherDetail } from "./pages/WeatherDetail";
 import { ClimateDetail } from "./pages/ClimateDetail";
 import { CoursesDetail } from "./pages/CoursesDetail";
 import { ElectricityDetail } from "./pages/ElectricityDetail";
+import { AgendaDetail } from "./pages/AgendaDetail";
 
 function AppRoutes() {
   return (
@@ -28,6 +29,7 @@ function AppRoutes() {
       <Route path="/meteo" element={<WeatherDetail />} />
       <Route path="/courses" element={<CoursesDetail />} />
       <Route path="/electricite" element={<ElectricityDetail />} />
+      <Route path="/agenda" element={<AgendaDetail />} />
     </Routes>
   );
 }

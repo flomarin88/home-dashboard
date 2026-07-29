@@ -597,6 +597,21 @@ l'événement : **« Jusqu'au 3 nov. »** pour un multi-jours, **« Jusqu'à 18:
 rendez-vous horodaté commencé — la date de fin d'un journée entière étant exclusive, la
 même arithmétique appliquée à une heure afficherait la veille.
 
+**Trois plages, une seule action (Story 10.2).** La page `/agenda` rejoue **exactement** le même
+appel pour ses vues Jour, Semaine et Mois : seuls `start_date_time` et `end_date_time` changent.
+**Rien de nouveau à créer côté HA** — pas d'entité, pas de template, pas de helper.
+
+| vue     | plage demandée                                             |
+| ------- | ---------------------------------------------------------- |
+| Jour    | `[aujourd'hui 00:00 → demain 00:00)`                       |
+| Semaine | `[lundi 00:00 → lundi suivant 00:00)`, semaine courante    |
+| Mois    | `[1er 00:00 → 1er du mois suivant 00:00)`, mois **strict** |
+
+> La grille du mois dessine 6 semaines et déborde donc sur les mois voisins, mais la requête
+> porte sur le **mois strict** (choix de Florian, 2026-07-29). Les cellules débordantes n'ont
+> aucune donnée : elles n'affichent que leur numéro, estompées, et **ne prétendent rien** sur
+> leur contenu. Un rendez-vous du 31 août n'apparaît donc pas sur la grille de septembre.
+
 **Fraîcheur** — cette donnée **n'est pas poussée** par le WebSocket : une socket vivante
 ne dit **rien** sur l'âge de la réponse. Le dashboard rejoue donc la requête au montage,
 **toutes les 15 min**, au **retour au premier plan**, et au **changement de date locale**.

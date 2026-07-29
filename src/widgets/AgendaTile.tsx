@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useCalendarEvents } from "../hakit/useCalendarEvents";
 import { formatSince } from "../hakit/stale";
 import {
@@ -37,9 +38,17 @@ interface TileText {
  * lands. Obsolescence dims the whole chip (the top-bar family's single rule) and
  * keeps the last known answer — never a blank, never a spinner.
  *
- * Not interactive in 10.1: tapping through to `/agenda` is Story 10.2.
+ * Tappable since Story 10.2: it opens `/agenda` (day view), like
+ * `TopBarWeather → /meteo` and `ElectricityTile → /electricite`.
+ *
+ * That change also settles an a11y point the 10.1 review parked (W1): the chip
+ * used to be a `role="status"` live region wrapping content that was entirely
+ * `aria-hidden` — a region that cannot announce anything. As a button it simply
+ * has the right role, and its accessible name carries the whole glance plus the
+ * action.
  */
 export function AgendaTile() {
+  const navigate = useNavigate();
   const { events, isStale, loading, since, unreadable } = useCalendarEvents();
   const [now, setNow] = useState(() => new Date());
 
@@ -54,9 +63,10 @@ export function AgendaTile() {
   const text = tileText({ events, now, loading, isStale, since, unreadable });
 
   return (
-    <div
-      role="status"
-      aria-label={text.aria}
+    <button
+      type="button"
+      onClick={() => navigate("/agenda")}
+      aria-label={`${text.aria} — ouvrir l'agenda`}
       className={`inline-flex min-h-[56px] items-center gap-2 rounded-lg border border-card-border bg-card-fill px-4 backdrop-blur-glass ${
         // An unparsable answer is a degraded state too — dim it like an offline
         // one, so a format drift can never look like a healthy empty day (D2).
@@ -84,7 +94,7 @@ export function AgendaTile() {
           {text.title || " "}
         </span>
       </span>
-    </div>
+    </button>
   );
 }
 

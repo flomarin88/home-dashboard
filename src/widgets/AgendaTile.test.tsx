@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
+import { MemoryRouter, Routes, Route } from "react-router-dom";
 import type { AgendaEvent } from "../agenda/select";
 
 // The tile is tested against the READ hook's contract, not against HA: the query
@@ -17,6 +18,17 @@ vi.mock("../hakit/useCalendarEvents", () => ({
 }));
 
 import { AgendaTile } from "./AgendaTile";
+
+function renderTile() {
+  return render(
+    <MemoryRouter initialEntries={["/"]}>
+      <Routes>
+        <Route path="/" element={<AgendaTile />} />
+        <Route path="/agenda" element={<div>agenda-page</div>} />
+      </Routes>
+    </MemoryRouter>,
+  );
+}
 
 const at = (y: number, m: number, d: number, h = 0, min = 0) =>
   new Date(y, m - 1, d, h, min);
@@ -43,9 +55,30 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-describe("AgendaTile (Story 10.1, UX-DR28)", () => {
+describe("AgendaTile (Story 10.1, tappable depuis 10.2)", () => {
+  it("ouvre /agenda au tap — 10.1 l'avait laissée inerte en renvoyant ici", () => {
+    renderTile();
+    fireEvent.click(screen.getByRole("button"));
+    expect(screen.getByText("agenda-page")).toBeInTheDocument();
+  });
+
+  it("annonce l'action dans son nom accessible, pas seulement le contenu", () => {
+    renderTile();
+    expect(
+      screen.getByRole("button", { name: /ouvrir l'agenda/i }),
+    ).toBeInTheDocument();
+  });
+
+  it("n'est plus une région live — le rôle bouton est le bon (revue 10.1, W1)", () => {
+    // Elle portait role="status" sur un contenu entièrement aria-hidden : une
+    // région live ne peut rien annoncer d'un contenu masqué. Le bouton règle
+    // le point différé au lieu de le contourner.
+    renderTile();
+    expect(screen.queryByRole("status")).toBeNull();
+  });
+
   it("always shows the PROCHAIN label — an icon alone would be mystery meat", () => {
-    render(<AgendaTile />);
+    renderTile();
     expect(screen.getByText(/prochain/i)).toBeInTheDocument();
   });
 
@@ -57,7 +90,7 @@ describe("AgendaTile (Story 10.1, UX-DR28)", () => {
         end: at(2026, 7, 28, 17, 30),
       }),
     ];
-    render(<AgendaTile />);
+    renderTile();
 
     expect(screen.getByText("17:00")).toBeInTheDocument();
     expect(screen.getByText("dans 4h")).toBeInTheDocument();
@@ -74,7 +107,7 @@ describe("AgendaTile (Story 10.1, UX-DR28)", () => {
         calendarId: "calendar.anniversaires",
       }),
     ];
-    render(<AgendaTile />);
+    renderTile();
 
     expect(screen.getByText("Aujourd'hui")).toBeInTheDocument();
     expect(screen.getByText("Anniversaire de Nathan")).toBeInTheDocument();
@@ -92,16 +125,16 @@ describe("AgendaTile (Story 10.1, UX-DR28)", () => {
         calendarId: "calendar.calendrier_scolaire_zone_c",
       }),
     ];
-    render(<AgendaTile />);
+    renderTile();
 
     expect(screen.getByText(/Jusqu'au 31 août/)).toBeInTheDocument();
     expect(screen.getByText("Vacances d'été")).toBeInTheDocument();
   });
 
   it("empty day — renders a stated result, not a blank (UX-DR27)", () => {
-    render(<AgendaTile />);
+    renderTile();
     expect(screen.getByText("Rien aujourd'hui")).toBeInTheDocument();
-    expect(screen.getByRole("status")).toHaveAttribute(
+    expect(screen.getByRole("button")).toHaveAttribute(
       "aria-label",
       expect.stringMatching(/rien d'ici la fin de la journée/i),
     );
@@ -144,7 +177,7 @@ describe("AgendaTile (Story 10.1, UX-DR28)", () => {
       read.unreadable = false;
       setup();
 
-      const { container, unmount } = render(<AgendaTile />);
+      const { container, unmount } = renderTile();
       const column = container.querySelector("span.flex") as HTMLElement;
 
       expect(column.className, name).toContain("w-[150px]");
@@ -169,7 +202,7 @@ describe("AgendaTile (Story 10.1, UX-DR28)", () => {
         end: at(2026, 7, 28, 18, 0),
       }),
     ];
-    render(<AgendaTile />);
+    renderTile();
     expect(
       screen.getByText(/Un titre particulièrement long/).className,
     ).toMatch(/truncate/);
@@ -184,11 +217,11 @@ describe("AgendaTile (Story 10.1, UX-DR28)", () => {
       }),
     ];
     read.isStale = true;
-    render(<AgendaTile />);
+    renderTile();
 
     expect(screen.getByText("Vétérinaire")).toBeInTheDocument(); // last known kept
-    expect(screen.getByRole("status").className).toMatch(/opacity-60/);
-    expect(screen.getByRole("status")).toHaveAttribute(
+    expect(screen.getByRole("button").className).toMatch(/opacity-60/);
+    expect(screen.getByRole("button")).toHaveAttribute(
       "aria-label",
       expect.stringMatching(/hors ligne/i),
     );
@@ -197,7 +230,7 @@ describe("AgendaTile (Story 10.1, UX-DR28)", () => {
   it("offline having never answered — says unavailable, never 'nothing today'", () => {
     read.isStale = true;
     read.since = undefined;
-    render(<AgendaTile />);
+    renderTile();
 
     expect(screen.getByText("Indisponible")).toBeInTheDocument();
     expect(screen.queryByText("Rien aujourd'hui")).not.toBeInTheDocument();
@@ -205,7 +238,7 @@ describe("AgendaTile (Story 10.1, UX-DR28)", () => {
 
   it("loading — a placeholder, never a spinner", () => {
     read.loading = true;
-    render(<AgendaTile />);
+    renderTile();
 
     expect(screen.getByText("—")).toBeInTheDocument();
     expect(screen.queryByText("Rien aujourd'hui")).not.toBeInTheDocument();
@@ -222,11 +255,11 @@ describe("AgendaTile (Story 10.1, UX-DR28)", () => {
         end: at(2026, 7, 28, 18, 0),
       }),
     ];
-    render(<AgendaTile />);
+    renderTile();
 
     expect(screen.getByText("Jusqu'à 18:00")).toBeInTheDocument();
     expect(screen.queryByText(/Jusqu'au/)).not.toBeInTheDocument();
-    expect(screen.getByRole("status")).toHaveAttribute(
+    expect(screen.getByRole("button")).toHaveAttribute(
       "aria-label",
       expect.stringMatching(/en cours : vétérinaire, jusqu'à 18:00/i),
     );
@@ -241,7 +274,7 @@ describe("AgendaTile (Story 10.1, UX-DR28)", () => {
         allDay: true,
       }),
     ];
-    render(<AgendaTile />);
+    renderTile();
     expect(screen.getByText(/Jusqu'au 31 août/)).toBeInTheDocument();
   });
 
@@ -250,20 +283,24 @@ describe("AgendaTile (Story 10.1, UX-DR28)", () => {
     // request still succeeded, and the tile claimed "Rien aujourd'hui" on a full
     // day — undimmed, untraced. Task 0 bis is still open, so this is the guard.
     read.unreadable = true;
-    render(<AgendaTile />);
+    renderTile();
 
     expect(screen.getByText("Indisponible")).toBeInTheDocument();
     expect(screen.queryByText("Rien aujourd'hui")).not.toBeInTheDocument();
-    expect(screen.getByRole("status").className).toMatch(/opacity-60/);
-    expect(screen.getByRole("status")).toHaveAttribute(
+    expect(screen.getByRole("button").className).toMatch(/opacity-60/);
+    expect(screen.getByRole("button")).toHaveAttribute(
       "aria-label",
       expect.stringMatching(/illisible/i),
     );
   });
 
-  it("is not interactive in 10.1 — navigation to /agenda is Story 10.2", () => {
-    render(<AgendaTile />);
-    expect(screen.queryByRole("button")).not.toBeInTheDocument();
-    expect(screen.queryByRole("link")).not.toBeInTheDocument();
+  it("est UN seul contrôle, sans commande imbriquée", () => {
+    // Ce test assertait « non interactive » en 10.1 ; 10.2 est précisément la
+    // story qui l'ouvre. Réécrit plutôt que supprimé : la spec a changé, mais
+    // l'invariant qui compte reste — la chip est une cible unique, on ne peut
+    // pas rater /agenda en visant un sous-élément.
+    renderTile();
+    expect(screen.getAllByRole("button")).toHaveLength(1);
+    expect(screen.queryByRole("link")).toBeNull();
   });
 });
