@@ -3,7 +3,7 @@ title: Spike — Suivi des colis au kiosque (API transporteurs vs mail)
 status: partial
 created: 2026-07-29
 feeds: PRD §backlog flux d'affichage (« colis Amazon »)
-source: portails développeurs consultés le 2026-07-29 + 1 mail Amazon.fr réel (27/07/2026)
+source: portails développeurs consultés le 2026-07-29 + 1 mail Amazon.fr réel (27/07/2026) + 1 numéro S10 étranger réel (2026-08-03)
 ---
 
 # Spike — afficher les colis en cours de livraison
@@ -20,9 +20,26 @@ spécifié sur cette granularité, sinon il promet ce qu'aucune source ne fourni
 > plus riche que l'API ». Le mail Amazon réel (ci-dessous) dit
 > « Livraison prévue **aujourd'hui** » — jour, pas heure. Corrigé.
 
-## Preuve — mail Amazon du 27/07/2026
+## Preuve — mails Amazon du 27/07/2026
 
-`shipment-tracking@amazon.fr`, reçu `Mon, 27 Jul 2026 09:02:30 +0000` (11h02 locale).
+Deux mails du même colis, 1 h 23 d'écart. **L'expéditeur change selon l'étape.**
+
+| Étape | Expéditeur | Reçu (UTC) | Échéance annoncée |
+|---|---|---|---|
+| En cours de livraison | `shipment-tracking@amazon.fr` | 09:02:30 | « Livraison prévue aujourd'hui » |
+| Livré | `order-update@amazon.fr` | 10:25:38 | « Livré aujourd'hui » + « déposé dans la boîte aux lettres » |
+
+Sujets encodés Base64 RFC 2047, décodés proprement : `Livré : « … »`,
+`En cours de livraison : « … »`. Le préfixe du sujet porte l'étape.
+
+**L'heure est dans l'enveloppe, pas dans le corps.** Aucun corps ne donne d'heure ;
+l'en-tête `Date` du mail « Livré » (12h25 locale) approxime l'heure réelle de livraison.
+
+**Clés :** le `N° de commande` est stable entre les deux mails — c'est la clé de dédup.
+Le `shipmentId` **ne l'est pas** : `Twk1C4My9` dans le lien de suivi,
+`113736816521302` dans les liens d'avis, dans le même mail. Ne pas s'en servir comme clé.
+
+Détail du mail « En cours de livraison » (`shipment-tracking@amazon.fr`, 11h02 locale) :
 
 | Champ | Valeur observée | Exploitable ? |
 |---|---|---|
@@ -57,6 +74,44 @@ parser le HTML.
 | Parcel App | — | **API officielle, 5 $/an**, intégration HACS `jmdevita/parcel-ha`, poll 5 min. |
 | Ship24 / AfterShip / TrackingMore | — | Chiffres issus de pages **éditées par Ship24 sur ses concurrents** — biais commercial, à revérifier à la source. |
 
+## Cas réel n°2 — un S10 étranger (2026-08-03)
+
+**Ce cas casse la taxonomie du spike.** Le document raisonnait sur deux situations :
+« Amazon ⇒ pas de numéro transporteur ⇒ le mail est la seule voie » et « le reste
+⇒ un numéro français ⇒ La Poste Suivi v2 ». Un colis réel en exhibe une troisième.
+
+Numéro fourni par Florian : **`CQ966406916DE`**, annoncé comme « chez Colissimo ».
+
+| Contrôle | Résultat |
+| --- | --- |
+| Format | **UPU S10** — 2 lettres de service + 8 chiffres + clé + 2 lettres de pays |
+| Clé de contrôle | **valide** : `96640691` pondéré 8-6-4-2-3-5-9-7 → somme 258 ; `258 mod 11 = 5` ; `11 − 5 = 6` = la clé annoncée |
+| Pays d'origine | **`DE` — Allemagne** |
+
+**Conséquence :** ce n'est pas un envoi Colissimo à la source. C'est un colis parti
+d'Allemagne dont La Poste n'assure que le dernier kilomètre. Le numéro est **émis
+par l'opérateur étranger**, pas par La Poste — et rien ne garantit que Suivi v2
+réponde dessus avant l'entrée du colis dans le réseau français, voire du tout.
+
+**Troisième cas à ajouter à la recommandation :** un numéro **existe** (contrairement
+à Amazon Logistics) mais **son émetteur est étranger** (contrairement à un Colissimo
+domestique). La recommandation n°2 du spike — « le reste → Suivi v2 » — n'a jamais
+été confrontée à ce cas.
+
+### Tentatives de suivi depuis l'agent, le 2026-08-03
+
+| Source | Résultat |
+| --- | --- |
+| `laposte.fr/outils/suivre-vos-envois?code=…` | **HTTP 403** — refus actif du fetch automatisé |
+| `dhl.de/int-verfolgen/search?piececode=…` | **timeout à 60 s** |
+
+Le 403 ajoute une information au constat du 29/07 (« page rendue en JS ») : le
+portail **bloque activement**, il ne se contente pas de rendre côté client.
+Écarté volontairement : les agrégateurs commerciaux (Ship24, 17TRACK), qui
+auraient reçu le numéro de suivi du foyer pour un résultat obtenable à la main.
+
+**Statut du colis : inconnu.** Aucune source n'a répondu ; rien n'est déduit.
+
 ## Contrainte d'architecture — le porteur de secret
 
 Le kiosque est un SPA statique sans backend ; `.env.local` n'est pas bundlé (AD-8).
@@ -75,6 +130,11 @@ via le seam `src/hakit/` (AD-2), comme la conso élec.
    IMAP natif + template sensors sur la partie `text/plain`.
    Réserves consignées : mot de passe IMAP stocké **en clair** côté HA ; les colis
    expédiés par un tiers n'envoient parfois **jamais** le mail « Livré » (purge manuelle).
+   ⚠️ **Ne pas filtrer sur un seul expéditeur.** `shipment-tracking@amazon.fr` et
+   `order-update@amazon.fr` se partagent le cycle de vie. Un filtre sur le premier
+   attrape les départs et manque **toutes** les livraisons — sans erreur visible,
+   le widget laissant les colis « en cours » indéfiniment. Filtrer sur le domaine
+   `amazon.fr` et discriminer sur le préfixe du sujet.
 2. **Reste (Colissimo, Chronopost, courrier suivi) → La Poste Suivi v2**, gratuit,
    trois transporteurs pour une clé. Si un jour DHL entre dans le jeu, son palier
    gratuit suffit.
@@ -87,14 +147,26 @@ via le seam `src/hakit/` (AD-2), comme la conso élec.
 
 ## Incertitudes ouvertes
 
-- **Un seul mail observé**, à l'étape « en cours de livraison ». Contenu des mails
-  « Expédié » (porte-t-il une date future du type « prévue mercredi 29 » ?) et
-  « Livré » : **inconnu**. À collecter avant de figer les regex.
-- Décodage du sujet Base64 RFC 2047 par l'intégration IMAP de HA : **non testé**.
+- Mails « en cours de livraison » et « Livré » observés. **« Expédié » toujours
+  inconnu** — c'est le seul susceptible de porter une date future exploitable
+  (« prévue mercredi 29 »). À collecter avant de figer les regex.
+- Les sujets décodent proprement en RFC 2047 Base64 (vérifié à la main). Que
+  l'intégration IMAP de HA les décode elle-même reste **non testé**.
+- Un seul colis observé, livré en boîte aux lettres. Les libellés d'un colis
+  remis en main propre ou déposé en point relais : **inconnus**.
 - CORS des API transporteurs : **non testé** (sans objet si HA porte les appels).
 - Conditions tarifaires UPS 2026 : **non vérifiées**.
 - Quotas réels de La Poste Suivi v2 : la gratuité est attestée par une lib tierce,
-  **pas lue sur le portail officiel** (page rendue en JS, non récupérable).
+  **pas lue sur le portail officiel** (page rendue en JS, et qui **renvoie 403** au
+  fetch automatisé — constaté le 2026-08-03).
+- **Suivi v2 sur un numéro S10 étranger : non testé.** C'est la question ouverte la
+  plus concrète du spike, et `CQ966406916DE` en est le cas d'essai tout trouvé —
+  il suffit d'une clé Okapi pour trancher. Trois issues possibles, aucune écartée :
+  Suivi v2 répond dès l'émission, ne répond qu'à l'entrée dans le réseau français,
+  ou ne répond jamais sur un numéro qu'elle n'a pas émis.
+- **Part réelle des colis étrangers dans le foyer : inconnue.** Un seul cas observé.
+  Si elle est significative, la recommandation n°2 (« le reste → Suivi v2 ») ne
+  couvre pas ce qu'elle prétend couvrir.
 
 ## Sources
 
