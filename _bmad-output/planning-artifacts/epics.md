@@ -578,6 +578,7 @@ _(from Architecture Delta v2 — AD-12…AD-15, amendements AD-1/AD-2, Task 0, b
 - **[Bords durs Courses]** La RPC `generate_grocery_list_from_menu` **supprime tout le pending** puis régénère → traiter la liste pending comme **remplaçable en bloc** ; un pointage optimiste peut viser une ligne disparue → **converger vers la vérité serveur**. **Pas d'`updated_at`** ⇒ convergence par refetch/Realtime, pas par timestamp. **Fallback polling 15-30 s** si Realtime pose problème.
 - **[AD-16 — Flux de consommation : lecture HA read-only + coût dérivé]** La conso élec/eau vient de **capteurs HA** (reflet AD-3, obsolescence AD-6, mapping AD-7), **read-only**. Le **coût** est une **dérivation d'affichage** (`conso × prix`), **pas un état persisté** (AD-1). Les **prix** vivent en helpers HA `input_number` ou config runtime. La **période HC/HP courante** vient de HA — l'app **ne calcule pas** le planning tarifaire (AD-4). Source par fournisseur **vérifiée/activée en Task 0** ; **repli** = seam read-only isolé (exception AD-2 conditionnelle, précédent `src/nutriclaude/`) si un fournisseur n'a pas d'intégration HA.
 - **[AD-17 — Lecture par requête : service HA à réponse, bornée au seam]** Les événements d'agenda ne sont **pas un état d'entité** : `calendar.*` n'expose que l'événement **courant/suivant**. Une **plage** (jour, semaine, mois) s'obtient par **`calendar.get_events`**, un service HA **qui retourne des données** (`callService` + `returnResponse: true`, exposé par `@hakit/core`). Ce mode reste **dans `src/hakit/`** — **aucune exception AD-2, aucun secret client**, contrairement à AD-12. Il **n'entre ni dans la couche pending (AD-11) ni dans l'optimisme (AD-5)** : c'est de la lecture. En revanche il a sa **propre politique de fraîcheur** — la réponse est datée de sa requête, **non poussée par le WebSocket** — donc **l'obsolescence AD-6, fondée sur l'état d'entité, ne la couvre pas** : rafraîchissement explicite (changement de plage, retour au premier plan, période), et sur échec **dernière réponse connue + indicateur d'obsolescence**, jamais de blanc. L'app **ne calcule ni récurrences ni fuseaux** — `get_events` renvoie les occurrences déjà déployées (AD-4). Précédent : `useHistory` (sparklines, Story 1.5) fait déjà cohabiter donnée récupérée et état reflété.
+- **[AD-18 — Fraîcheur à la demande sur source de fond coupée]** Une source **fragile ou contingentée** (ici l'API Waze non officielle, cf. `spikes/spike-info-trafic-2026-07-29.md`) voit son **polling automatique désactivé côté HA** ; la fraîcheur est **demandée par l'utilisateur** via `homeassistant.update_entity`. La donnée reste un **état d'entité ordinaire** (reflet AD-3, mapping AD-7, obsolescence AD-6 applicable) — la nouveauté est le **déclencheur**. Ce mode n'est **ni AD-5** (aucun état cible à prédire : le résultat est inconnu par définition), **ni AD-11** (la couche pending s'indexe sur une valeur attendue), **ni AD-17** (le service ne retourne aucune charge utile). Trois conséquences fermes : **(a)** l'attente se résout sur un **délai de garde ≥ 10 s**, jamais uniquement sur l'arrivée d'un `state_changed` : HA **n'en émet pas** quand état et attributs sont inchangés — il émet `EVENT_STATE_REPORTED` et n'avance que `last_reported`, `last_changed`/`last_updated` restant figés (`StateMachine.async_set_internal`, vérifié 2026-07-29), et c'est le cas nominal d'un trafic stable. Que ce signal atteigne le client via le WebSocket **n'est pas vérifié**. Le plancher de 10 s vient du debouncer du coordinator (`REQUEST_REFRESH_DEFAULT_COOLDOWN = 10`, `IMMEDIATE = True` : le premier appel part tout de suite, les suivants sont regroupés) ; **(b)** une valeur **antérieure à la session** ne s'affiche **pas** comme une durée — l'obsolescence par grisage (Story 1.6) ne suffit pas, une durée périmée étant indiscernable d'une durée fraîche ; **(c)** **aucun repli automatique** vers une API facturée à l'appel — un basculement invisible sur une source payante est un risque financier, pas une résilience.
 
 ### UX Design Requirements
 
@@ -632,6 +633,10 @@ Des **micro-tuiles** dans la barre supérieure (moule météo/tortue/plante, Sto
 ### Epic 10: Agenda — coup d'œil sur la journée
 Les événements **Google Calendar** du foyer, reflétés depuis HA en lecture seule : le **prochain rendez-vous** en micro-tuile sur l'accueil (UX-DR28), et une **page profonde jour / semaine / mois** avec un **filtre par calendrier**. HA-natif de bout en bout (intégration Google côté HA, **aucun secret côté kiosque**, aucun second seam) — mais un **mode de lecture neuf** : la plage vient d'un **service à réponse** (`calendar.get_events`, AD-17), pas d'un état d'entité. Après cet epic, Florian sait ce qui l'attend en passant dans la cuisine, et déplie sa journée, sa semaine ou son mois d'un tap.
 **FRs covered:** FR-A1, FR-A2, FR-A3, FR-A4
+
+### Epic 11: Info trafic — temps de trajet domicile → travail
+Une **micro-tuile** qui donne le temps de trajet domicile → travail à la demande, alimentée par l'intégration **Waze Travel Time** de HA (aucune clé, aucune carte bancaire). Rupture avec les epics précédents : la source est une **API non officielle**, donc son polling de fond est **coupé** et la fraîcheur est **déclenchée par un tap** (AD-18). Après cet epic, Florian sait en passant dans la cuisine combien de temps il va mettre — et la tuile ne prétend jamais être fraîche quand elle ne l'est pas.
+**FRs covered:** aucun — « info trafic » figure au **backlog flux d'affichage** du PRD sans FR dédié. À formaliser si l'epic est retenu.
 
 ## Epic 7: Arrosage des plantes
 
@@ -957,3 +962,67 @@ So that je ne vois que ce qui me concerne quand la semaine est chargée.
 **Given** tous les calendriers masqués
 **When** la vue se rend
 **Then** l'état vide s'affiche (UX-DR27) — jamais un écran blanc qui ressemblerait à une panne
+
+## Epic 11: Info trafic — temps de trajet domicile → travail
+
+Le temps de trajet domicile → travail, à la demande. Source : intégration **Waze Travel Time** native de HA — **aucune clé, aucune carte bancaire**, mais une **API non officielle** dont le polling de fond est coupé (AD-18). Les stories procèdent par tranches : fonder le patron **« demande → attente → arrivée »** et la tuile, puis l'**écart vs la normale** une fois la seconde entrée Waze créée.
+
+> **Task 0 (hors-repo, préalable à cet epic) :** zone HA **« Travail »** créée (**fait**, 2026-07-29) — référencée par **`entity_id`** (`zone.travail`), jamais par nom convivial (la doc HA signale que le nom de zone est _case sensitive_) ; entrée **Waze Travel Time** région `eu`, origine `zone.home` → destination `zone.travail`, **polling automatique désactivé** ; relever l'**`entity_id` exact** (annoncé : `sensor.temps_trajet`, **non vérifié** côté HA) ; couper **« Enable polling for updates »** dans les options système de l'entrée — **et non** l'entité elle-même : `CoordinatorEntity.async_update` sort sur `if not self.enabled: return`, donc une **entité** désactivée rend le tap **silencieusement inopérant**, sans erreur ni log. **Vérifié le 2026-07-29 dans le code de HA :** `_schedule_refresh` sort sur `config_entry.pref_disable_polling`, ce qui coupe la planification de fond **sans** affecter le chemin manuel `update_entity` → `async_update_ha_state(True)` → `async_request_refresh()`.
+>
+> **Réf. spike :** `spikes/spike-info-trafic-2026-07-29.md` — chiffrage des paliers gratuits, preuve de fragilité de la source, conception à deux entités.
+>
+> **Placement non tranché.** Aucune maquette n'existe. `src/pages/home-grid.ts` documente un plafond de 6 tuiles par rangée et un viewport de 748px au-delà duquel `KioskShell` rogne ; la barre supérieure porte déjà 6 puces + la pilule HC/HP (collision consignée en 10.1). **Décision UX à prendre avant la story 11.1.**
+
+### Story 11.1: Tuile Temps de trajet (rafraîchissement à la demande)
+
+_Tracer bullet : fonde le patron **« demande → attente → arrivée »** (AD-18) — un service HA sans réponse, une attente bornée par délai de garde, et un état « jamais rafraîchie » qui n'affiche aucun chiffre._
+
+As a Florian,
+I want connaître mon temps de trajet vers le travail d'un tap,
+So that je sais s'il faut partir plus tôt sans sortir mon téléphone.
+
+**Acceptance Criteria:**
+
+**Given** l'entrée Waze créée, polling désactivé, `entity_id` relevé (Task 0) et inscrit dans le **mapping central** (AD-7, jamais en dur)
+**When** l'accueil s'affiche et que l'entité n'a **pas** été rafraîchie dans la session courante
+**Then** la tuile affiche un **appel à l'action** (« Toucher pour actualiser ») et **aucune durée** — ni chiffre grisé, ni valeur barrée (AD-18b)
+
+**Given** la tuile au repos
+**When** je la tape (cible **≥ 48px**, NFR2)
+**Then** `homeassistant.update_entity` est appelé sur l'entité via `src/hakit/` (AD-2) et la tuile passe en **attente visible**
+
+**Given** la tuile en attente
+**When** un nouvel état arrive **ou** que le **délai de garde** s'écoule sans événement
+**Then** l'attente se résout dans les deux cas — l'absence d'événement est le **cas nominal** d'un trafic inchangé, pas une panne (AD-18a) ; le délai écoulé sans état neuf affiche la **dernière valeur connue horodatée**, jamais un échec
+
+**Given** un relevé obtenu dans la session
+**When** la tuile se rend
+**Then** elle affiche la **durée en minutes** (l'état de l'entité, `UnitOfTime.MINUTES`) et **l'heure du relevé** — la fraîcheur est portée à l'écran, pas supposée
+
+**Given** l'entité à `unknown`/`unavailable` (la source Waze tombe — documenté, pas hypothétique)
+**When** la tuile se rend
+**Then** un **état affiché** occupe la **même empreinte** que la version peuplée (UX-DR27), sans blanc ni spinner (NFR4)
+
+**Given** AD-18c
+**When** la source échoue
+**Then** **aucun repli** vers Google ou HERE n'est déclenché — l'échec reste un échec visible
+
+### Story 11.2: Écart vs la normale
+
+_Petit périmètre, gros gain de lecture : « 34 min » n'informe pas, « 34 min, +12 vs la normale » oui. Conditionnée à une seconde entrée Waze._
+
+> **Task 0 (story) :** créer une **seconde entrée** Waze Travel Time sur le **même couple** origine/destination avec **`realtime: false`** — autorisé, le config flow ne pose **aucun `unique_id`** ni garde anti-doublon (vérifié dans `config_flow.py`). Exposer l'écart via un **template sensor HA** (AD-4 : la dérivation vit dans HA, pas dans le kiosque). Les deux rafraîchissements sont **sérialisés** par le sémaphore de l'intégration (`asyncio.sleep(0.5)` entre appels) : compter ~0,5 s de décalage, pas un aller-retour parallèle.
+
+As a Florian,
+I want savoir si ce temps de trajet est normal ou dégradé,
+So that une durée brute cesse d'être un chiffre que je ne sais pas interpréter.
+
+**Acceptance Criteria:**
+
+**Given** les deux entités et le template sensor d'écart (Task 0 story), inscrits au mapping (AD-7)
+**When** je rafraîchis la tuile
+**Then** **les deux** entités sont rafraîchies par le même geste, et la tuile affiche **durée + écart signé** (« +12 min » / « -3 min » / « normal »)
+
+**Given** la seconde entité absente ou à `unknown`
+**When** la tuile se rend
+**Then** elle **retombe proprement sur la Story 11.1** — durée seule, aucun écart inventé, aucune dégradation visuelle
