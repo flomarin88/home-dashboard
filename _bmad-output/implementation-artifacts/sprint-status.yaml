@@ -161,6 +161,12 @@ development_status:
   10-3-filtre-par-calendrier: backlog
   epic-10-retrospective: optional
 
+  # Epic 11 — Info trafic : temps de trajet domicile → travail (v2)
+  epic-11: in-progress # démarré 2026-07-29 — story 11.1 contextualisée (create-story). Source = intégration Waze Travel Time de HA, API non officielle, polling de fond COUPÉ, fraîcheur au tap (AD-18). Task 0 partiellement levée : zone.travail créée, sensor.temps_trajet annoncé mais NON vérifié côté HA. Placement UX NON TRANCHÉ (précédent 10.1 : la collision top-bar est déjà consignée)
+  11-1-tuile-temps-de-trajet: in-progress # dev-story 2026-07-29/30 : Tasks 1-5 VERTES (mapping, module pur, seam AD-18, icône, tuile). 34 tests ajoutés, suite 481→517, typecheck/lint/prettier propres. AC3 corrigé sur autorisation de Florian : `returnResponse` retiré (update_entity est SupportsResponse.NONE, le paramètre ferait refuser l'appel). ⚠️ PAS EN REVIEW — 2 tâches ouvertes : Task 0 (entity_id jamais observé côté HA) et Task 6 (montage bloqué par la décision UX de placement). La tuile compile et est testée mais N'EST RENDUE NULLE PART. Trois décisions de conception sans UX-DR à ratifier (attente par pulse, bouton tappable pendant l'attente, clause insécable sans objet) — 4 analyses parallèles. ⚠️ DEUX PORTES OUVERTES : Task 0 non levée (entity_id annoncé, jamais vérifié côté HA — c'est exactement ce qui bloque 9.1 depuis 6 jours) et AC9 placement non tranché (Task 6 explicitement non exécutable). Tasks 1-5 codables et testables en l'état. Deux trous UX à concevoir : attente sans spinner (interdit par 4 sources) et AC2 en exception à UX-DR10/NFR4
+  11-2-ecart-vs-la-normale: backlog # bloquée par Task 0 story : 2e entrée Waze realtime:false (config_flow ne pose aucun unique_id, doublon autorisé — vérifié)
+  epic-11-retrospective: optional
+
 # Retrospective action items (see epic-1-retro-2026-07-15.md)
 action_items:
   - epic: 1

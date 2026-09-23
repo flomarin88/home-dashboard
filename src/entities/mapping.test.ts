@@ -11,6 +11,7 @@ import {
   climate,
   electricityConfig,
   calendarsConfig,
+  trafficConfig,
   assertCanonicalMapping,
   assertWellFormedAuxIds,
   assertNoPlaceholders,
@@ -361,5 +362,25 @@ describe("placeholder guard", () => {
       },
     ];
     expect(() => assertNoPlaceholders(real)).not.toThrow();
+  });
+});
+
+describe("traffic mapping (Story 11.1)", () => {
+  it("exposes the Waze travel-time sensor", () => {
+    // A `sensor.*`, not a helper domain: Waze Travel Time creates a real sensor
+    // whose state is the duration in minutes. That is why the tile reads it
+    // through the PUSHED path (`useEntityValue`/AD-6) and not by query (AD-17).
+    expect(trafficConfig().travelTimeEntityId).toMatch(/^sensor\.[a-z0-9_]+$/);
+  });
+
+  it("keeps the aux-id guard green with the traffic id registered", () => {
+    // Registration in AUX_ENTITY_IDS is what makes a typo throw in dev instead
+    // of shipping as a silently dimmed chip (lesson 7.1 D4). Membership itself
+    // is not directly assertable — AUX_ENTITY_IDS is module-private, as it is
+    // for every other config here — so this guards well-formedness only.
+    expect(() => assertWellFormedAuxIds()).not.toThrow();
+    expect(() =>
+      assertWellFormedAuxIds([trafficConfig().travelTimeEntityId]),
+    ).not.toThrow();
   });
 });
