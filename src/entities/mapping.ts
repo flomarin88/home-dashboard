@@ -550,6 +550,38 @@ export function calendarsConfig(): readonly CalendarRef[] {
   return CALENDARS;
 }
 
+/**
+ * Home → work travel time, from HA's Waze Travel Time integration (Story 11.1,
+ * AD-7/AD-18). ONE id, deliberately: Story 11.2 adds the second entry
+ * (`realtime: false`) that yields the no-traffic baseline, and only then can the
+ * tile say "+12 vs normal". Until it exists there is no baseline, so 11.1 shows
+ * a bare duration rather than inventing a comparison.
+ *
+ * A plain `sensor.*` whose state is the duration IN MINUTES — so it is read on
+ * the PUSHED path (`useEntityValue`, AD-6), not by query (AD-17). What is new is
+ * the TRIGGER: the integration's background polling is switched off HA-side
+ * (`pref_disable_polling`) because the underlying Waze endpoint is unofficial,
+ * and freshness comes from a tap calling `homeassistant.update_entity` (AD-18).
+ *
+ * The origin/destination pair lives in HA as zones (`zone.home` → `zone.travail`),
+ * never here: an address is not the dashboard's to hold (AD-1).
+ */
+export interface TrafficConfig {
+  /** `sensor.*` — Waze travel time, home → work, in minutes. */
+  readonly travelTimeEntityId: string;
+}
+
+const TRAFFIC: TrafficConfig = {
+  // Reported by Florian on 2026-07-29 as the id he created. NOT observed against
+  // his HA from here — if the chip ships dimmed, this is the first thing to check.
+  travelTimeEntityId: "sensor.temps_trajet",
+};
+
+/** The travel-time config (Story 11.1). */
+export function trafficConfig(): TrafficConfig {
+  return TRAFFIC;
+}
+
 /** The single sensor entity for a (room, measure), or undefined if unmapped. */
 export function sensor(
   room: RoomId,
@@ -639,6 +671,7 @@ const AUX_ENTITY_IDS: readonly string[] = [
   ELECTRICITY.pricePleinesEntityId,
   ELECTRICITY.nextSwitchEntityId,
   ...CALENDARS.map((c) => c.entityId),
+  TRAFFIC.travelTimeEntityId,
 ];
 
 export function assertWellFormedAuxIds(
