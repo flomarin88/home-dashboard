@@ -4,7 +4,7 @@ baseline_commit: baec8ca062b983297b826331b4697ef5f39a1b33
 
 # Story 9.1: Micro-tuile Électricité (conso + prix + coût)
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 <!-- Créée à la place de 9.2 (choix Florian 2026-07-23) : 9.2 « ajoute la conscience tarifaire au patron 9.1 » — or 9.1 (le patron) est entièrement greenfield. On fonde d'abord. Séquence conforme au change-proposal §5 : 9.1 → 9.2 → 9.3. -->
@@ -214,6 +214,8 @@ claude-opus-4-8 (Liza Pairing, Autonomous — bmad dev-story).
 
 ### Completion Notes List
 
+- **2026-09-25 — clôture par correct-course.** Task 0 **sans objet** et preuve device **transférée à la Story 9.4** : la source réelle est une statistique J-1 sans entité (voir Change Log 0.3). Rien n'est coché de ce qui n'a pas été fait.
+
 - **AC1–AC4 satisfaits (côté app).** Tuile reflect-only (coût dérivé + conso, variante B, navigation `/electricite`), page détail (Aujourd'hui + graphe conso 24 h + seam HC/HP « À venir »), obsolescence AD-6, chip neutre, mapping AD-7, tous gates verts.
 - **⚠️ Déviation assumée vs AC4 (pill sur la tuile)** : l'AC4/le contrat décrivaient une **pill « Hors ligne · HH:MM » sur la tuile**. **Implémenté : atténuation `opacity-60` seule sur la tuile** (cohérent avec la famille top-bar météo/tortue/plante qui ne pose PAS de pill sur la chip) + `aria-label` « hors ligne », **la pill vit sur la page `/electricite`**. Raison : (1) cohérence famille, (2) **ne pas élargir la 5ᵉ tuile** (risque collision top-bar). L'a11y reste couverte (opacité ≠ couleur seule, UX-DR14 ; aria-label). **À confirmer par Florian** au device-proof — si tu veux la pill sur la tuile, c'est ~3 lignes.
 - **Gates** : `typecheck` + `oxlint` + **293 tests** verts (+21 : electricity-cost 6, consumption-format 4, ElectricityTile 5, ElectricityDetail 4, mapping 2) ; build sans token RC=0 ; **0 token `dist/`** ; 0 régression.
@@ -238,5 +240,6 @@ claude-opus-4-8 (Liza Pairing, Autonomous — bmad dev-story).
 
 | Date | Version | Description |
 | --- | --- | --- |
+| 2026-09-25 | 0.3 | **Clôturée `done` par correct-course** (`sprint-change-proposal-2026-09-25.md`, décision Florian). Cause du blocage **requalifiée** : la source du foyer (ha-linky) est une **statistique à long terme J-1** (`linky:24305788525104`, Wh) **sans entité** — la Task 0 telle qu'écrite (capteur `sensor.*` du jour) est **sans objet**, pas en attente. La cause « API fournisseur HS » du 2026-07-29 était fausse. Code livré inchangé ; chemin de lecture et jour affiché repris par la **Story 9.4**. Task 0 et preuve device laissées non cochées (non faites), transférées à 9.4. |
 | 2026-07-23 | 0.2 | **Implémentée (dev-story).** Tuile `ElectricityTile` (reflect-only, coût dérivé + conso, variante B, tap → `/electricite`) clonée sur `TopBarWeather` — aucun write/optimiste/undo. Page `ElectricityDetail` (`/electricite`) clonée sur `WeatherDetail` : Aujourd'hui (coût + conso + prix) + graphe conso 24 h (`useHistory`+`SensorHistoryChart` lazy) + seam HC/HP « À venir » (9.2). Coût pur (`electricity-cost.ts`, `null` si input manquant), formatteurs €/kWh, `BoltIcon` local, mapping `ElectricityConfig` (placeholders + `AUX_ENTITY_IDS`). Insérée **2ᵉ** dans `TopBarSlots` (**5ᵉ élément** → dette collision `deferred-work.md:21`). **Déviation assumée** : obsolescence = `opacity-60` sur la tuile (cohérence famille + anti-collision), pill « Hors ligne » sur la page. +21 tests → **293 verts**, tsc/oxlint/Prettier verts, **build sans token RC=0, 0 token `dist/`**, 0 régression. Reste : **Task 0 HA** (capteur conso journalière + helper prix, entity_ids réels) + **preuve device** (Florian). → review. |
 | 2026-07-23 | 0.1 | Story 9.1 créée (create-story). **Créée à la place de 9.2** (choix Florian) : 9.2 « ajoute la conscience tarifaire au patron 9.1 » — or 9.1 (le patron) était **entièrement greenfield**. On fonde d'abord ; séquence conforme au change-proposal §5. Micro-tuile Électricité **reflect-only** (moule **`TopBarWeather`**), **coût dérivé** (`conso_jour × prix`, jamais persisté, AD-16), **variante B** (coût héros + sous-ligne conso). **Interaction = PAGE DÉTAIL `/electricite`** (décision Florian — **override d'UX-DR23** « popover, pas de page ») : réutilise le patron **`WeatherDetail`** (`BackLink` + grille 2 colonnes + `useHistory`+`SensorHistoryChart` + seam `ComingSoon`), **contenu option B** (Aujourd'hui + historique conso 24 h + seam HC/HP « À venir »). Ce choix **supprime le risque « popover net-new »**. Risque restant signalé : **5ᵉ élément top-bar = déclencheur dette collision** (`deferred-work.md:21`) → device-proof obligatoire. Nuance documentée : **graphe = sawtooth de minuit** (capteur cumulatif journalier, fidèle). Task 0 (capteur conso **journalière** + helper prix) + preuve device = Florian. → ready-for-dev. |

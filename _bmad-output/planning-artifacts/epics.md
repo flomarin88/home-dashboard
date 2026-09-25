@@ -542,10 +542,10 @@ FR-8: **Reset quotidien (dépendance HA)** — le reset à minuit vit dans une *
 
 _(Feature Consommation — flux d'affichage, HA read-only)_
 
-FR-E1: **Micro-tuile Électricité** — conso (capteur HA Linky/TotalÉnergies) + **coût du jour** dérivé (`conso × prix`), **HC/HP-aware** ; **reflect-only** ; obsolescence AD-6 ; jamais de blanc.
+FR-E1: **Micro-tuile Électricité** — conso et **coût du dernier jour complet** lus depuis les **statistiques à long terme** de HA (source Linky, J-1, `recorder.get_statistics`, AD-17) ; coût **calculé par HA** au tarif HC/HP réel de chaque demi-heure (AD-4) ; **libellé daté** obligatoire (UX-DR30) ; **reflect-only** ; obsolescence AD-17 ; jamais de blanc. _(Amendé 2026-09-25 — `sprint-change-proposal-2026-09-25.md`.)_
 FR-E2: **Heures creuses/pleines** — **indicateur de période courante** (depuis HA ; l'app ne calcule **pas** le planning tarifaire — AD-4) ; le **tarif appliqué** au coût suit la période.
 FR-E3: **Micro-tuile Eau (SAUR)** — conso (capteur HA) + **coût du jour** dérivé (`conso × prix/m³`) ; clone du patron FR-E1 ; **reflect-only** ; obsolescence AD-6.
-FR-E4 _(transverse)_: **Source & prix** — conso = **capteurs HA read-only** (Task 0 : vérifier/activer les intégrations par fournisseur) ; prix = helpers HA `input_number` ou config runtime ; **coût = dérivation d'affichage** (pas d'état persisté, AD-1) ; **repli** = seam read-only isolé (exception AD-2 conditionnelle, précédent NutriClaude) si un fournisseur n'a pas d'intégration HA.
+FR-E4 _(transverse)_: **Source & prix** — conso = **HA read-only**, sous l'une de deux formes : **capteur** (état d'entité, AD-3/AD-6) quand la source est temps réel, ou **statistique à long terme** (`recorder.get_statistics`, AD-17) quand la source n'existe qu'en J-1 (Linky). Prix = helpers HA `input_number`. **Coût** = statistique de coût **calculée par HA** quand l'intégration la fournit (ha-linky `costs`), sinon dérivation d'affichage `conso × prix` côté app ; **jamais un état persisté côté app** (AD-1). **Repli** = seam read-only isolé (exception AD-2 conditionnelle, précédent NutriClaude) si un fournisseur n'a pas d'intégration HA. _(Amendé 2026-09-25.)_
 
 _(Feature Agenda — HA-natif, lecture par requête)_
 
@@ -576,8 +576,8 @@ _(from Architecture Delta v2 — AD-12…AD-15, amendements AD-1/AD-2, Task 0, b
 - **[AD-15]** Pattern **« rituel partagé »** (généralisation Epic 6) : **lire** un état partagé → **rendre** en tuile (défaut / actif / **stale**) → **faire avancer** via un service. **Transport pluggable** : `@hakit`/HA (Arrosage) ou `@supabase`/NutriClaude (Courses). Composants communs : tuile, toast Undo, indicateur d'obsolescence, planchers a11y.
 - **[Task 0 — hors-repo, préalables]** HA : entité compteur Arrosage (`counter.plantes_arrosees` 0..1 ou `input_boolean`) + automation reset minuit. NutriClaude : activer Realtime sur `grocery_list_items` ; créer + onboarder le compte « cuisine » dans le foyer ; fournir `SUPABASE_URL` + `anon key` + identifiants cuisine (secret runtime gitignoré).
 - **[Bords durs Courses]** La RPC `generate_grocery_list_from_menu` **supprime tout le pending** puis régénère → traiter la liste pending comme **remplaçable en bloc** ; un pointage optimiste peut viser une ligne disparue → **converger vers la vérité serveur**. **Pas d'`updated_at`** ⇒ convergence par refetch/Realtime, pas par timestamp. **Fallback polling 15-30 s** si Realtime pose problème.
-- **[AD-16 — Flux de consommation : lecture HA read-only + coût dérivé]** La conso élec/eau vient de **capteurs HA** (reflet AD-3, obsolescence AD-6, mapping AD-7), **read-only**. Le **coût** est une **dérivation d'affichage** (`conso × prix`), **pas un état persisté** (AD-1). Les **prix** vivent en helpers HA `input_number` ou config runtime. La **période HC/HP courante** vient de HA — l'app **ne calcule pas** le planning tarifaire (AD-4). Source par fournisseur **vérifiée/activée en Task 0** ; **repli** = seam read-only isolé (exception AD-2 conditionnelle, précédent `src/nutriclaude/`) si un fournisseur n'a pas d'intégration HA.
-- **[AD-17 — Lecture par requête : service HA à réponse, bornée au seam]** Les événements d'agenda ne sont **pas un état d'entité** : `calendar.*` n'expose que l'événement **courant/suivant**. Une **plage** (jour, semaine, mois) s'obtient par **`calendar.get_events`**, un service HA **qui retourne des données** (`callService` + `returnResponse: true`, exposé par `@hakit/core`). Ce mode reste **dans `src/hakit/`** — **aucune exception AD-2, aucun secret client**, contrairement à AD-12. Il **n'entre ni dans la couche pending (AD-11) ni dans l'optimisme (AD-5)** : c'est de la lecture. En revanche il a sa **propre politique de fraîcheur** — la réponse est datée de sa requête, **non poussée par le WebSocket** — donc **l'obsolescence AD-6, fondée sur l'état d'entité, ne la couvre pas** : rafraîchissement explicite (changement de plage, retour au premier plan, période), et sur échec **dernière réponse connue + indicateur d'obsolescence**, jamais de blanc. L'app **ne calcule ni récurrences ni fuseaux** — `get_events` renvoie les occurrences déjà déployées (AD-4). Précédent : `useHistory` (sparklines, Story 1.5) fait déjà cohabiter donnée récupérée et état reflété.
+- **[AD-16 amendé (2026-09-25) — Flux de consommation : lecture HA read-only, capteur OU statistique]** La conso élec/eau vient de HA en **lecture seule**, sous deux formes selon la source : **(a)** un **capteur** (état d'entité — reflet AD-3, obsolescence AD-6, mapping AD-7) quand la donnée est temps réel ; **(b)** une **statistique à long terme** (`recorder.get_statistics`, lecture par requête AD-17, identifiant de statistique dans le mapping AD-7 au même titre qu'un `entity_id`) quand la donnée n'existe qu'en **J-1** (Linky, `linky:<PRM>`). En (b), la tuile affiche le **dernier jour complet** et le **dit** (UX-DR30). Le **coût** reste une valeur d'affichage **jamais persistée côté app** (AD-1) : **calculé par HA** quand l'intégration produit une statistique de coût (ha-linky `costs`), sinon `conso × prix` côté app. Les **prix** et le **planning HC/HP** vivent dans HA (AD-4) — y compris pour le calcul de coût de l'add-on, alimenté par un capteur template de prix courant, jamais par des horaires dupliqués. Source par fournisseur **vérifiée/activée en Task 0** ; **repli** = seam read-only isolé (exception AD-2 conditionnelle, précédent `src/nutriclaude/`) si un fournisseur n'a pas d'intégration HA.
+- **[AD-17 — Lecture par requête : service HA à réponse, bornée au seam]** Les événements d'agenda ne sont **pas un état d'entité** : `calendar.*` n'expose que l'événement **courant/suivant**. Une **plage** (jour, semaine, mois) s'obtient par **`calendar.get_events`**, un service HA **qui retourne des données** (`callService` + `returnResponse: true`, exposé par `@hakit/core`). Ce mode reste **dans `src/hakit/`** — **aucune exception AD-2, aucun secret client**, contrairement à AD-12. Il **n'entre ni dans la couche pending (AD-11) ni dans l'optimisme (AD-5)** : c'est de la lecture. En revanche il a sa **propre politique de fraîcheur** — la réponse est datée de sa requête, **non poussée par le WebSocket** — donc **l'obsolescence AD-6, fondée sur l'état d'entité, ne la couvre pas** : rafraîchissement explicite (changement de plage, retour au premier plan, période), et sur échec **dernière réponse connue + indicateur d'obsolescence**, jamais de blanc. L'app **ne calcule ni récurrences ni fuseaux** — `get_events` renvoie les occurrences déjà déployées (AD-4). Précédent : `useHistory` (sparklines, Story 1.5) fait déjà cohabiter donnée récupérée et état reflété. **Deuxième instance (2026-09-25) : les statistiques à long terme.** Une statistique du recorder (ex. `linky:<PRM>`) n'a **ni état, ni entité, ni événement** ; elle se lit par **`recorder.get_statistics`** (`callService` + `returnResponse: true`, HA ≥ 2025.1), avec `period`, `types` (`change` pour l'énergie d'une période) et `units` (conversion Wh → kWh **par HA**). Mêmes règles : dans `src/hakit/`, fraîcheur propre (la réponse est datée de sa requête), rafraîchissement explicite (jour civil, connexion, premier plan, **et une relance horaire** parce que l'import J-1 tombe entre 6h et 10h30), dernière réponse + obsolescence sur échec, jamais de blanc. L'app **ne découpe ni ne somme** des périodes : elle demande à HA la granularité qu'elle affiche (AD-4). Aucune exception AD-2.
 
 ### UX Design Requirements
 
@@ -588,13 +588,14 @@ UX-DR19: **Tuile Courses (accueil)** — tuile givrée `{components.device-tile}
 UX-DR20: **Page détail Courses (`/courses`)** — en-tête fil d'Ariane + **chip « N à acheter · M pris »** (tabular-nums) + bouton **« Vider le panier »** ; corps **groupé par Rayon** (`{components.section-card}`, en-tête restant/total) ; **scroll vertical toléré** (exception no-scroll pour page profonde) ; **ligne d'Article** = case ≥48px + libellé + quantité/unité + provenance ; Articles **pris** barrés en section « panier » ; **`{components.undo-toast}`** sur vider ; stale → interactions destructives désactivées. **Retrait de la barre « voix » du mock**.
 UX-DR21: **Provenance** = **personne** (`added_by`, prénom `display_name`) + **icône recette** si `recipe_id` ; **pas** de badge canal voix/note (correction du mock) ; **pas d'avatar** en v2.
 UX-DR22: **Tuile Arrosage (barre supérieure)** — **clone du moule `TurtleTile`** (Story 6.3) avec `maximum: 1`, dans `TopBarSlots` ; état = **niveau de remplissage** bas→haut (vide→plein) + icône plante lisible, **pas de texte de statut**, `aria-label` ; geste **≥56px** si `!done && !stale` → service HA ; **disabled** à plein jusqu'au reset ; **reflect-only** (pas d'optimiste) ; obsolescence → non-interactive.
-UX-DR23: **Micro-tuiles Consommation (`TopBarSlots`)** — moule météo/tortue/plante, chip **neutre** (pas d'accent device). **Anatomie (variante B)** : icône + **coût du jour** (€, tabular-nums) en **valeur héros** + **sous-ligne conso** (kWh / m³ sur la tuile) ; pill d'état HC/HP à droite (élec). **Au tap** : popover tarifaire = coût + conso du jour, **les deux prix** (HC & HP) avec le **tarif appliqué marqué** + la **prochaine bascule** (« passage en pleines à HH:MM ») ; **pas de page détail**. **Obsolescence** = dernière valeur connue + **pill « Hors ligne · HH:MM »** (horodatage du dernier relevé), bordure dashed `{colors.stale}`, **jamais de blanc ni de spinner** (AD-6). **Densité (à trancher au build)** : selon l'espace réel des autres slots, **1 chip « Conso » fusionnée** (élec+eau) **ou 2 chips distinctes** ; libellé période responsive (« Creuses/Pleines » si place, « HC/HP » compact sinon).
+UX-DR23: **Micro-tuiles Consommation (`TopBarSlots`)** — moule météo/tortue/plante, chip **neutre** (pas d'accent device). **Anatomie (variante B)** : icône + **coût du jour affiché** (€, tabular-nums) en **valeur héros** + **sous-ligne conso** (kWh / m³ sur la tuile) **+ libellé daté quand le jour n'est pas aujourd'hui** (UX-DR30) ; pill d'état HC/HP à droite (élec). **Au tap** : ~~popover tarifaire~~ → **page détail `/electricite`** (décision Florian 2026-07-23, Story 9.1) = coût + conso du jour affiché, **les deux prix** (HC & HP) avec le **tarif appliqué marqué** + la **prochaine bascule** (« passage en pleines à HH:MM »). **Obsolescence** = dernière valeur connue ; **pill « Hors ligne · HH:MM » sur la page détail**, atténuation seule sur la chip (règle de famille 9.1/10.1 : pas de pill sur la chip), bordure dashed `{colors.stale}`, **jamais de blanc ni de spinner** (AD-6) ; pour une source J-1, l'horodatage est celui de la **requête**, pas d'un relevé (AD-17). _(Amendé 2026-09-25.)_ **Densité (à trancher au build)** : selon l'espace réel des autres slots, **1 chip « Conso » fusionnée** (élec+eau) **ou 2 chips distinctes** ; libellé période responsive (« Creuses/Pleines » si place, « HC/HP » compact sinon).
 UX-DR24: **Indicateur Heures Creuses/Pleines** — **icône lune (Creuses) / soleil (Pleines) + libellé**, sur **pill neutre sans teinte sémantique** : le **vert est proscrit** (réservé sécurité, UX-DR18) et la palette d'accents est saturée → l'état est porté par **icône + mot**, jamais la couleur (UX-DR14). Le **tarif appliqué** au coût **suit la période courante**. **Pas de nouvel accent** de domaine.
 UX-DR25: **Budget vertical de l'accueil — contrainte dure, mesurée (2026-07-27).** À 1024×748, il reste **179px** libres sous la dernière rangée. Une rangée standard coûte **~265px** (titre + gaps + tuile de 225) : **une 3ᵉ rangée standard ne rentre pas**. Toute surface ajoutée à l'accueil choisit entre — (a) **micro-tuile en barre supérieure** (5ᵉ élément ; seuil signalé comme déclencheur de dette collision en Story 9.1), (b) **5ᵉ colonne** dans une rangée (les tuiles passent de 237 à ~190px de large, toutes, y compris celles qui vont bien), (c) **bande compacte sans titre, sous 165px**. Ce budget est **partagé** avec les epics 3, 4 et 5 à venir : le premier servi le consomme. Aucun test automatisé ne garde cet invariant (TD-9) — la vérification est visuelle, sur l'appareil.
 UX-DR26: **Couleur de calendrier jamais seule.** Si les événements sont teintés par calendrier, la distinction porte **aussi** un libellé ou un glyphe (instancie UX-DR14). Le filtre affiche le **nom** du calendrier, pas une pastille de couleur seule.
 UX-DR27: **Agenda vide = un rendu, pas du vide.** « Aucun événement aujourd'hui » est un état à part entière — jamais un blanc ni un spinner (AD-6/NFR4) — et la surface conserve **la même empreinte** qu'avec des événements, pour éviter le saut de mise en page au chargement (mêmes hauteurs de lignes fixes que les cartes de pièce, Story 1.5).
 UX-DR28: **Agenda sur l'accueil = micro-tuile « prochain rendez-vous ».** Décidé par Florian le 2026-07-27 sur maquettes (`ux-designs/ux-home-dashboard-2026-07-27/inputs/mock-agenda-approches.html`, approche A). L'accueil ne répond qu'à **une** question — *qu'est-ce qui arrive ensuite ?* : libellé **PROCHAIN**, heure (tabular-nums), **délai relatif** (« dans 4h »), titre tronqué sur une ligne. Le libellé est **obligatoire** — une icône calendrier seule serait du *mystery meat*. Moule `TopBarSlots`, **hauteur 52px** identique aux 4 micro-tuiles existantes (mesuré sur maquette) : **coût nul sur la grille**, les 179px de UX-DR25 restent intacts. **Écartées :** la tuile-journée en 5ᵉ colonne (toute la rangée RDC tombe de 237 à 187px, sparklines −21% — régression sur des tuiles qui allaient bien) et la bande temporelle pleine largeur (consomme la totalité du budget vertical, moule sans précédent dans le code). **Réversible :** passer de A à B ou C ne jette rien, le chemin de lecture (AD-17) est identique dans les trois.
 UX-DR29: **Page `/agenda` — jour, semaine en 7 rangées, mois en grille 7×6.** Mesuré sur maquette (`mock-agenda-detail.html`) : le chrome (barre 52 + fil d'Ariane 34 + rangée de contrôle 52 + paddings et gaps) laisse **~524px** de grille. **Mois** = 42 cellules de **134×79px** portant le numéro du jour, **2 puces d'événement** et un « +N » — vérifié sans débordement sur 4 cellules denses. **Semaine** = **7 rangées** de ~70px, **pas 7 colonnes** : à 134px de large une colonne-jour tronque tout, alors qu'en rangée chaque jour porte son nom, sa date et ses événements en clair. **Bascule et filtres partagent une seule rangée** (52px au lieu de 108) — c'est ce qui rend le mois respirable. Un calendrier masqué reste **visible et rappelable** (Nielsen 3), signalé par **trois** marques simultanées : bordure pointillée, texte barré, pastille grisée (jamais la couleur seule, UX-DR14/UX-DR26).
+UX-DR30: **Donnée différée = valeur datée.** Toute valeur qui n'est **pas** celle d'aujourd'hui porte **sa date dans son libellé** — « Hier · mer. 24 », « Avant-hier · mar. 23 » — jamais un chiffre nu qu'on lirait comme courant. Le libellé suit le jour réellement affiché (le **dernier jour complet disponible**), pas un jour calendaire supposé. L'absence de tout jour disponible est un **état rendu** (« Pas encore de relevé »), même empreinte que la version peuplée (UX-DR27). Instancie UX-DR14 (le sens ne repose jamais sur une seule modalité) pour la dimension temporelle. _(Ajouté 2026-09-25, Story 9.4 — une durée ou un coût périmé est indiscernable d'un chiffre frais, leçon AD-18b.)_
 
 ### FR Coverage Map (v2)
 
@@ -606,10 +607,10 @@ FR-2: Epic 8 — Page détail par Rayon
 FR-3: Epic 8 — Pointer un Article (write optimiste + convergence)
 FR-4: Epic 8 — Vider le panier (delete + undo)
 FR-5: Epic 8 — Reflet des ajouts multi-canaux (Realtime + provenance)
-FR-E1: Epic 9 — Micro-tuile Électricité (conso + prix + coût, reflect-only)
+FR-E1: Epic 9 — Micro-tuile Électricité (9.1 patron + 9.4 source statistiques J-1)
 FR-E2: Epic 9 — Heures creuses/pleines (période courante HA + tarif appliqué)
 FR-E3: Epic 9 — Micro-tuile Eau (SAUR, conso + prix + coût)
-FR-E4: Epic 9 — Source HA read-only + prix config + repli seam (transverse)
+FR-E4: Epic 9 — Source HA read-only (capteur ou statistique) + prix config + repli seam (transverse)
 FR-A1: Epic 10 — Prochain rendez-vous sur l'accueil (micro-tuile, lecture HA par requête)
 FR-A2: Epic 10 — Page détail Agenda (bascule Jour / Semaine / Mois)
 FR-A3: Epic 10 — Filtre par calendrier
@@ -626,7 +627,7 @@ Le kiosque devient la **vitre read-write** de la liste de courses du foyer : voi
 **FRs covered:** FR-1, FR-2, FR-3, FR-4, FR-5
 
 ### Epic 9: Consommation — flux élec & eau (coup d'œil coûts)
-Des **micro-tuiles** dans la barre supérieure (moule météo/tortue/plante, Story 6.4) qui reflètent en lecture seule la **conso élec & eau** depuis HA et en dérivent le **coût du jour**, avec l'**état heures creuses/pleines**. Purement **HA-natif read-only** (Story 1.5 comme précédent), *reflect-only*, **zéro nouveau backend** si les capteurs HA existent. Après cet epic, Florian voit d'un coup d'œil ce que consomment élec & eau, à quel tarif, sans quitter l'accueil.
+Des **micro-tuiles** dans la barre supérieure (moule météo/tortue/plante, Story 6.4) qui reflètent en lecture seule la **conso élec & eau** depuis HA et en donnent le **coût du dernier jour disponible** — **hier** pour Linky (donnée J-1, statistiques HA, Story 9.4), le jour courant si un capteur temps réel existe — avec l'**état heures creuses/pleines**. Purement **HA-natif read-only** (Story 1.5 comme précédent), *reflect-only*, **zéro nouveau backend** si les capteurs HA existent. Après cet epic, Florian voit d'un coup d'œil ce que consomment élec & eau, à quel tarif, sans quitter l'accueil.
 **FRs covered:** FR-E1, FR-E2, FR-E3, FR-E4
 
 ### Epic 10: Agenda — coup d'œil sur la journée
@@ -792,13 +793,15 @@ So that je nettoie la liste après les courses sans cocher-supprimer un par un.
 
 ## Epic 9: Consommation — flux élec & eau (coup d'œil coûts)
 
-Des micro-tuiles dans la barre supérieure reflètent en lecture seule la conso élec & eau depuis HA et en dérivent le coût du jour, avec l'état heures creuses/pleines. Purement HA-natif read-only (Story 1.5 comme précédent), reflect-only, zéro nouveau backend si les capteurs HA existent. Les stories procèdent par tranches : fonder le patron « flux de consommation » (élec), ajouter la conscience tarifaire (HC/HP), puis cloner pour l'eau.
+Des micro-tuiles dans la barre supérieure reflètent en lecture seule la conso élec & eau depuis HA et en donnent le coût du dernier jour disponible — hier pour Linky (donnée J-1, statistiques HA, Story 9.4), le jour courant si un capteur temps réel existe — avec l'état heures creuses/pleines. Purement HA-natif read-only (Story 1.5 comme précédent), reflect-only, zéro nouveau backend si les capteurs HA existent. Les stories procèdent par tranches : fonder le patron « flux de consommation » (élec), ajouter la conscience tarifaire (HC/HP), puis cloner pour l'eau.
 
-> **Task 0 (hors-repo, préalable à cet epic) :** exposer côté HA les capteurs de conso élec (Enedis / TotalÉnergies) + eau (SAUR / HACS) en **cumul journalier** (`utility_meter` daily ou capteur daily de l'intégration) + la **période HC/HP courante** ; définir les **prix** (helpers HA `input_number` ou config runtime). Repli seam read-only si une intégration est absente.
+> **Task 0 (hors-repo, préalable à cet epic — amendée 2026-09-25) :** exposer côté HA la conso élec **et** eau : soit un capteur en **cumul journalier** (source temps réel, `utility_meter` daily), soit une **statistique à long terme** (ha-linky pour l'élec — **fait**, `linky:24305788525104`, J-1) ; la **période HC/HP courante** et les **deux prix** (**faits**, Story 9.2) ; pour le coût J-1, la config `costs` de l'add-on alimentée par un capteur template de prix courant (Story 9.4, Task 0). Repli seam read-only si une intégration est absente.
 >
 > **Réf. design :** `ux-designs/ux-home-dashboard-2026-07-20/inputs/mock-conso-topbar.html` — **variante B** retenue (coût héros + sous-ligne conso, lune/soleil sur pill neutre, popover tarifaire au tap). *Les teintes vertes « Creuses » du mock sont écartées (UX-DR24) — le spec gagne sur le mock.*
 
 ### Story 9.1: Micro-tuile Électricité (conso + prix + coût)
+
+> **Livrée le 2026-07-23 sur placeholder `sensor.electricite_conso_jour`, clôturée `done` le 2026-09-25.** Sa Task 0 est **sans objet** : la source du foyer (ha-linky) est une statistique J-1, pas un capteur (voir `sprint-change-proposal-2026-09-25.md`). La tuile, la page et le patron sont **réutilisés tels quels** par la Story 9.4, qui remplace le chemin de lecture et le jour affiché.
 
 _Tracer bullet : fonde le patron « flux de consommation » (lecture HA read-only + coût dérivé + prix config). Reflect-only, AD-16._
 
@@ -842,6 +845,55 @@ So that je sais quand l'électricité est la moins chère et le coût affiché e
 **Given** la période HC/HP indisponible côté HA
 **When** la tuile se rend
 **Then** dégradation en obsolescence (AD-6) ; le coût est calculé sur le **dernier tarif connu**, jamais de blanc
+
+### Story 9.4: Électricité — hier, depuis les statistiques Linky
+
+_Remplace la source de 9.1 : la conso du foyer n'est pas un état d'entité mais une **statistique à long terme** importée **J-1** (ha-linky). Lecture par requête (AD-17, `recorder.get_statistics`), coût calculé par HA (AD-4), valeur datée (UX-DR30). Reflect-only, AD-16 amendé. Créée par `sprint-change-proposal-2026-09-25.md`._
+
+As a Florian,
+I want voir ce que l'électricité m'a coûté **hier**, avec la conso, au tarif HC/HP réel,
+So that je garde un œil sur ma facture sans exiger une donnée temps réel que Linky ne fournit pas.
+
+**Acceptance Criteria:**
+
+**Given** les identifiants de statistiques relevés en Task 0 — conso `linky:24305788525104` et son pendant coût suffixé `(costs)` — inscrits dans `ElectricityConfig` (`src/entities/mapping.ts`, AD-7) à la place de `dailyKwhEntityId`
+**When** la tuile ou la page lit sa source
+**Then** l'appel est **`recorder.get_statistics`** via `callService` + `returnResponse: true` dans un seam `src/hakit/` (AD-17, moule `useCalendarEvents` : garde anti-course, `catch` journalisé), `period: "day"`, `types: ["change"]`, `units: { energy: "kWh" }`, sur une fenêtre couvrant **les deux derniers jours civils** ; **0 `entity_id`/statistic_id en dur** hors `src/entities/` ; **aucun appel websocket hors seam** (AD-2 intact)
+
+**Given** la réponse
+**When** la tuile se rend
+**Then** elle affiche le **dernier jour complet disponible** : coût héros (€, tabular-nums), sous-ligne conso (kWh) **et le libellé daté** « Hier · mer. 24 » ou « Avant-hier · mar. 23 » (UX-DR30) — jamais une valeur sans date, jamais le jour courant
+**And** le coût est **celui calculé par HA** (statistique de coût), l'app ne multiplie plus `conso × prix` pour cette valeur ; `electricity-cost.ts` garde `normalisePeriod` pour la tuile HC/HP de la page
+
+**Given** aucun jour disponible dans la fenêtre (import jamais fait, statistiques vides)
+**When** la tuile se rend
+**Then** un **état rendu** « Pas encore de relevé », **même empreinte** (UX-DR27), jamais de blanc ni de spinner
+
+**Given** la requête rejetée, ou la connexion perdue
+**When** la tuile se rend
+**Then** **dernière réponse connue + obsolescence** horodatée de la requête (AD-17), atténuée sur la chip, pill « Hors ligne · HH:MM » sur la page (règle de famille) ; `console.warn("électricité: recorder.get_statistics failed", err)` ; jamais de blanc
+
+**Given** l'import ha-linky entre 6h et 10h30
+**When** le jour civil change, la connexion revient, l'app repasse au premier plan, **ou une heure s'est écoulée** depuis la dernière réponse
+**Then** la requête est relancée ; **pas de polling plus court** — la donnée change au plus une fois par jour
+
+**Given** la page `/electricite`
+**When** elle se rend
+**Then** la tuile « Aujourd'hui » devient « **Hier · date** » (coût HA + conso), le graphe montre les **24 heures du jour affiché** (`period: "hour"`, `types: ["change"]`, barres horaires — la granularité des statistiques à long terme est l'heure), la tuile HC/HP de la 9.2 (période courante, deux prix, prochaine bascule) **reste** ; page **sans scroll**
+
+**Given** la préférence de tarif
+**When** le coût d'hier se calcule
+**Then** il l'est **côté HA** par ha-linky, au prix du capteur template `sensor.prix_kwh_courant` à chaque demi-heure ; l'approximation aux frontières 01h08/06h08/12h38/15h38 (≈ 32 min/jour au tarif voisin, 1–2 % du coût) est **documentée et assumée**, interdiction de la compenser côté app
+
+> **Task 0 (hors-repo, préalable au device-proof) :**
+>
+> 1. Créer le capteur template **`sensor.prix_kwh_courant`** (€/kWh) = `input_number.prix_kwh_creuses` si `binary_sensor.heures_creuses` est `on`, sinon `input_number.prix_kwh_pleines` — `state_class: measurement`, enregistré par le recorder (ha-linky lit **l'historique** du prix : le capteur doit exister **avant** le jour importé).
+> 2. Dans ha-linky, onglet Configuration, encadré `costs` : `- entity_id: sensor.prix_kwh_courant` (aucun `after`/`before` : incompatibles avec `entity_id`, et de toute façon incapables de dire 01h08).
+> 3. Attendre l'import du lendemain **ou** faire une « remise à zéro » de l'add-on pour que les coûts soient calculés sur l'historique.
+> 4. Relever dans Outils de développement → Statistiques l'**identifiant exact** de la statistique de coût (suffixe `(costs)`) — **jamais deviné**, précédent 9.1/11.1.
+> 5. Documenter le tout dans `docs/home-assistant.md` § Électricité (réécriture : contrat = deux identifiants de statistiques + capteur template ; le `utility_meter` et le placeholder disparaissent).
+>
+> **Porte de sortie :** si un capteur temps réel apparaît un jour (TIC, pince), AD-16 (a) s'applique et la 9.1 telle qu'écrite redevient possible ; 9.4 ne l'interdit pas.
 
 ### Story 9.3: Micro-tuile Eau (SAUR)
 
