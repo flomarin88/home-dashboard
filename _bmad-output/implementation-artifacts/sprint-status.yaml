@@ -42,7 +42,7 @@
 # - Retrospective appends its action items to action_items; sprint-status surfaces open ones
 
 generated: 2026-07-13
-last_updated: 2026-09-25
+last_updated: 2026-09-26
 # EPIC 1 (Fondation) DONE — stories 1.1-1.6 done (2026-07-15). Epic-1 retrospective optional. Next: epic-2 (pilotage).
 # v2 (2026-07-20): epics 7 (Arrosage) + 8 (Courses/NutriClaude) ajoutés au backlog depuis epics.md. Aucun fichier story v2 encore créé. Task 0 hors-repo requis avant epic-8.
 # v2b (2026-07-21): epic-9 (Consommation élec/eau — flux d'affichage HA read-only) ajouté au backlog via correct-course (sprint-change-proposal-2026-07-21.md). Aucun fichier story créé. Task 0 HA (capteurs conso + HC/HP + prix) requis avant device-proof.
@@ -151,7 +151,7 @@ development_status:
   epic-9: in-progress  # démarré 2026-07-23 — story 9.1 contextualisée (create-story). 2026-09-25 : correct-course (sprint-change-proposal-2026-09-25.md) — 9.1 close done (source sans objet : ha-linky = statistique J-1 sans entité), 9.4 créée pour remplacer le chemin de lecture, 9.3 après
   9-1-micro-tuile-electricite-conso-cout: done  # ✅ done 2026-09-25 (décision Florian, correct-course). Code livré 2026-07-23 ; Task 0 SANS OBJET : la source (ha-linky) est une statistique J-1 sans entité, pas un capteur. La cause « API fournisseur HS » consignée le 2026-07-29 était fausse. Source reprise par 9-4. Preuve device transférée à 9-4
   9-2-heures-creuses-pleines: done  # ✅ validée par Florian 2026-07-29. Task 0 faite (4 entity_id réels), jeu de couleurs de la maquette appliqué (AC1 amendé). Reste hors story : le capteur de conso de 9.1, sans lequel le coût affiche « — »
-  9-4-electricite-hier-statistiques-linky: backlog  # créée 2026-09-25 par correct-course (sprint-change-proposal-2026-09-25.md). Lecture recorder.get_statistics (AD-17), coût calculé par HA (ha-linky costs), valeur datée (UX-DR30). Task 0 : sensor.prix_kwh_courant + costs + relever l'id « (costs) ». Priorité AVANT 9-3
+  9-4-electricite-hier-statistiques-linky: in-progress  # dev-story 2026-09-26 : Tasks 1-8 FAITES hors preuve device (mapping 2 statistic ids, src/energy/statistics.ts, useStatistics AD-17, tuile + page datées, coût HA, graphe barres, doc HA). Suite 481→528 (dont barres horaires colorées HC/HP demandées par Florian, période lue dans l'historique HA du binary_sensor), gates verts, build sans token OK, 9 mutations mordues. ⚠️ PAS EN REVIEW — restent Task 0 (observer linky:…_cost côté HA) + preuve device (chip datée, barres, collision top-bar) ; story contextualisée 2026-09-26 (create-story) ; ids réels linky:24305788525104 + _cost (format vérifié dans le code ha-linky, existence du _cost à confirmer Task 0) ; créée 2026-09-25 par correct-course (sprint-change-proposal-2026-09-25.md). Lecture recorder.get_statistics (AD-17), coût calculé par HA (ha-linky costs), valeur datée (UX-DR30). Task 0 : sensor.prix_kwh_courant + costs + relever l'id « (costs) ». Priorité AVANT 9-3
   9-3-micro-tuile-eau-saur: backlog
   epic-9-retrospective: optional
 
