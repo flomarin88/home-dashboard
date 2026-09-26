@@ -6,7 +6,18 @@ import { isConfigured } from "../hakit";
 import { electricityConfig } from "../entities";
 import type { ElectricityConfig } from "../entities";
 import { useEntityValue } from "../hakit/useEntityValue";
+import { useStatistics } from "../hakit/useStatistics";
 import { formatSince } from "../hakit/stale";
+import {
+  dayLabel,
+  dayWindow,
+  hourlySeries,
+  hoursToCover,
+  periodOfInterval,
+  selectLastCompleteDay,
+  startOfDay,
+  type HourPeriod,
+} from "../energy/statistics";
 import {
   electricityView,
   type TariffPeriod,
@@ -15,29 +26,60 @@ import {
   formatEuro,
   formatKwh,
   formatPrice,
+  periodLabel,
   periodName,
   periodTone,
 } from "../widgets/consumption-format";
 import { formatSunTime } from "../widgets/weather-format";
 import { BoltIcon, PeriodIcon } from "../widgets/ConsumptionIcons";
-import { SPARKLINE_HOURS } from "../config";
 
 // Lazy so Recharts stays code-split off the home warm-start bundle (shared chunk
 // with the /meteo + room-detail charts; AD-9 / PWA precache stays lean).
 const SensorHistoryChart = lazy(() => import("../widgets/SensorHistoryChart"));
 
+/** Unit conversion asked of HA: the Linky statistic is in Wh, the screen reads kWh. */
+const UNITS = { energy: "kWh" } as const;
+
+/** The bar colour of an hour, by the tariff HA was in — the pill's own tokens. */
+const HOUR_MS = 3_600_000;
+function barFill(period: HourPeriod): string {
+  if (period === "creuses") return "var(--color-tariff-creuses)";
+  if (period === "pleines") return "var(--color-tariff-pleines)";
+  return "var(--color-text)";
+}
+
+/** "hier, jeudi 24 septembre" → "Hier · jeudi 24 septembre" (a tile title). */
+function titleCase(long: string): string {
+  const s = long.replace(", ", " · ");
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
 /**
- * ElectricityDetail — deep page for the electricity consumption (Story 9.1,
- * AD-10/AD-16), opened by tapping `ElectricityTile`. Content-only — the ground +
- * top bar belong to `KioskShell` (TD-1). Landscape 2-column grid of frosted
- * tiles, fits the 1024×768 kiosk viewport with NO scroll.
+ * ElectricityDetail — deep page for the electricity consumption (Story 9.1 →
+ * 9.4, AD-10/AD-16 amended), opened by tapping `ElectricityTile`. Content-only —
+ * the ground + top bar belong to `KioskShell` (TD-1). Landscape 2-column grid
+ * of frosted tiles, fits the 1024×748 kiosk viewport with NO scroll.
  *
- * Left: Aujourd'hui (derived cost + consumption + applied tariff) + Historique
- * (cumulative daily-kWh chart). Right: the HC/HP tariff tile — current period,
- * BOTH prices with the one in force marked, and the next switch (Story 9.2,
- * filling the seam 9.1 left). All reflect-only (AD-3); cost is a display
- * derivation (AD-16), never persisted, and no tariff schedule is computed here
- * (AD-4) — the period and the switch time are both read from HA.
+ * Left: the LAST COMPLETE DAY, named in full ("Hier · jeudi 24 septembre",
+ * UX-DR30) — HA's own cost for that day (ha-linky `costs`) and its consumption
+ * — then the 24 HOURLY bars of that same day. Both come from long-term
+ * statistics read by query (`recorder.get_statistics`, AD-17): two calls, one
+ * per period, the hourly one windowed on the day the daily one selected. There
+ * is no entity to subscribe to for the energy itself (Story 9.4). Each hourly
+ * bar wears the colour of the tariff HA was in at that hour — read off the
+ * HISTORY of the period `binary_sensor` over the shown day and rounded to the
+ * hour by majority (Florian, 2026-09-26). The app still knows no schedule
+ * (AD-4): it measures HA's flips, it does not compute them. Colour is never
+ * alone — a glyph + word legend sits under the chart and the tooltip names the
+ * period (UX-DR14).
+ * Right: the HC/HP tariff tile of Story 9.2, untouched — the period that is
+ * current NOW, both prices with the one in force marked, the next switch. All
+ * reflect-only (AD-3); nothing is multiplied or scheduled here (AD-4).
+ *
+ * Obsolescence: the statistics' `isStale` means the last request failed or HA
+ * is unreachable — the last known day stays, dimmed, and the single "Hors
+ * ligne · HH:MM" pill is stamped with the time of the last successful REQUEST
+ * (`since`), because a J-1 statistic has no `last_changed` worth showing.
  */
 export function ElectricityDetail() {
   const cfg = electricityConfig();
@@ -53,49 +95,93 @@ export function ElectricityDetail() {
 }
 
 export function ElectricityDetailContent({ cfg }: { cfg: ElectricityConfig }) {
-  const kwh = useEntityValue(cfg.dailyKwhEntityId as EntityName);
+  const days = useStatistics({
+    statisticIds: [cfg.consumptionStatisticId, cfg.costStatisticId],
+    period: "day",
+    units: UNITS,
+  });
   const period = useEntityValue(cfg.periodEntityId as EntityName);
   const priceCreuses = useEntityValue(cfg.priceCreusesEntityId as EntityName);
   const pricePleines = useEntityValue(cfg.pricePleinesEntityId as EntityName);
   const nextSwitch = useEntityValue(cfg.nextSwitchEntityId as EntityName);
 
+  // `new Date()` once, handed to pure functions — no clock in the render path.
+  const today = startOfDay(new Date());
+  const conso = selectLastCompleteDay(
+    days.rows[cfg.consumptionStatisticId] ?? [],
+    today,
+  );
+  const cost = selectLastCompleteDay(
+    days.rows[cfg.costStatisticId] ?? [],
+    today,
+  );
+  const shown = conso ?? cost;
+  const label = shown ? dayLabel(shown.start, today) : null;
+
+  // The hourly chart follows the day the figures show. Before a day is known
+  // it asks for yesterday — the chart then simply says "Pas d'historique".
+  const chartDay =
+    shown?.start ??
+    new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1);
+  const hours = useStatistics({
+    statisticIds: [cfg.consumptionStatisticId],
+    period: "hour",
+    units: UNITS,
+    range: dayWindow(chartDay),
+  });
+  const hourRows = hourlySeries(hours.rows[cfg.consumptionStatisticId] ?? []);
+
+  // The tariff period over the shown day, from HA's history of the period
+  // sensor. `useHistory` only knows "the last N hours", so ask for enough of
+  // them to reach the day's first instant (and the state in force just before).
+  const { entityHistory: periodHistory } = useHistory(
+    cfg.periodEntityId as EntityName,
+    { hoursToShow: hoursToCover(chartDay, new Date()) },
+  );
+  const periodTimeline = periodHistory.map((h) => ({
+    t: (h.lc ?? h.lu) * 1000,
+    state: String(h.s),
+  }));
+  const hourSeries = hourRows.map((pt) => {
+    const period = periodOfInterval(periodTimeline, pt.t, pt.t + HOUR_MS);
+    return {
+      ...pt,
+      color: barFill(period),
+      label: period === null ? "Valeur" : periodLabel(period),
+    };
+  });
+
   const view = electricityView({
-    kwh: kwh.value,
     priceCreuses: priceCreuses.value,
     pricePleines: pricePleines.value,
     period: period.value,
   });
   const anyStale =
-    kwh.isStale ||
+    days.isStale ||
     period.isStale ||
     priceCreuses.isStale ||
     pricePleines.isStale ||
     nextSwitch.isStale;
 
-  // Cumulative daily-kWh history. The sensor resets to 0 at midnight, so over a
-  // 24 h window the curve climbs then drops at the midnight boundary — that
-  // sawtooth is faithful ("conso depuis 00:00"), not a bug. A smooth power/rate
-  // curve would need a separate instantaneous sensor (out of scope, 9.1).
-  const { entityHistory } = useHistory(cfg.dailyKwhEntityId as EntityName, {
-    hoursToShow: SPARKLINE_HOURS,
-  });
-  const consoSeries = entityHistory
-    .map((h) => ({ t: (h.lc ?? h.lu) * 1000, value: Number(h.s) }))
-    .filter((d) => Number.isFinite(d.value) && Number.isFinite(d.t));
+  const dayTitle = label
+    ? titleCase(label.long)
+    : days.loading
+      ? "—"
+      : "Pas encore de relevé";
 
   return (
     <div className="flex h-full flex-col gap-grid-gap overflow-hidden">
       <BackLink />
 
       <div className="grid min-h-0 flex-1 grid-cols-2 gap-grid-gap">
-        {/* Left column — Aujourd'hui + Historique (real HA data). */}
+        {/* Left column — the last complete day + its hourly profile. */}
         <div className="flex min-h-0 flex-col gap-grid-gap overflow-hidden">
           <Tile
-            title="Aujourd'hui"
+            title={dayTitle}
             right={
               anyStale ? (
                 <span className="inline-flex items-center gap-1 rounded-full bg-stale/25 px-2 py-0.5 text-caption text-stale-text">
-                  Hors ligne{kwh.since ? ` · ${formatSince(kwh.since)}` : ""}
+                  Hors ligne{days.since ? ` · ${formatSince(days.since)}` : ""}
                 </span>
               ) : undefined
             }
@@ -110,22 +196,18 @@ export function ElectricityDetailContent({ cfg }: { cfg: ElectricityConfig }) {
                   anyStale ? "text-stale-text" : "text-text"
                 }`}
               >
-                {formatEuro(view.cost)}
+                {formatEuro(cost?.value)}
               </span>
-              <span className="text-meta text-text-muted">aujourd'hui</span>
+              {/* No "× price" line any more: HA priced the day, half-hour by
+                  half-hour, at the tariff then in force (Story 9.4, AD-4). */}
             </div>
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-meta tabular-nums text-text-muted">
-              <span>{formatKwh(view.kwh)} · depuis 00:00</span>
-              {/* The tariff actually billing right now, named — a bare price
-                  would no longer say which of the two it is. */}
-              <span>
-                {`${formatPrice(view.appliedPrice)} · ${periodName(view.period)}`}
-              </span>
+              <span>{formatKwh(conso?.value)}</span>
             </div>
           </Tile>
 
           <Tile
-            title="Historique — conso cumulée (24 h)"
+            title={`Conso horaire — ${label ? label.short : "—"}`}
             className="min-h-0 flex-1"
           >
             <div className="min-h-0 flex-1">
@@ -135,22 +217,45 @@ export function ElectricityDetailContent({ cfg }: { cfg: ElectricityConfig }) {
                 }
               >
                 <SensorHistoryChart
-                  series={consoSeries}
+                  kind="bar"
+                  series={hourSeries}
                   color="var(--color-text)"
-                  ariaLabel="Historique de la consommation cumulée sur 24 heures"
+                  ariaLabel={`Consommation horaire, ${label ? label.long : "aucun jour disponible"}, colorée par période tarifaire`}
                   unit="kWh"
-                  decimals={1}
+                  decimals={2}
                 />
               </Suspense>
+            </div>
+            {/* Legend: the colours above are reinforcement, these words are the
+                signal (UX-DR14). Same glyphs and tokens as the pill. */}
+            <div
+              data-testid="hourly-legend"
+              className="flex items-center gap-4 text-caption text-text-muted"
+            >
+              <span className="inline-flex items-center gap-1">
+                <PeriodIcon
+                  period="creuses"
+                  size={12}
+                  className={periodTone("creuses").text}
+                />
+                Creuses
+              </span>
+              <span className="inline-flex items-center gap-1">
+                <PeriodIcon
+                  period="pleines"
+                  size={12}
+                  className={periodTone("pleines").text}
+                />
+                Pleines
+              </span>
             </div>
           </Tile>
         </div>
 
-        {/* Right column — the HC/HP tariff detail (Story 9.2). */}
+        {/* Right column — the HC/HP tariff detail (Story 9.2), unchanged. */}
         <div className="flex min-h-0 flex-col gap-grid-gap overflow-hidden">
-          {/* No second "Hors ligne" pill here: AC5 asks for one on the page,
-              and the tile family already dims as a whole. Repeating it would be
-              noise on a screen read from three metres away. */}
+          {/* No second "Hors ligne" pill here: AC5 of 9.2 asks for one on the
+              page, and the tile family already dims as a whole. */}
           <Tile title="Heures creuses / pleines" className="min-h-0 flex-1">
             {/* Current period — tinted per the mock, but the glyph and the word
                 say it too: colour is never the sole carrier (UX-DR14). Stale

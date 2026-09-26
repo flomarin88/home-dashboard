@@ -46,6 +46,14 @@ export interface EntityEntry {
 const ENTITY_ID_RE = /^[a-z_]+\.[a-z0-9_]+$/;
 
 /**
+ * Well-formed EXTERNAL statistic id: `<source>:<object_id>` (HA recorder, e.g.
+ * `linky:24305788525104`). Deliberately a different rule from `ENTITY_ID_RE`:
+ * a colon in an entity_id is a typo, a dot in a statistic id is a sensor's
+ * statistic — the two must never validate each other (Story 9.4).
+ */
+const STATISTIC_ID_RE = /^[a-z0-9_]+:[a-z0-9_]+$/;
+
+/**
  * Netatmo sensors — 4 rooms × { temperature, CO₂, humidity } (Story 1.5).
  * Real HA entity_ids (Florian's HA, 2026-07-14).
  *
@@ -451,33 +459,37 @@ export function weatherConfig(): WeatherConfig {
 }
 
 /**
- * Electricity consumption (Story 9.1, tariff-aware since 9.2) — reflected
- * read-only (AD-16). Cost = kWh × price is a DISPLAY derivation, never a stored
- * state (AD-1).
+ * Electricity (Story 9.1 → 9.2 → 9.4) — reflected read-only (AD-16 amended).
  *
- * 9.1 read a single flat price. 9.2 splits it in two and adds the current
- * period, because the house is on a heures creuses / heures pleines tariff. The
- * SCHEDULE is deliberately absent from this file and from the whole bundle: the
- * app never decides which period it is, it reflects a `binary_sensor` that HA
- * evaluates (AD-4). Same for the next switch — a timestamp sensor, read and
- * formatted, never computed.
+ * The consumption is NOT an entity. The house's source is the ha-linky add-on,
+ * which writes two LONG-TERM STATISTICS into HA's recorder (`linky:<PRM>` in Wh,
+ * `linky:<PRM>_cost` in €, both hourly), imported each morning for the DAY
+ * BEFORE. There is no `sensor.*` to subscribe to, and there never will be: the
+ * data is J-1 by nature. So the two ids below are STATISTIC ids, read by query
+ * (`recorder.get_statistics`, a service with a response — AD-17), and the tile
+ * shows the last COMPLETE day, dated (UX-DR30). Story 9.1's placeholder
+ * `sensor.electricite_conso_jour` is gone with the assumption that produced it
+ * (sprint-change-proposal-2026-09-25.md).
  *
- * The meter itself does NOT change: one `utility_meter` for the day's total.
- * Florian ruled out per-tariff buckets, so the cost is `total × price of the
- * current period` — which jumps when the period flips. That is specified
- * behaviour, not a defect; smoothing it would mean persisted state (AD-1/AD-16)
- * and tariff logic (AD-4). The fix, if ever wanted, is `tariffs:` on the HA
- * meter — see docs/home-assistant.md.
+ * The cost is COMPUTED BY HA: ha-linky's `costs` option prices every half-hour
+ * at the price an HA template sensor (`sensor.prix_kwh_courant`, never read by
+ * this app) reported at that moment. The app multiplies nothing any more (AD-4).
+ * The 9.2 jump of +68 % at each tariff switch disappears with it.
  *
- * The four TARIFF ids are REAL (Florian's HA, 2026-07-28): he created the two
- * template sensors and the two price helpers, and the slugs came back exactly as
- * proposed. `dailyKwhEntityId` is the one still waiting — Story 9.1's Task 0 has
- * never been done, so the consumption sensor does not exist yet and the cost
- * stays "—" until it does. The period and the two prices, however, are live.
+ * The four TARIFF entities of 9.2 are unchanged and REAL (Florian's HA,
+ * 2026-07-28): the period `binary_sensor` still drives the chip's HC/HP pill and
+ * the detail page's tariff tile; the two prices and the next switch are shown
+ * there too. The SCHEDULE stays out of this file and of the whole bundle: the
+ * app never decides which period it is (AD-4).
+ *
+ * Statistic ids follow HA's external form `source:object_id` — a colon, which
+ * `ENTITY_ID_RE` rightly rejects — hence their own registry and check below.
  */
 export interface ElectricityConfig {
-  /** `sensor.*` — daily cumulative consumption in kWh (utility_meter `cycle: daily`, reset midnight HA). */
-  readonly dailyKwhEntityId: string;
+  /** Long-term statistic — consumption, Wh (ask HA for kWh via `units`), hourly, J-1. `linky:<PRM>`. */
+  readonly consumptionStatisticId: string;
+  /** Long-term statistic — cost in €, computed by ha-linky `costs`, hourly, J-1. `linky:<PRM>_cost`. */
+  readonly costStatisticId: string;
   /** `binary_sensor.*` — current tariff period. `on` = creuses, `off` = pleines. */
   readonly periodEntityId: string;
   /** `input_number.*` — unit price €/kWh during heures creuses. */
@@ -489,9 +501,11 @@ export interface ElectricityConfig {
 }
 
 const ELECTRICITY: ElectricityConfig = {
-  // ⚠️ STILL A PLACEHOLDER — Story 9.1's Task 0 is open. Without this sensor
-  // there is no kWh, so there is no cost, whatever the tariff says.
-  dailyKwhEntityId: "sensor.electricite_conso_jour",
+  // Real statistic ids (Florian, 2026-09-25/26). The consumption one was read
+  // off Developer tools → Statistics; the cost one follows ha-linky's rule
+  // `${prm}_cost` (src/ha.ts:29) and is confirmed on the device (9.4 Task 0).
+  consumptionStatisticId: "linky:24305788525104",
+  costStatisticId: "linky:24305788525104_cost",
   // Real ids, confirmed by Florian 2026-07-28 (Story 9.2, Task 0 done).
   periodEntityId: "binary_sensor.heures_creuses",
   priceCreusesEntityId: "input_number.prix_kwh_creuses",
@@ -499,7 +513,7 @@ const ELECTRICITY: ElectricityConfig = {
   nextSwitchEntityId: "sensor.hc_hp_prochaine_bascule",
 };
 
-/** The electricity config (Story 9.1). */
+/** The electricity config (Story 9.1, source replaced in 9.4). */
 export function electricityConfig(): ElectricityConfig {
   return ELECTRICITY;
 }
@@ -633,7 +647,6 @@ const AUX_ENTITY_IDS: readonly string[] = [
   BINS.sortie.noire,
   BINS.ack.jaune,
   BINS.ack.noire,
-  ELECTRICITY.dailyKwhEntityId,
   ELECTRICITY.periodEntityId,
   ELECTRICITY.priceCreusesEntityId,
   ELECTRICITY.pricePleinesEntityId,
@@ -653,9 +666,32 @@ export function assertWellFormedAuxIds(
   }
 }
 
+/**
+ * Long-term statistic ids read by query (Story 9.4, AD-17). Same purpose as
+ * `AUX_ENTITY_IDS` — a typo would ship as a silently empty tile — but a
+ * different shape, hence a separate list and check.
+ */
+const AUX_STATISTIC_IDS: readonly string[] = [
+  ELECTRICITY.consumptionStatisticId,
+  ELECTRICITY.costStatisticId,
+];
+
+export function assertWellFormedStatisticIds(
+  ids: readonly string[] = AUX_STATISTIC_IDS,
+): void {
+  for (const id of ids) {
+    if (!STATISTIC_ID_RE.test(id)) {
+      throw new Error(
+        `Malformed statistic id "${id}" — expected "<source>:<object_id>"`,
+      );
+    }
+  }
+}
+
 // Self-enforce the canonical invariant live in dev (not just under `npm test`),
 // so a bad edit surfaces immediately. Stripped from production builds.
 if (import.meta.env.DEV) {
   assertCanonicalMapping();
   assertWellFormedAuxIds();
+  assertWellFormedStatisticIds();
 }

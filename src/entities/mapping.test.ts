@@ -13,6 +13,7 @@ import {
   calendarsConfig,
   assertCanonicalMapping,
   assertWellFormedAuxIds,
+  assertWellFormedStatisticIds,
   assertNoPlaceholders,
   ENTITIES,
   type EntityEntry,
@@ -179,10 +180,20 @@ describe("auxiliary entity_ids (counters + input_datetime, outside ENTITIES)", (
 });
 
 describe("electricity mapping (Story 9.1, tariff-aware since 9.2)", () => {
-  it("exposes the daily-kWh sensor (unchanged — it stays the single meter)", () => {
-    expect(electricityConfig().dailyKwhEntityId).toMatch(
-      /^sensor\.[a-z0-9_]+$/,
-    );
+  it("exposes TWO long-term statistic ids — consumption and cost — in `source:object_id` form (Story 9.4)", () => {
+    // ha-linky writes statistics, not entities: `linky:<PRM>` and, once `costs`
+    // is configured, `linky:<PRM>_cost` (bokub/ha-linky `src/ha.ts:29`).
+    const e = electricityConfig();
+    expect(e.consumptionStatisticId).toMatch(/^[a-z0-9_]+:[a-z0-9_]+$/);
+    expect(e.costStatisticId).toMatch(/^[a-z0-9_]+:[a-z0-9_]+$/);
+    expect(e.costStatisticId).not.toBe(e.consumptionStatisticId);
+    expect(e.costStatisticId).toBe(`${e.consumptionStatisticId}_cost`);
+  });
+
+  it("no longer carries the daily-kWh entity of 9.1 — that source never existed (Story 9.4)", () => {
+    expect(
+      (electricityConfig() as Record<string, unknown>).dailyKwhEntityId,
+    ).toBeUndefined();
   });
 
   it("exposes the current-period binary_sensor (Story 9.2)", () => {
@@ -215,13 +226,12 @@ describe("electricity mapping (Story 9.1, tariff-aware since 9.2)", () => {
     ).toBeUndefined();
   });
 
-  it("registers all five ids for aux well-formedness validation (leçon 7.1 D4)", () => {
+  it("registers the four tariff entities for aux well-formedness validation (leçon 7.1 D4)", () => {
     // They are part of the default AUX_ENTITY_IDS, so the real-ids check covers
     // them; a typo in any would throw at dev-time instead of shipping dimmed.
     expect(() => assertWellFormedAuxIds()).not.toThrow();
     const e = electricityConfig();
     for (const id of [
-      e.dailyKwhEntityId,
       e.periodEntityId,
       e.priceCreusesEntityId,
       e.pricePleinesEntityId,
@@ -229,6 +239,22 @@ describe("electricity mapping (Story 9.1, tariff-aware since 9.2)", () => {
     ]) {
       expect(() => assertWellFormedAuxIds([id])).not.toThrow();
     }
+  });
+
+  it("validates statistic ids with their OWN rule — an entity_id is not a statistic id, nor the reverse (Story 9.4)", () => {
+    // `ENTITY_ID_RE` must stay strict (a colon is a typo in an entity_id), so
+    // the two statistic ids get a dedicated registry and check.
+    expect(() => assertWellFormedStatisticIds()).not.toThrow();
+    const e = electricityConfig();
+    for (const id of [e.consumptionStatisticId, e.costStatisticId]) {
+      expect(() => assertWellFormedStatisticIds([id])).not.toThrow();
+    }
+    expect(() =>
+      assertWellFormedStatisticIds(["sensor.electricite_conso_jour"]),
+    ).toThrow(/statistic/i);
+    expect(() => assertWellFormedAuxIds([e.consumptionStatisticId])).toThrow(
+      /entity_id/i,
+    );
   });
 
   it("keeps every tariff window and price OUT of the mapping (AD-4)", () => {

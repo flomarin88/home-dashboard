@@ -43,59 +43,45 @@ describe("normalisePeriod (Story 9.2 — the binary_sensor contract)", () => {
   });
 });
 
-describe("electricityView (Story 9.2 — tariff-aware)", () => {
-  const base = { kwh: 8.2, priceCreuses: 0.089, pricePleines: 0.1491 };
+describe("electricityView (Story 9.2 tariff-aware — since 9.4 it prices NOTHING)", () => {
+  // Story 9.4: the displayed cost is a long-term statistic computed by HA. This
+  // view only answers "which period, which prices, which one applies" for the
+  // HC/HP tile of the detail page. The six tests that asserted `cost` (creuses
+  // rate, pleines rate, the +68 % jump, missing kWh, raw kWh strings, a zero
+  // day) were REMOVED with the behaviour — see sprint-change-proposal-2026-09-25.
+  const base = { priceCreuses: 0.089, pricePleines: 0.1491 };
 
   it("applies the CREUSES price while the period is creuses", () => {
-    const v = electricityView({ ...base, period: "on" });
-    expect(v.period).toBe("creuses");
-    expect(v.appliedPrice).toBe(0.089);
-    expect(v.cost).toBeCloseTo(0.7298, 6);
+    expect(electricityView({ ...base, period: "on" }).appliedPrice).toBe(0.089);
   });
 
   it("applies the PLEINES price while the period is pleines", () => {
-    const v = electricityView({ ...base, period: "off" });
-    expect(v.period).toBe("pleines");
-    expect(v.appliedPrice).toBe(0.1491);
-    expect(v.cost).toBeCloseTo(1.22262, 6);
+    expect(electricityView({ ...base, period: "off" }).appliedPrice).toBe(
+      0.1491,
+    );
   });
 
-  it("the cost CHANGES across a switch — specified behaviour, asserted on purpose", () => {
-    // Florian ruled out per-tariff meters, so the whole day's kWh is priced at
-    // the current tariff: the hero figure jumps ~+68% at 06h08 without a single
-    // kWh being consumed. Pinned here so nobody "fixes" it by smoothing.
-    const creuses = electricityView({ ...base, period: "on" }).cost!;
-    const pleines = electricityView({ ...base, period: "off" }).cost!;
-    expect(pleines).toBeGreaterThan(creuses);
-    expect(pleines / creuses).toBeCloseTo(0.1491 / 0.089, 6);
-  });
-
-  it("an unknown period yields NO applied price and NO cost", () => {
+  it("an unknown period yields NO applied price", () => {
     const v = electricityView({ ...base, period: "unavailable" });
     expect(v.period).toBeNull();
     expect(v.appliedPrice).toBeNull();
-    expect(v.cost).toBeNull();
   });
 
   it("does NOT fall back to the other price when the applicable one is missing", () => {
-    // The trap: `priceCreuses ?? pricePleines` would silently bill heures
-    // creuses at the full rate (+68%). Missing means missing.
-    const v = electricityView({
-      kwh: 8.2,
+    // A `priceCreuses ?? pricePleines` would quietly mark the wrong tariff as
+    // applied — the +68 % trap, now on the tariff tile rather than on a cost.
+    const hc = electricityView({
       priceCreuses: null,
       pricePleines: 0.1491,
       period: "on",
     });
-    expect(v.appliedPrice).toBeNull();
-    expect(v.cost).toBeNull();
-    expect(v.pricePleines).toBe(0.1491);
-  });
-
-  it("returns cost null when consumption is missing, period and prices intact", () => {
-    const v = electricityView({ ...base, kwh: null, period: "on" });
-    expect(v.cost).toBeNull();
-    expect(v.appliedPrice).toBe(0.089);
-    expect(v.period).toBe("creuses");
+    expect(hc.appliedPrice).toBeNull();
+    const hp = electricityView({
+      priceCreuses: 0.089,
+      pricePleines: "unavailable",
+      period: "off",
+    });
+    expect(hp.appliedPrice).toBeNull();
   });
 
   it("exposes BOTH prices for the detail page, whatever the period", () => {
@@ -106,16 +92,20 @@ describe("electricityView (Story 9.2 — tariff-aware)", () => {
 
   it("parses raw HA strings, like every other reflected state", () => {
     const v = electricityView({
-      kwh: "8.2",
       priceCreuses: "0.0890",
       pricePleines: "0.1491",
-      period: "on",
+      period: " on ",
     });
-    expect(v.kwh).toBe(8.2);
     expect(v.appliedPrice).toBe(0.089);
+    expect(v.period).toBe("creuses");
   });
 
-  it("handles a zero-consumption day (cost 0, not null)", () => {
-    expect(electricityView({ ...base, kwh: 0, period: "on" }).cost).toBe(0);
+  it("carries NO cost and NO kWh any more — the app does not multiply (Story 9.4, AD-4)", () => {
+    const v = electricityView({ ...base, period: "on" }) as Record<
+      string,
+      unknown
+    >;
+    expect(v.cost).toBeUndefined();
+    expect(v.kwh).toBeUndefined();
   });
 });

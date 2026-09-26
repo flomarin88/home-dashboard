@@ -290,84 +290,108 @@ mets à jour le mapping (`src/entities/mapping.ts`).
 
 ---
 
-## Électricité — conso & coût (Story 9.1)
+## Électricité — conso & coût d'hier (Stories 9.1 → 9.4)
 
-La micro-tuile Électricité **reflète** en lecture seule un capteur HA de **conso
-journalière** (kWh cumulés du jour) et un **prix** (€/kWh), et en **dérive le coût du
-jour** (`conso × prix`) — une **dérivation d'affichage**, jamais un état stocké
-(AD-16). L'app ne planifie rien : le **reset minuit** et (Story 9.2) le **schéma
-heures creuses/pleines** vivent **dans HA** (AD-4). Purement HA-natif, reflect-only
-(même patron que l'Ambiance Netatmo, Story 1.5).
+La micro-tuile Électricité et la page `/electricite` affichent la **conso et le coût du
+dernier jour complet** — **hier**, une fois l'import du matin passé — lus dans les
+**statistiques à long terme** de HA que l'add-on **ha-linky** alimente. Il n'y a **aucune
+entité** à créer, **aucun `utility_meter`**, aucun placeholder : la source est une
+statistique (`linky:<PRM>`), lue par le service `recorder.get_statistics` (AD-17). Le
+**coût est calculé par HA** (ha-linky, section `costs`), demi-heure par demi-heure, au
+prix d'un capteur template qui reflète les tarifs de la section HC/HP ci-dessous — l'app
+ne multiplie plus rien (AD-4). La valeur affichée porte **toujours sa date** (UX-DR30).
 
-### 1. Un capteur de conso journalière (kWh, reset minuit)
+### Pourquoi « hier », et jamais « aujourd'hui »
 
-Le dashboard attend un `sensor.*` dont le `state` = **kWh consommés depuis 00:00**
-(cumul du jour, remis à 0 chaque nuit par HA). Deux voies :
+Enedis ne livre la consommation d'une journée que **le lendemain**. ha-linky l'importe
+**entre 6h et 7h30** (repli 9h–10h30) : avant l'import, le dernier jour complet est
+**avant-hier**, et la tuile le dit (« mer. 23 · 6,1 kWh »). Ce n'est pas une panne.
 
-- **Intégration fournisseur** (Enedis / TotalÉnergies…) exposant déjà un capteur
-  _journalier_ → l'utiliser directement.
-- Sinon, un **`utility_meter`** en cycle quotidien au-dessus d'un capteur d'énergie
-  cumulée :
+### 1. L'add-on ha-linky (déjà en place)
 
-```yaml
-utility_meter:
-  electricite_conso_jour:
-    source: sensor.<compteur_energie_kwh>
-    cycle: daily
-```
+Il écrit deux statistiques externes, agrégées **à l'heure** :
 
-> ⚠️ **entity_id placeholder** : le mapping du dashboard utilise
-> `sensor.electricite_conso_jour` **en attendant** le slug réel (dépend de
-> l'intégration). Mets à jour `src/entities/mapping.ts` avec le vrai id.
+| identifiant                 | unité | contenu                                                    |
+| --------------------------- | ----- | ---------------------------------------------------------- |
+| `linky:24305788525104`      | Wh    | conso (l'app demande la conversion en kWh à HA)            |
+| `linky:24305788525104_cost` | €     | coût, produit par la section `costs` (libellé « (costs) ») |
 
-### 2. Un helper `input_number` pour le prix
+### 2. Capteur template `sensor.prix_kwh_courant` (prix instantané pour ha-linky)
 
-**Paramètres → Appareils et services → Helpers → Créer un helper → Nombre** :
-
-- **Prix kWh** → `input_number.prix_kwh` — €/kWh.
+Le prix en vigueur **maintenant**, dérivé du `binary_sensor.heures_creuses` et des deux
+helpers de prix de la section HC/HP. **Une seule source** des horaires et des prix : rien
+n'est recopié dans l'add-on. **L'app ne lit jamais ce capteur** — seul ha-linky le lit,
+et il lit son **historique** : le capteur doit exister **avant** la journée importée.
 
 ```yaml
-input_number:
-  prix_kwh:
-    name: Prix kWh
-    min: 0
-    max: 1
-    step: 0.0001
-    unit_of_measurement: "€/kWh"
+template:
+  - sensor:
+      - name: "Prix kWh courant"
+        unique_id: prix_kwh_courant
+        unit_of_measurement: "€/kWh"
+        state_class: measurement
+        state: >-
+          {{ states('input_number.prix_kwh_creuses')
+             if is_state('binary_sensor.heures_creuses', 'on')
+             else states('input_number.prix_kwh_pleines') }}
 ```
 
-> ⚠️ **`input_number.prix_kwh` n'est plus lu par le dashboard depuis la Story 9.2.**
-> Il a été remplacé par deux helpers tarifés (`prix_kwh_creuses` / `prix_kwh_pleines`,
-> section suivante). Tu peux le supprimer côté HA quand tu veux — l'app ne le référence
-> plus. Il est laissé documenté ici pour que l'historique de la 9.1 reste lisible.
+### 3. ha-linky → Configuration → `costs`
+
+```yaml
+costs:
+  - entity_id: sensor.prix_kwh_courant
+```
+
+Pas de `after`/`before` : incompatibles avec `entity_id`, et de toute façon incapables de
+dire « 01h08 ». Puis **attendre l'import du lendemain** ou faire une **remise à zéro** de
+l'add-on : les coûts sont calculés **au moment de l'import**.
 
 ### Contrat d'interface (⚠️ le code du dashboard en dépend)
 
-| entité                          | rôle          | état attendu                           |
-| ------------------------------- | ------------- | -------------------------------------- |
-| `sensor.electricite_conso_jour` | conso du jour | nombre en **kWh** (cumul depuis 00:00) |
+| identifiant                 | nature              | attendu                                                 |
+| --------------------------- | ------------------- | ------------------------------------------------------- |
+| `linky:24305788525104`      | statistique externe | `change` horaire/journalier en **Wh** (converti en kWh) |
+| `linky:24305788525104_cost` | statistique externe | `change` horaire/journalier en **€**                    |
 
-Le **coût du jour** = `conso × prix appliqué`, calculé **côté app à l'affichage**
-(jamais persisté, AD-16) — le prix appliqué vient de la section HC/HP ci-dessous.
-`unavailable`/`unknown`/socket perdue → **obsolescence** (dernière valeur + « Hors
-ligne », AD-6). Si tu changes un `entity_id`, mets à jour le mapping
-(`src/entities/mapping.ts`).
+- Le dashboard appelle `recorder.get_statistics` avec `types: ["change"]` et
+  `units: { energy: "kWh" }` sur les **deux derniers jours civils**, puis sur les
+  **24 heures** du jour affiché pour le graphe. Il ne somme, ne découpe et ne convertit
+  rien : c'est HA qui calcule.
+- **Jamais aujourd'hui.** Un jour partiel serait lu comme un jour entier.
+- **`change` absent ≠ 0.** La toute première ligne d'une statistique n'a pas de `change` ;
+  l'app l'ignore au lieu d'afficher une journée gratuite.
+- **Aucun jour disponible** ⇒ « Pas encore de relevé », même empreinte, jamais de blanc.
+- **Échec ou HA injoignable** ⇒ dernière réponse conservée, tuile atténuée, pill
+  « Hors ligne · HH:MM » sur la page, horodatée de la **dernière requête réussie**.
+- Si tu changes un identifiant, mets à jour le mapping (`src/entities/mapping.ts`).
 
-### 3. Appliquer & tester
+### ⚠️ Le compromis à connaître : la demi-heure
 
-- **Recharger** : Outils de dév → YAML → **Recharger Utility Meter** (si utilisé) ;
-  helper `input_number` créé via l'UI : pas de rechargement.
-- **Tester** : la tuile montre `conso × prix` (ex. 8,2 kWh × 0,18 €/kWh ⇒ 1,48 €) ;
-  tap → page `/electricite` (coût + conso + prix + graphe conso + seam HC/HP). Coupe
-  le capteur (`unavailable`) → dernière valeur + « Hors ligne », jamais de blanc.
+ha-linky calcule les coûts **à la demi-heure**. Les fenêtres HC du foyer commencent à
+**01h08** et **12h38** : elles ne sont pas représentables. Environ **32 minutes par jour**
+sont facturées au tarif voisin, soit **1 à 2 % du coût**. Assumé, documenté, **jamais
+compensé côté app** — la correction, si elle vient un jour, se fera côté HA.
+
+### 4. Appliquer & tester
+
+- **Recharger** : Outils de dév → YAML → **Recharger les entités template** ; puis
+  ha-linky → Configuration → `costs` → **Redémarrer** l'add-on (ou remise à zéro).
+- **Vérifier** : Outils de développement → **Statistiques**, filtre `linky` : deux lignes,
+  `linky:24305788525104` (Wh) et `linky:24305788525104_cost` (€), source `linky`.
+- **Tester** : la tuile montre « Hier · X kWh » et un coût ≠ « — » ; tap → page « Hier ·
+  <date> » + 24 barres + tuile HC/HP intacte, sans scroll. Un matin avant 7h30, la tuile
+  montre la date d'avant-hier. Coupe le réseau ⇒ dernière valeur + « Hors ligne ».
 
 ---
 
 ## Électricité — heures creuses / pleines (Story 9.2)
 
-Le dashboard affiche **dans quelle période tarifaire tu es** et calcule le coût du
-jour **au prix de cette période**. Comme toujours, il ne **décide** rien : les
-horaires vivent dans HA (AD-4), l'app ne fait que refléter deux capteurs et deux
+Le dashboard affiche **dans quelle période tarifaire tu es** (pill HC/HP sur la tuile,
+tuile « Heures creuses / pleines » sur la page). Depuis la Story 9.4, le **coût affiché est
+celui d'hier, calculé par ha-linky** au prix du capteur `sensor.prix_kwh_courant` (section
+précédente) — l'app n'applique plus elle-même un tarif. Comme toujours, elle ne **décide**
+rien : les horaires vivent dans HA (AD-4), l'app ne fait que refléter deux capteurs et deux
 helpers. **C'est ici — et nulle part ailleurs — que vivent les horaires et les prix.**
 
 ### Horaires et tarifs réels
@@ -458,36 +482,28 @@ les lit à chaque rendu.
 
 - **`on` = creuses est le contrat.** L'app ne reconnaît que `on` et `off` (casse et
   espaces tolérés). **Toute autre valeur** — `unavailable`, `unknown`, absente — donne
-  une période **inconnue** : la tuile affiche « Période — » et **aucun coût**.
-- **Aucun prix par défaut, jamais.** Si le prix de la période en cours manque, le coût
-  est « — », même si l'autre prix est disponible. Facturer des heures creuses au tarif
-  plein serait une erreur de **+68 %** : mieux vaut ne rien dire.
-- **Période déjà vue puis perdue** ⇒ le **dernier tarif connu** continue de s'appliquer,
-  tuile atténuée (AD-6). Le coût ne disparaît pas parce que la socket a hoqueté.
+  une période **inconnue** : la tuile affiche « Période — » et la page ne marque **aucun tarif**.
+- **Aucun prix par défaut, jamais.** Si le prix de la période en cours manque, aucun tarif
+  n'est marqué « Appliqué », même si l'autre prix est disponible. Marquer le tarif plein
+  pendant les heures creuses serait une erreur de **+68 %** : mieux vaut ne rien dire.
+- **Période déjà vue puis perdue** ⇒ le **dernier tarif connu** reste marqué, tuile
+  atténuée (AD-6). Rien ne disparaît parce que la socket a hoqueté.
+- **L'historique de `binary_sensor.heures_creuses` colore le graphe horaire** de
+  `/electricite` (Story 9.4) : chaque barre d'hier prend la couleur de la période où HA
+  était, arrondie à l'heure par majorité. Le recorder doit donc garder **au moins 3 jours**
+  d'historique (défaut : 10). Une heure sans historique reste neutre.
 - **Aucun horaire ni prix dans le bundle.** `01:08 / 06:08 / 12:38 / 15:38` et
   `0.0890 / 0.1491` n'existent que dans ce fichier et dans HA. Un
   `rg '01:08|12:38|0\.0890|0\.1491' src/` doit rester **vide** — c'est un gate de la story.
 
-### ⚠️ Le compromis à connaître : le coût saute à chaque bascule
+### Le coût ne saute plus : il est calculé par HA (Story 9.4)
 
-Le `utility_meter` reste **unique** (décision de Florian : pas de compteurs par tarif).
-L'app ne sait donc **pas** combien de kWh ont été consommés en creuses vs en pleines, et
-ne peut calculer que :
-
-```
-coût_du_jour = conso_totale_du_jour × prix(période_courante)
-```
-
-**Cette formule est fausse dès que la journée a traversé les deux périodes.** À 06h08, le
-chiffre de la tuile **saute de +68 % sans qu'un seul kWh n'ait été consommé** : 8,2 kWh
-passent de 0,73 € à 1,22 €, puis re-sautent en sens inverse à 12h38. Le coût affiché est
-**indicatif** (« à ce rythme et à ce tarif »), pas une facture.
-
-**C'est assumé, et la correction est côté HA, pas côté app.** Si le saut gêne à l'usage,
-ajoute `tariffs: [creuses, pleines]` au `utility_meter` : HA tient alors deux seaux et le
-coût devient exact. Le dashboard aurait juste besoin de deux entrées kWh de plus — le
-reste ne bougerait pas. **Ne pas essayer de lisser ça côté app** : ce serait de l'état
-persisté (AD-1/AD-16) et de la logique tarifaire (AD-4).
+En 9.2, le coût affiché valait `conso_du_jour × prix(période courante)` et **sautait de
++68 %** à chaque bascule, faute de compteurs par tarif — compromis assumé à l'époque.
+Depuis la Story 9.4, **le coût affiché est celui d'hier, calculé par ha-linky** demi-heure
+par demi-heure au prix de `sensor.prix_kwh_courant` : le saut n'existe plus, et l'app ne
+multiplie plus rien (AD-4). Le seul compromis restant est celui de la **demi-heure**
+(section précédente). `utility_meter` et `tariffs:` n'ont plus d'objet ici.
 
 ### 4. Appliquer & tester
 
@@ -496,12 +512,14 @@ persisté (AD-1/AD-16) et de la logique tarifaire (AD-4).
 - **Tester la bascule sans attendre 06h08** : Outils de dév → **Template**, coller le bloc
   `state:` du `binary_sensor` en remplaçant `{% set n = now() %}` par une heure forcée.
   Ou, plus direct : Outils de dév → **États** → forcer `binary_sensor.heures_creuses` à
-  `off` et vérifier que la tuile passe **HC → HP** et que le coût monte.
+  `off` et vérifier que la pill passe **HC → HP** et que le marqueur « Appliqué » change de
+  ligne sur `/electricite`. Le coût d'hier, lui, **ne bouge pas** (Story 9.4).
 - **Tester la dégradation** : forcer la période à `unavailable` **après** l'avoir vue ⇒ le
-  dernier tarif reste appliqué, la tuile s'atténue. Recharger la page dans cet état ⇒
-  « Période — » et coût « — » (jamais vue).
-- **Vérifier le coût à la main** : `conso × prix de la période affichée`. S'ils divergent,
-  c'est le mapping ou le helper, pas le calcul.
+  dernier tarif reste marqué, la tuile s'atténue. Recharger la page dans cet état ⇒
+  « Période — » et aucun marqueur (jamais vue).
+- **Vérifier le coût d'hier à la main** : Outils de dév → **Statistiques** → ligne
+  `linky:24305788525104_cost`, somme des `change` de la journée = le chiffre de la tuile.
+  S'ils divergent, c'est l'import ou la config `costs`, pas le dashboard.
 
 ---
 

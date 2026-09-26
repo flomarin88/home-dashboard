@@ -1,10 +1,15 @@
 /**
- * Electricity display derivation (Story 9.1, tariff-aware since 9.2, AD-16).
+ * Electricity tariff derivation (Story 9.2, narrowed by 9.4, AD-16 amended).
  * PURE — no HA access, and above all NO tariff/time logic: which period it is
- * and when the next switch happens are answered by HA (AD-4), never here. This
- * module has no clock, reads no `Date.now()`, and knows none of the four window
- * boundaries. The daily cost is a display value (`kWh × €/kWh`), never a
- * persisted state.
+ * is answered by HA (AD-4), never here. No clock, no `Date.now()`, none of the
+ * four window boundaries.
+ *
+ * Since Story 9.4 this module prices NOTHING. The cost on screen is a long-term
+ * statistic COMPUTED BY HA (ha-linky `costs`) for the last complete day; the app
+ * no longer multiplies kWh by a price. What remains is the tariff view for the
+ * detail page's HC/HP tile: which period is current, both prices, and which one
+ * applies right now — with the same rule as before: no fallback to the other
+ * price, ever.
  */
 
 /** Parse a raw HA state (string) or number into a finite number, else null. */
@@ -39,8 +44,6 @@ export function normalisePeriod(
 }
 
 export interface ElectricityInput {
-  /** Daily cumulative consumption, kWh (raw sensor state). */
-  readonly kwh: string | number | null | undefined;
   /** Unit price during heures creuses, €/kWh (raw helper state). */
   readonly priceCreuses: string | number | null | undefined;
   /** Unit price during heures pleines, €/kWh (raw helper state). */
@@ -50,8 +53,6 @@ export interface ElectricityInput {
 }
 
 export interface ElectricityView {
-  /** Parsed daily consumption (kWh), or null if missing/non-numeric. */
-  readonly kwh: number | null;
   /** Current tariff period, or null when HA hasn't said. */
   readonly period: TariffPeriod | null;
   /** Parsed heures-creuses price (€/kWh) — both are exposed for the detail page. */
@@ -60,49 +61,30 @@ export interface ElectricityView {
   readonly pricePleines: number | null;
   /** The price actually in force right now, or null if the period is unknown. */
   readonly appliedPrice: number | null;
-  /** Derived daily cost (kWh × appliedPrice), or null when either is absent. */
-  readonly cost: number | null;
 }
 
 /**
- * Derive the display view from the four reflected HA values.
+ * Derive the tariff view from the three reflected HA values.
  *
- * Two rules carry the whole story:
- *
- *  - `appliedPrice` follows the period and NOTHING else. No `priceCreuses ??
- *    pricePleines` fallback: if the applicable price is missing, the answer is
- *    null. That fallback would quietly bill heures creuses at the full rate
- *    (+68%) — a wrong number is worse than no number (AD-16).
- *  - `cost` is null whenever either factor is absent. No invented cost, no
- *    implicit zero.
- *
- * The cost is the whole day's kWh at the CURRENT tariff, so it jumps when the
- * period flips. That is specified, not a bug: Florian ruled out per-tariff
- * meters, and smoothing it would require persisted state (AD-1/AD-16) plus
- * tariff logic (AD-4). The remedy, if ever wanted, is `tariffs:` on the HA
- * `utility_meter` — see docs/home-assistant.md.
+ * One rule carries it: `appliedPrice` follows the period and NOTHING else. No
+ * `priceCreuses ?? pricePleines` fallback — if the applicable price is missing,
+ * the answer is null. That fallback would quietly mark heures creuses as billed
+ * at the full rate (+68 %); a wrong marker is worse than no marker (AD-16).
  *
  * No rounding here; formatting owns presentation (`consumption-format`).
  */
 export function electricityView({
-  kwh,
   priceCreuses,
   pricePleines,
   period,
 }: ElectricityInput): ElectricityView {
-  const k = toNumber(kwh);
   const hc = toNumber(priceCreuses);
   const hp = toNumber(pricePleines);
   const p = normalisePeriod(period);
-
-  const appliedPrice = p === "creuses" ? hc : p === "pleines" ? hp : null;
-
   return {
-    kwh: k,
     period: p,
     priceCreuses: hc,
     pricePleines: hp,
-    appliedPrice,
-    cost: k !== null && appliedPrice !== null ? k * appliedPrice : null,
+    appliedPrice: p === "creuses" ? hc : p === "pleines" ? hp : null,
   };
 }

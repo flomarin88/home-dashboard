@@ -2,7 +2,13 @@ import { useNavigate } from "react-router-dom";
 import type { EntityName } from "@hakit/core";
 import { electricityConfig } from "../entities";
 import { useEntityValue } from "../hakit/useEntityValue";
-import { electricityView } from "./electricity-cost";
+import { useStatistics } from "../hakit/useStatistics";
+import {
+  dayLabel,
+  selectLastCompleteDay,
+  startOfDay,
+} from "../energy/statistics";
+import { normalisePeriod } from "./electricity-cost";
 import {
   formatEuro,
   formatKwh,
@@ -12,67 +18,86 @@ import {
 } from "./consumption-format";
 import { BoltIcon, PeriodIcon } from "./ConsumptionIcons";
 
+/** Unit conversion asked of HA: the Linky statistic is in Wh, the screen reads kWh. */
+const UNITS = { energy: "kWh" } as const;
+
 /**
- * ElectricityTile (Story 9.1, tariff-aware since 9.2) — a compact "coût du jour"
- * glance in the top bar: bolt icon + derived daily cost (hero) + a consumption
- * subline (variant B, UX-DR23), plus an HC/HP pill since 9.2. Tappable → the
- * `/electricite` detail page (like `TopBarWeather → /meteo`) — the two prices,
- * the applied tariff, the next switch and the history live there, not on the chip.
+ * ElectricityTile (Story 9.1 → 9.2 → 9.4) — a compact glance in the top bar:
+ * bolt icon + the cost of the LAST COMPLETE DAY (hero) + a dated consumption
+ * subline ("Hier · 8,2 kWh"), plus the HC/HP pill of 9.2. Tappable → the
+ * `/electricite` detail page.
  *
- * Reflect-only (AD-3/AD-16): reads four entities via `useEntityValue`; cost =
- * kWh × the price of the CURRENT period is a display derivation, never
- * persisted. No HA write, no optimism (unlike the ritual tiles). The app never
- * decides which period it is — it reflects a `binary_sensor` HA evaluates (AD-4).
+ * The consumption is not an entity (Story 9.4): the house's source, ha-linky,
+ * writes long-term statistics into HA's recorder, imported each morning for
+ * the day before. So this tile READS BY QUERY (`recorder.get_statistics`,
+ * AD-17) through `useStatistics`, shows the most recent complete day — never
+ * today, which cannot be complete — and always SAYS which day it is (UX-DR30):
+ * "Hier" when it is yesterday, the short date when the morning import has not
+ * landed yet. The cost is computed BY HA (ha-linky `costs`); nothing is
+ * multiplied here any more (AD-4). Cost and consumption are two statistics,
+ * read independently: one missing renders "—" without hiding the other.
  *
- * Neutral chip and neutral pill — no domain accent (UX-DR24), and the period is
- * carried by glyph AND word, never by colour (UX-DR14). Obsolescence (AD-6): any
- * stale input dims the whole chip (opacity-60) and the label says "hors ligne";
- * the last-known value is kept (never blank), which is what lets a period seen
- * earlier keep pricing the day. The "Hors ligne · HH:MM" pill lives on the
- * detail page (room), matching the top-bar family.
+ * Freshness is the query's, not an entity's: `isStale` means the last request
+ * failed or HA is unreachable, and the last known day stays on screen, dimmed
+ * (AD-17/NFR4). The period pill still reflects an entity (AD-6) and takes part
+ * in the same dimming rule — if ANY input the chip shows is stale, the glance
+ * as a whole is not to be trusted. "Hors ligne · HH:MM" lives on the detail
+ * page, as in the whole top-bar family.
  *
- * The pill wears the COMPACT "HC"/"HP" form — UX-DR23's responsive fallback,
- * activated up front by Florian on 2026-07-28 because Story 10.1 had just taken
- * the bar to six chips. The accessible name still spells the period out.
+ * Neutral chip; the pill wears the compact "HC"/"HP" form (Florian, 2026-07-28)
+ * and its tint is never the only carrier — glyph and letters say it (UX-DR14).
+ * No `Date.now()` in the render path: `new Date()` is taken once and handed to
+ * the pure functions, which is what keeps them testable without timers.
  */
 export function ElectricityTile() {
   const cfg = electricityConfig();
   const navigate = useNavigate();
-  const kwh = useEntityValue(cfg.dailyKwhEntityId as EntityName);
-  const period = useEntityValue(cfg.periodEntityId as EntityName);
-  const priceCreuses = useEntityValue(cfg.priceCreusesEntityId as EntityName);
-  const pricePleines = useEntityValue(cfg.pricePleinesEntityId as EntityName);
-
-  const view = electricityView({
-    kwh: kwh.value,
-    priceCreuses: priceCreuses.value,
-    pricePleines: pricePleines.value,
-    period: period.value,
+  const stats = useStatistics({
+    statisticIds: [cfg.consumptionStatisticId, cfg.costStatisticId],
+    period: "day",
+    units: UNITS,
   });
+  const period = useEntityValue(cfg.periodEntityId as EntityName);
 
-  // One dimming rule for the whole chip, shared with the rest of the top-bar
-  // family: if ANY input it displays is stale, the glance as a whole is not to
-  // be trusted. `nextSwitch` is deliberately absent — a detail-page concern, and
-  // dimming the chip over a value it never shows would be noise.
-  const anyStale =
-    kwh.isStale ||
-    period.isStale ||
-    priceCreuses.isStale ||
-    pricePleines.isStale;
+  const today = startOfDay(new Date());
+  const conso = selectLastCompleteDay(
+    stats.rows[cfg.consumptionStatisticId] ?? [],
+    today,
+  );
+  const cost = selectLastCompleteDay(
+    stats.rows[cfg.costStatisticId] ?? [],
+    today,
+  );
+  // The day named is the one actually shown: the consumption's if we have it,
+  // else the cost's. Both come from the same import, so they normally agree.
+  const shown = conso ?? cost;
+  const label = shown ? dayLabel(shown.start, today) : null;
 
-  const costLabel = formatEuro(view.cost);
-  const kwhLabel = formatKwh(view.kwh);
-  const tone = periodTone(view.period);
+  const anyStale = stats.isStale || period.isStale;
+  const tariff = normalisePeriod(period.value);
+  const tone = periodTone(tariff);
+
+  const costLabel = formatEuro(cost?.value);
+  const kwhLabel = formatKwh(conso?.value);
+  // The dated subline (UX-DR30). Placeholder while the first query is in
+  // flight ("—", same footprint), an explicit rendered state when no complete
+  // day exists (UX-DR27) — never a blank line.
+  const dayLine = label
+    ? `${label.short} · ${kwhLabel}`
+    : stats.loading
+      ? "—"
+      : "Pas encore de relevé";
+  const spokenDay = label ? ` ${label.long}` : "";
   const spokenPeriod =
-    view.period === null
+    tariff === null
       ? "période inconnue"
-      : `heures ${periodName(view.period).toLowerCase()}`;
+      : `heures ${periodName(tariff).toLowerCase()}`;
 
   return (
     <button
       type="button"
       onClick={() => navigate("/electricite")}
-      aria-label={`Électricité : ${costLabel} aujourd'hui, ${kwhLabel}, ${spokenPeriod}${
+      aria-label={`Électricité : ${costLabel}${spokenDay}, ${kwhLabel}, ${spokenPeriod}${
         anyStale ? " — hors ligne" : ""
       } — ouvrir le détail`}
       className={`inline-flex min-h-[56px] items-center gap-2 rounded-lg border border-card-border bg-card-fill px-4 backdrop-blur-glass ${
@@ -84,25 +109,24 @@ export function ElectricityTile() {
         <span className="text-label font-semibold tabular-nums text-text">
           {costLabel}
         </span>
-        <span className="text-caption tabular-nums text-text-muted">
-          {kwhLabel}
+        <span
+          data-testid="electricity-day"
+          className="whitespace-nowrap text-caption tabular-nums text-text-muted"
+        >
+          {dayLine}
         </span>
       </span>
       {/* Tinted pill — green for creuses, amber for pleines, per the mock
           (Florian, 2026-07-28). The glyph and the letters carry the meaning on
           their own; the colour only makes it readable at a glance from across
-          the kitchen (UX-DR14). Dimming wins over the tint when stale, because
-          the chip's opacity applies to the whole button. The accessible name
-          above already spells the period, so the pill stays decorative rather
-          than being read twice. */}
+          the kitchen (UX-DR14). The accessible name above already spells the
+          period, so the pill stays decorative rather than being read twice. */}
       <span
         aria-hidden="true"
         className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-caption ${tone.soft} ${tone.text}`}
       >
-        <PeriodIcon period={view.period} size={12} />
-        {view.period === null
-          ? `Période ${periodLabel(null)}`
-          : periodLabel(view.period)}
+        <PeriodIcon period={tariff} size={12} />
+        {tariff === null ? `Période ${periodLabel(null)}` : periodLabel(tariff)}
       </span>
     </button>
   );
