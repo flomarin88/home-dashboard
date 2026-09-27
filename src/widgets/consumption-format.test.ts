@@ -6,6 +6,7 @@ import {
   periodLabel,
   periodName,
   periodTone,
+  formatVariation,
 } from "./consumption-format";
 
 describe("consumption-format (Story 9.1)", () => {
@@ -72,5 +73,19 @@ describe("periodTone (Story 9.2 — the mock's tints, Florian 2026-07-28)", () =
     expect(t.text).toBe("text-text-muted");
     expect(t.soft).not.toMatch(/tariff/);
     expect(t.border).not.toMatch(/tariff/);
+  });
+});
+
+describe("formatVariation (Story 9.5) — a signed whole percentage", () => {
+  it("shows the sign in both directions, rounded to the unit", () => {
+    expect(formatVariation(0.12)).toMatch(/^\+12\s*%$/);
+    expect(formatVariation(-0.054)).toMatch(/^[−-]5\s*%$/);
+    expect(formatVariation(1.5)).toMatch(/^\+150\s*%$/);
+  });
+
+  it("shows 0 % without a sign, and — for a missing variation", () => {
+    expect(formatVariation(0)).toMatch(/^0\s*%$/);
+    expect(formatVariation(0.004)).toMatch(/^0\s*%$/);
+    expect(formatVariation(null)).toBe("—");
   });
 });

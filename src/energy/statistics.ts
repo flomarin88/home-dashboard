@@ -234,3 +234,141 @@ export function padHours(
   }
   return out;
 }
+
+// ---------------------------------------------------------------------------
+// Story 9.5 — months, comparisons, navigation bounds. Same rules as above:
+// calendar fields (never `× 24 h`), `now`/anchors as parameters, no clock.
+// ---------------------------------------------------------------------------
+
+/** Local midnight of the 1st of the month containing `d`. */
+export function startOfMonth(d: Date): Date {
+  return new Date(d.getFullYear(), d.getMonth(), 1);
+}
+
+/** [1st 00:00, next 1st 00:00) in local time — a month's daily chart. */
+export function monthWindow(monthStart: Date): StatisticsWindow {
+  const start = startOfMonth(monthStart);
+  return {
+    start,
+    end: new Date(start.getFullYear(), start.getMonth() + 1, 1),
+  };
+}
+
+/**
+ * [M − backMonths, M + 1) in local time: one `period: "month"` request that
+ * returns the anchor month AND its two references (13 back reaches M−12).
+ */
+export function monthsWindow(
+  monthStart: Date,
+  backMonths: number,
+): StatisticsWindow {
+  const m = startOfMonth(monthStart);
+  return {
+    start: new Date(m.getFullYear(), m.getMonth() - backMonths, 1),
+    end: new Date(m.getFullYear(), m.getMonth() + 1, 1),
+  };
+}
+
+/**
+ * [M, M + days) in local time — the « à date » reference window. HA reduces the
+ * rows of exactly this range into ONE month bucket, so its `change` is the
+ * consumption of the first `days` days, computed by HA (AC5). The app never
+ * sums days to get there.
+ */
+export function truncatedMonthWindow(
+  monthStart: Date,
+  days: number,
+): StatisticsWindow {
+  const m = startOfMonth(monthStart);
+  return { start: m, end: new Date(m.getFullYear(), m.getMonth(), 1 + days) };
+}
+
+/**
+ * One chart slot per calendar day of the window (28 to 31): rows found keep
+ * their value, missing days get `null`, rows outside the window are dropped.
+ * Same reason as `padHours`: on a categorical axis a month with 26 rows would
+ * look complete. Steps by calendar day, so the 25-hour DST day is one slot.
+ */
+export function padDays(
+  rows: readonly DayPoint[],
+  window: StatisticsWindow,
+): { t: number; value: number | null }[] {
+  const byStart = new Map(rows.map((r) => [r.start.getTime(), r.value]));
+  const out: { t: number; value: number | null }[] = [];
+  const d = new Date(
+    window.start.getFullYear(),
+    window.start.getMonth(),
+    window.start.getDate(),
+  );
+  while (d.getTime() < window.end.getTime()) {
+    const t = d.getTime();
+    out.push({ t, value: byStart.get(t) ?? null });
+    d.setDate(d.getDate() + 1);
+  }
+  return out;
+}
+
+/**
+ * How many days of the month the data covers: the day-of-month of the LAST
+ * daily row inside it, 0 when there is none. This is the N of « à date (N j) »,
+ * and the length of the truncated reference windows.
+ */
+export function daysCoveredIn(
+  rows: readonly DayPoint[],
+  monthStart: Date,
+): number {
+  const { start, end } = monthWindow(monthStart);
+  let last = 0;
+  for (const r of rows) {
+    const t = r.start.getTime();
+    if (t < start.getTime() || t >= end.getTime()) continue;
+    last = Math.max(last, r.start.getDate());
+  }
+  return last;
+}
+
+/**
+ * (cur − ref) / ref — the ONE piece of arithmetic this story adds to the app.
+ * Unrounded (the formatter rounds). `null` when either figure is missing, and
+ * when the reference is 0: a division by zero dressed up as "+∞ %" or hidden
+ * as 0 would both be invented numbers (AD-16).
+ */
+export function variation(
+  cur: number | null,
+  ref: number | null,
+): number | null {
+  if (cur === null || ref === null || ref === 0) return null;
+  return (cur - ref) / ref;
+}
+
+const MONTH_YEAR_FMT = new Intl.DateTimeFormat("fr-FR", {
+  month: "long",
+  year: "numeric",
+});
+const MONTH_FMT = new Intl.DateTimeFormat("fr-FR", { month: "long" });
+const MONTH_SHORT_YEAR_FMT = new Intl.DateTimeFormat("fr-FR", {
+  month: "short",
+  year: "numeric",
+});
+
+/** "Août 2026" — a tile title, so capitalised (fr-FR months are lower-case). */
+export function monthLabel(monthStart: Date): string {
+  const s = MONTH_YEAR_FMT.format(monthStart);
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+/**
+ * The reference month named as briefly as it can be without ambiguity: "août"
+ * when it shares the anchor's year, "sept. 2025" when it does not. Lower-case,
+ * because it follows "vs" inside a sentence.
+ */
+export function monthShort(monthStart: Date, relativeTo: Date): string {
+  return monthStart.getFullYear() === relativeTo.getFullYear()
+    ? MONTH_FMT.format(monthStart)
+    : MONTH_SHORT_YEAR_FMT.format(monthStart);
+}
+
+/** "sept. 2026" — the month as the control row's period reminder wears it. */
+export function monthTag(monthStart: Date): string {
+  return MONTH_SHORT_YEAR_FMT.format(monthStart);
+}

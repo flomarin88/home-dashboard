@@ -18,7 +18,8 @@ export const STATISTICS_REFRESH_MS = 60 * 60_000;
 /** How often we WAKE UP to decide whether to re-query (not how often we query). */
 const TICK_MS = 60_000;
 
-export type StatisticsPeriod = "hour" | "day";
+/** The granularities the app asks HA for — HA also knows 5minute/week/year, unused. */
+export type StatisticsPeriod = "hour" | "day" | "month";
 
 export interface StatisticsQuery {
   /** Long-term statistic ids (`source:object_id`), from the mapping (AD-7). */

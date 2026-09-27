@@ -10,6 +10,16 @@ import {
   periodOfInterval,
   pointOn,
   padHours,
+  startOfMonth,
+  monthWindow,
+  monthsWindow,
+  truncatedMonthWindow,
+  padDays,
+  daysCoveredIn,
+  variation,
+  monthLabel,
+  monthShort,
+  monthTag,
 } from "./statistics";
 
 // The suite runs with TZ=Europe/Paris pinned (vitest.config.ts). HA answers in
@@ -291,5 +301,162 @@ describe("padHours — one slot per hour of the window, gaps kept visible", () =
     const s = new Date(2026, 9, 25, 0, 0);
     const e = new Date(2026, 9, 26, 0, 0);
     expect(padHours([], { start: s, end: e })).toHaveLength(25);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Story 9.5 — months, comparisons, navigation bounds.
+// ---------------------------------------------------------------------------
+
+/** Local-time Date from calendar fields (month is 1-based here, like a human). */
+const local = (y: number, m: number, d: number, h = 0): Date =>
+  new Date(y, m - 1, d, h);
+const ymd = (d: Date) =>
+  `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+/** A daily row starting at LOCAL midnight of that day, as HA would send it (UTC ISO). */
+const dayRow = (y: number, m: number, d: number, change: number) => ({
+  start: local(y, m, d).toISOString(),
+  end: local(y, m, d + 1).toISOString(),
+  change,
+});
+
+describe("month windows (Story 9.5) — calendar fields, never × 24 h", () => {
+  it("startOfMonth drops the day and the time", () => {
+    expect(ymd(startOfMonth(local(2026, 8, 19, 14)))).toBe("2026-8-1");
+    expect(startOfMonth(local(2026, 8, 19, 14)).getHours()).toBe(0);
+  });
+
+  it("monthWindow spans [1st 00:00, next 1st 00:00) in local time", () => {
+    const w = monthWindow(local(2026, 8, 1));
+    expect(ymd(w.start)).toBe("2026-8-1");
+    expect(ymd(w.end)).toBe("2026-9-1");
+    expect(w.end.getHours()).toBe(0);
+  });
+
+  it("monthWindow rolls December into the next year", () => {
+    expect(ymd(monthWindow(local(2026, 12, 1)).end)).toBe("2027-1-1");
+  });
+
+  it("monthsWindow reaches BACK n months and ends after the anchor month", () => {
+    // 13 months back from September 2026 = August 2025 → the window serves
+    // M, M−1 and M−12 in one request.
+    const w = monthsWindow(local(2026, 9, 1), 13);
+    expect(ymd(w.start)).toBe("2025-8-1");
+    expect(ymd(w.end)).toBe("2026-10-1");
+  });
+
+  it("truncatedMonthWindow covers exactly n days from the 1st", () => {
+    const w = truncatedMonthWindow(local(2026, 8, 1), 26);
+    expect(ymd(w.start)).toBe("2026-8-1");
+    expect(ymd(w.end)).toBe("2026-8-27");
+    // 29 days of a leap February land on 1 March, not on a phantom 30 Feb.
+    expect(ymd(truncatedMonthWindow(local(2028, 2, 1), 29).end)).toBe(
+      "2028-3-1",
+    );
+  });
+
+  it("keeps midnight boundaries across the October DST change (25 h day)", () => {
+    const w = monthWindow(local(2026, 10, 1));
+    expect(ymd(w.end)).toBe("2026-11-1");
+    expect(w.end.getHours()).toBe(0);
+    expect(ymd(truncatedMonthWindow(local(2026, 10, 1), 27).end)).toBe(
+      "2026-10-28",
+    );
+    expect(truncatedMonthWindow(local(2026, 10, 1), 27).end.getHours()).toBe(0);
+  });
+});
+
+describe("padDays — one slot per calendar day of the window, gaps kept visible", () => {
+  it("30 rows in a 31-day month still make 31 slots, the missing day null", () => {
+    const rows = parseRows(
+      response(
+        Array.from({ length: 31 }, (_, i) => i + 1)
+          .filter((d) => d !== 15)
+          .map((d) => dayRow(2026, 8, d, 5 + d / 100)),
+      ),
+      ID,
+    );
+    const slots = padDays(rows, monthWindow(local(2026, 8, 1)));
+    expect(slots).toHaveLength(31);
+    expect(slots[14]).toEqual({ t: local(2026, 8, 15).getTime(), value: null });
+    expect(slots[0].value).toBeCloseTo(5.01);
+    expect(slots[30].value).toBeCloseTo(5.31);
+  });
+
+  it("drops rows outside the window and survives the 25-hour DST day", () => {
+    const rows = parseRows(
+      response([
+        dayRow(2026, 9, 30, 9),
+        dayRow(2026, 10, 25, 7),
+        dayRow(2026, 10, 26, 6),
+      ]),
+      ID,
+    );
+    const slots = padDays(rows, monthWindow(local(2026, 10, 1)));
+    expect(slots).toHaveLength(31);
+    expect(slots.find((p) => p.value === 9)).toBeUndefined();
+    expect(slots[24]).toEqual({ t: local(2026, 10, 25).getTime(), value: 7 });
+    expect(slots[25]).toEqual({ t: local(2026, 10, 26).getTime(), value: 6 });
+  });
+});
+
+describe("daysCoveredIn — how far the month's data goes (the N of « à date »)", () => {
+  it("is the day-of-month of the LAST row inside the month, whatever the order", () => {
+    const rows = parseRows(
+      response([
+        dayRow(2026, 9, 26, 8),
+        dayRow(2026, 9, 3, 7),
+        dayRow(2026, 9, 12, 6),
+      ]),
+      ID,
+    );
+    expect(daysCoveredIn(rows, local(2026, 9, 1))).toBe(26);
+  });
+
+  it("ignores rows of other months and is 0 with nothing", () => {
+    const rows = parseRows(
+      response([dayRow(2026, 8, 31, 8), dayRow(2026, 10, 1, 8)]),
+      ID,
+    );
+    expect(daysCoveredIn(rows, local(2026, 9, 1))).toBe(0);
+    expect(daysCoveredIn([], local(2026, 9, 1))).toBe(0);
+  });
+});
+
+describe("variation — the ONLY arithmetic the app adds (AD-16/AD-17)", () => {
+  it("is (cur − ref) / ref, unrounded", () => {
+    expect(variation(112, 100)).toBeCloseTo(0.12);
+    expect(variation(95, 100)).toBeCloseTo(-0.05);
+    expect(variation(0, 100)).toBe(-1);
+  });
+
+  it("is null when either side is missing — never an invented 0", () => {
+    expect(variation(null, 100)).toBeNull();
+    expect(variation(112, null)).toBeNull();
+  });
+
+  it("is null when the reference is 0 — no Infinity, no NaN", () => {
+    expect(variation(112, 0)).toBeNull();
+    expect(variation(0, 0)).toBeNull();
+  });
+});
+
+describe("month labels (fr-FR)", () => {
+  it("monthLabel names the month and year, capitalised (a tile title)", () => {
+    expect(monthLabel(local(2026, 8, 1))).toBe("Août 2026");
+    expect(monthLabel(local(2026, 9, 1))).toBe("Septembre 2026");
+  });
+
+  it("monthShort names the month alone within the same year as the anchor", () => {
+    expect(monthShort(local(2026, 8, 1), local(2026, 9, 1))).toBe("août");
+  });
+
+  it("monthTag is the compact form for the control row: « sept. 2026 »", () => {
+    expect(monthTag(local(2026, 9, 1))).toBe("sept. 2026");
+    expect(monthTag(local(2026, 8, 1))).toBe("août 2026");
+  });
+
+  it("monthShort adds the year when it differs from the anchor's", () => {
+    expect(monthShort(local(2025, 9, 1), local(2026, 9, 1))).toBe("sept. 2025");
   });
 });

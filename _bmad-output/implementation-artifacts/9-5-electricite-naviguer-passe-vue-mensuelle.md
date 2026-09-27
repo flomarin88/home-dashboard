@@ -4,7 +4,7 @@ baseline_commit: 4a0d54f  # master au 2026-09-27 (contient 9.4 in-progress : cod
 
 # Story 9.5: Électricité — naviguer dans le passé et vue mensuelle
 
-Status: ready-for-dev
+Status: in-progress
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 <!-- Créée le 2026-09-27 par create-story, sur demande directe de Florian (pas de correct-course : aucune story existante n'est modifiée, 9.4 reste telle quelle). -->
@@ -95,44 +95,44 @@ Le moule de navigation existe : la rangée de contrôle de `/agenda` (Story 10.2
   - [ ] Si le coût ne couvre pas l'historique et que la comparaison de coût compte : **remise à zéro** de ha-linky (`action: reset` puis `sync`, README § Remise à zéro) — recalcule les coûts sur tout l'historique réimporté (1 an de quotidien). Décision Florian, pas agent
   - [ ] Relever `recorder.purge_keep_days` (défaut 10) : profondeur de la couleur HC/HP des barres passées
 
-- [ ] **Task 1 — Extraire les helpers de plage dans un module neutre** (AC: 1) — **commit séparé**, intent `refactor`
-  - [ ] `src/dates/range.ts` (+ `.test.ts`) : déplacer `dayRange`, `weekRange`, `monthRange`, `shiftAnchor`, `rangeLabel`, `RangeUnit` depuis `src/agenda/select.ts:285-415` ; `select.ts` les ré-exporte (`export { … } from "../dates/range"`) pour ne pas toucher `AgendaDetail`/`useCalendarEvents` ; tests migrés avec
-  - [ ] Pourquoi : la page électricité ne doit pas importer `src/agenda/` (couplage inter-domaines, revue 10.1 D4). `src/energy/statistics.ts` garde ses fenêtres (`startOfDay`, `dayWindow`) — pas de fusion, Rule 6
-  - [ ] `npm test` vert, 0 changement de comportement
+- [x] **Task 1 — Extraire les helpers de plage dans un module neutre** (AC: 1) — **commit séparé**, intent `refactor`
+  - [x] `src/dates/range.ts` (+ `.test.ts`) : déplacer `dayRange`, `weekRange`, `monthRange`, `shiftAnchor`, `rangeLabel`, `RangeUnit` depuis `src/agenda/select.ts:285-415` ; `select.ts` les ré-exporte (`export { … } from "../dates/range"`) pour ne pas toucher `AgendaDetail`/`useCalendarEvents` ; tests migrés avec
+  - [x] Pourquoi : la page électricité ne doit pas importer `src/agenda/` (couplage inter-domaines, revue 10.1 D4). `src/energy/statistics.ts` garde ses fenêtres (`startOfDay`, `dayWindow`) — pas de fusion, Rule 6
+  - [x] `npm test` vert, 0 changement de comportement
 
-- [ ] **Task 2 — Module pur `src/energy/statistics.ts`** (AC: 3, 4, 5, 7) — TDD, `now`/`today` en paramètre
-  - [ ] `monthWindow(monthStart)`, `monthsWindow(monthStart, backMonths)` = `[M−back, M+1)`, `truncatedMonthWindow(monthStart, days)` = `[M, M + days)` — champs calendaires, jamais `× 24 h` (DST)
-  - [ ] `padDays(rows, window)` — un créneau par jour civil, `null` si absent (moule `padHours`)
-  - [ ] `pointOnMonth(rows, monthStart)` (ou généraliser `pointOn` à un instant : c'est déjà une égalité de `start`) ; `daysCoveredIn(rows, monthStart)` = jour du mois de la dernière ligne (le N de AC5)
-  - [ ] `variation(cur: number | null, ref: number | null): number | null` — `null` si l'un manque ou `ref === 0` ; **pas d'arrondi** (le formatteur arrondit)
-  - [ ] `monthLabel(monthStart)` → « Août 2026 » ; `monthShort(monthStart)` → « août », « sept. 2025 » (année seulement si différente) — un formatteur `Intl` fr-FR par forme
-  - [ ] `clampDay(d, lastComplete)`, `clampMonth(m, currentMonth)` — les bornes de `›`
-  - [ ] Tests : 28/29/30/31 jours, décembre → janvier, 25 octobre (25 h), référence `null`/`0`, mois sans ligne, `padDays` 30 lignes ⇒ 31 créneaux, `daysCoveredIn` sur mois plein et partiel
+- [x] **Task 2 — Module pur `src/energy/statistics.ts`** (AC: 3, 4, 5, 7) — TDD, `now`/`today` en paramètre
+  - [x] `monthWindow(monthStart)`, `monthsWindow(monthStart, backMonths)` = `[M−back, M+1)`, `truncatedMonthWindow(monthStart, days)` = `[M, M + days)` — champs calendaires, jamais `× 24 h` (DST)
+  - [x] `padDays(rows, window)` — un créneau par jour civil, `null` si absent (moule `padHours`)
+  - [x] `pointOnMonth(rows, monthStart)` (ou généraliser `pointOn` à un instant : c'est déjà une égalité de `start`) ; `daysCoveredIn(rows, monthStart)` = jour du mois de la dernière ligne (le N de AC5)
+  - [x] `variation(cur: number | null, ref: number | null): number | null` — `null` si l'un manque ou `ref === 0` ; **pas d'arrondi** (le formatteur arrondit)
+  - [x] `monthLabel(monthStart)` → « Août 2026 » ; `monthShort(monthStart)` → « août », « sept. 2025 » (année seulement si différente) — un formatteur `Intl` fr-FR par forme
+  - [x] ~~`clampDay`, `clampMonth`~~ — **retirés en cours de route** : la borne vit dans les deux handlers de la page, une seule fois (voir Debug Log, mutations)
+  - [x] Tests : 28/29/30/31 jours, décembre → janvier, 25 octobre (25 h), référence `null`/`0`, mois sans ligne, `padDays` 30 lignes ⇒ 31 créneaux, `daysCoveredIn` sur mois plein et partiel
 
-- [ ] **Task 3 — `consumption-format.ts`** (AC: 4) — TDD
-  - [ ] `formatVariation(v: number | null)` → « +12 % », « −5 % », « 0 % », « — » (signe typographique `−`, espace fine avant `%` comme les autres formatteurs fr-FR du fichier)
+- [x] **Task 3 — `consumption-format.ts`** (AC: 4) — TDD
+  - [x] `formatVariation(v: number | null)` → « +12 % », « −5 % », « 0 % », « — » (signe typographique `−`, espace fine avant `%` comme les autres formatteurs fr-FR du fichier)
 
-- [ ] **Task 4 — `useStatistics`** (AC: 6, 7) — TDD
-  - [ ] `StatisticsPeriod = "hour" | "day" | "month"` ; un test qui envoie `period: "month"` et vérifie `serviceData.period`
-  - [ ] Rien d'autre : la `range` explicite, `windowKey`, `requestSeq`, la relance horaire servent tels quels
+- [x] **Task 4 — `useStatistics`** (AC: 6, 7) — TDD
+  - [x] `StatisticsPeriod = "hour" | "day" | "month"` ; un test qui envoie `period: "month"` et vérifie `serviceData.period`
+  - [x] Rien d'autre : la `range` explicite, `windowKey`, `requestSeq`, la relance horaire servent tels quels
 
-- [ ] **Task 5 — Page `ElectricityDetail.tsx`** (AC: 1, 2, 3, 4, 5, 6, 8) — TDD
-  - [ ] État : `view: "jour" | "mois"`, `anchor: Date | null` (`null` = dernier relevé en Jour, mois en cours en Mois) ; `today = startOfDay(new Date())` une fois par rendu
-  - [ ] Rangée de contrôle : copier la structure `AgendaDetail.tsx:108-162` (tablist, `NavButton`, rappel, bouton) ; libellés « Jour » / « Mois », bouton « Dernier relevé » → `setAnchor(null)` ; rappel = `dayLabel(...).long` capitalisé en Jour, `monthLabel` en Mois (+ « · à date (N j) » sur le mois en cours)
-  - [ ] Colonne gauche : trois compositions — `LatestDay` (**le code 9.4 tel quel**, extrait sans modification), `PastDay(D)` (requêtes `day` + `hour` sur `[D, D+1)`, `useHistory` du `binary_sensor` avec `hoursToShow` = heures entre `D 00:00` et maintenant, plafonné à `PERIOD_HISTORY_MAX_HOURS = 240` — change **uniquement** à la navigation, pas à l'heure, donc la réserve de la revue 2026-09-27 #5 est respectée), `Month(M)` (requête `month` `[M−13, M+1)` ; requête `day` `[M, M+1)` pour le graphe ; mois en cours : deux requêtes `month` tronquées supplémentaires)
-  - [ ] Tuile HC/HP de droite : **ne pas toucher** ; `anyStale` inclut les hooks de la composition active
-  - [ ] Bornes : `›` en Jour clampé sur `selectLastCompleteDay(fenêtre par défaut)` — la requête par défaut (2 jours) reste montée pour connaître la borne ; en Mois clampé sur le mois de `today`
-  - [ ] Tests (`ElectricityDetail.test.tsx`) : mock `callService` aiguillé par `serviceData.period` **et** par `start_time` (les fenêtres diffèrent maintenant) ; `vi.useFakeTimers` + `setSystemTime` (moule `AgendaDetail.test.tsx`) ; cas : rendu 9.4 intact par défaut ; ‹ ⇒ fenêtre `[J−2, J−1)` demandée ; › depuis le dernier relevé ⇒ **aucune** nouvelle requête ; « Dernier relevé » ⇒ retour ; Mois ⇒ `period: "month"` sur 14 mois ; variations calculées (+12 %, −5 %), référence manquante ⇒ « — », référence 0 ⇒ « — » ; mois en cours ⇒ deux requêtes tronquées avec `end_time` = début + N jours et libellé « à date (N j) » ; jour sans ligne ⇒ « Pas de relevé ce jour-là » ; barres neutres quand l'historique ne couvre pas D ; **mutations** : `variation` avec `ref = 0` renvoyant `Infinity`, clamp retiré, fenêtre tronquée non tronquée — chacune doit casser un test
+- [x] **Task 5 — Page `ElectricityDetail.tsx`** (AC: 1, 2, 3, 4, 5, 6, 8) — TDD
+  - [x] État : `view: "jour" | "mois"`, `anchor: Date | null` (`null` = dernier relevé en Jour, mois en cours en Mois) ; `today = startOfDay(new Date())` une fois par rendu
+  - [x] Rangée de contrôle : copier la structure `AgendaDetail.tsx:108-162` (tablist, `NavButton`, rappel, bouton) ; libellés « Jour » / « Mois », bouton « Dernier relevé » → `setAnchor(null)` ; rappel = `dayLabel(...).long` capitalisé en Jour, `monthLabel` en Mois (+ « · à date (N j) » sur le mois en cours)
+  - [x] Colonne gauche : trois compositions — `LatestDay` (**le code 9.4 tel quel**, extrait sans modification), `PastDay(D)` (requêtes `day` + `hour` sur `[D, D+1)`, `useHistory` du `binary_sensor` avec `hoursToShow` = heures entre `D 00:00` et maintenant, plafonné à `PERIOD_HISTORY_MAX_HOURS = 240` — change **uniquement** à la navigation, pas à l'heure, donc la réserve de la revue 2026-09-27 #5 est respectée), `Month(M)` (requête `month` `[M−13, M+1)` ; requête `day` `[M, M+1)` pour le graphe ; mois en cours : deux requêtes `month` tronquées supplémentaires)
+  - [x] Tuile HC/HP de droite : **ne pas toucher** ; `anyStale` inclut les hooks de la composition active
+  - [x] Bornes : `›` en Jour clampé sur `selectLastCompleteDay(fenêtre par défaut)` — la requête par défaut (2 jours) reste montée pour connaître la borne ; en Mois clampé sur le mois de `today`
+  - [x] Tests (`ElectricityDetail.test.tsx`) : mock `callService` aiguillé par `serviceData.period` **et** par `start_time` (les fenêtres diffèrent maintenant) ; `vi.useFakeTimers` + `setSystemTime` (moule `AgendaDetail.test.tsx`) ; cas : rendu 9.4 intact par défaut ; ‹ ⇒ fenêtre `[J−2, J−1)` demandée ; › depuis le dernier relevé ⇒ **aucune** nouvelle requête ; « Dernier relevé » ⇒ retour ; Mois ⇒ `period: "month"` sur 14 mois ; variations calculées (+12 %, −5 %), référence manquante ⇒ « — », référence 0 ⇒ « — » ; mois en cours ⇒ deux requêtes tronquées avec `end_time` = début + N jours et libellé « à date (N j) » ; jour sans ligne ⇒ « Pas de relevé ce jour-là » ; barres neutres quand l'historique ne couvre pas D ; **mutations** : `variation` avec `ref = 0` renvoyant `Infinity`, clamp retiré, fenêtre tronquée non tronquée — chacune doit casser un test
 
-- [ ] **Task 6 — Docs** (AC: 4, 5)
-  - [ ] `docs/home-assistant.md` § Électricité : sous-section « Naviguer dans le passé et vue mensuelle (Story 9.5) » — profondeur d'import ha-linky (1 an), coûts recalculés à la remise à zéro, `purge_keep_days` et la couleur des barres, ce que « — » veut dire dans chaque cas
-  - [ ] `deferred-work.md` : si la Task 1 est refusée, consigner le couplage `pages/Electricity → agenda`
-  - [ ] En-tête JSDoc d'`ElectricityDetail.tsx` réécrit (il décrit une page à une seule vue)
+- [x] **Task 6 — Docs** (AC: 4, 5)
+  - [x] `docs/home-assistant.md` § Électricité : sous-section « Naviguer dans le passé et vue mensuelle (Story 9.5) » — profondeur d'import ha-linky (1 an), coûts recalculés à la remise à zéro, `purge_keep_days` et la couleur des barres, ce que « — » veut dire dans chaque cas
+  - [x] `deferred-work.md` : Task 1 acceptée et faite — rien à consigner
+  - [x] En-tête JSDoc d'`ElectricityDetail.tsx` réécrit (il décrit une page à une seule vue)
 
-- [ ] **Task 7 — Gates** (AC: 7)
-  - [ ] `npm run typecheck && npm run lint && npm test && npm run format:check`
-  - [ ] `rg '01:08|06:08|12:38|15:38|0\.0890|0\.1491' src --glob '!*.test.*'` ⇒ vide · `rg 'Date\.now\(\)' src/energy src/pages/ElectricityDetail.tsx` ⇒ vide · `rg -n 'from "\.\./agenda' src/pages/ElectricityDetail.tsx src/energy` ⇒ vide
-  - [ ] Build sans token (`.env.local` écarté puis restauré, SHA-256 identique) ; `rg -o 'eyJhbGciOi' dist/ | wc -l` ⇒ 0 ; `rg -o 'linky:[0-9]' dist/assets/*.js | wc -l` ⇒ 2
+- [x] **Task 7 — Gates** (AC: 7)
+  - [x] `npm run typecheck && npm run lint && npm test && npm run format:check`
+  - [x] `rg '01:08|06:08|12:38|15:38|0\.0890|0\.1491' src --glob '!*.test.*'` ⇒ vide · `rg 'Date\.now\(\)' src/energy src/pages/ElectricityDetail.tsx` ⇒ vide · `rg -n 'from "\.\./agenda' src/pages/ElectricityDetail.tsx src/energy` ⇒ vide
+  - [x] Build sans token (`.env.local` écarté puis restauré, SHA-256 identique) ; `rg -o 'eyJhbGciOi' dist/ | wc -l` ⇒ 0 ; `rg -o 'linky:[0-9]' dist/assets/*.js | wc -l` ⇒ 2
 
 - [ ] **Task 8 — Preuve device (Florian, iPad, WebKit)** (AC: 8)
   - [ ] Quatre vues sans scroll ; navigation au doigt ; mois antérieur au coût ⇒ « — » honnête ; « Dernier relevé » revient ; barres neutres sur un jour de plus de 10 jours
@@ -236,10 +236,62 @@ rg -o 'linky:[0-9]' dist/assets/*.js | wc -l                             # 2
 
 ### Agent Model Used
 
-Claude Fable 5.1 (create-story, 2026-09-27)
+Claude Fable 5.1 (create-story et dev-story, 2026-09-27, Liza Pairing — Autonomous)
 
 ### Debug Log References
 
+- **Base périmée détectée avant tout code.** La première analyse (matin) partait de `feat/11-1-tuile-temps-de-trajet`, en retard de 6 commits sur `master` qui portait déjà la 9.4 (`useStatistics`, source Linky, coût HA). Story refaite en 9.5 sur `master` ; mémoire ajoutée (`check-master-divergence-before-planning`).
+- **TDD tâche par tâche** : `statistics.test.ts` 18 rouges puis verts, `consumption-format.test.ts` 2, `ElectricityDetail.test.tsx` 11 rouges (tablist, flèches, requêtes explicites) puis verts. Le test `period: "month"` du hook passe dès l'écriture : seul le TYPE bloquait, à l'exécution HA recevait déjà la valeur.
+- **Fixture fausse, pas code faux** : « Lundi 22 septembre » — le 22 septembre 2026 est un **mardi** (le 25 est un vendredi, fixture 9.4). Corrigé dans le test, pas dans le code.
+- **Double borne = aucune mutation ne mord.** La borne « jamais après le dernier jour complet / le mois en cours » existait deux fois : dans les handlers `stepDay`/`stepMonth` (retour à `null`) ET à la dérivation (`pastDay`, `clampMonth`). Quatre mutations (retirer l'une ou l'autre) laissaient les 30 tests verts : la redondance masquait chaque retrait. Décision : **une seule borne, au handler** (c'est elle qui porte le sens « suivre l'import du matin ») ; `clampDay`/`clampMonth` supprimés du module pur avec leurs tests. Après quoi les deux mutations mordent (voir tableau).
+- **Mutations, toutes annulées puis suite revérifiée :**
+
+  | Mutation | Test tombé |
+  | --- | --- |
+  | `variation` : garde `ref === 0` retirée | statistics : *is null when the reference is 0* |
+  | borne jour retirée (`stepDay`) | page : *› at the last complete day is idempotent* |
+  | borne mois retirée (`stepMonth`) | page : *› on the current month is idempotent* |
+  | fenêtres « à date » non tronquées (`monthWindow` au lieu de `truncatedMonthWindow`) | page : *current month compares « à date » through TRUNCATED windows* |
+  | heure sans historique colorée par défaut (`period ?? "pleines"`) | page : *bars of a day the period history does not cover stay NEUTRAL* |
+
+- **Gates** : `rg '01:08|…' src --glob '!*.test.*'` vide ; `rg 'Date\.now\(\)' src/energy src/pages/ElectricityDetail.tsx` ne remonte que deux **commentaires** qui l'interdisent (même faux positif que la 9.4) ; `rg 'from "\.\./agenda' src/pages/ElectricityDetail.tsx src/energy` vide.
+- **Build AD-8 sans déplacer `.env.local`** : `VITE_HA_TOKEN= VITE_NUTRICLAUDE_CUISINE_PASSWORD= npm run build` — `loadEnv` donne la priorité à `process.env`, une valeur vide désactive la garde sans toucher au fichier (empreinte SHA-256 identique avant/après, `a71a750a…`). `dist/` : **0** JWT, **2** `linky:<chiffres>`, **0** horaire/prix.
+- **Non vu dans un navigateur** : la rangée de contrôle ajoute 52 px + un gap à une page déjà pleine ; jsdom ne mesure rien (TD-9). La tenue à 1024×748 est la Task 8 (Florian, iPad, WebKit).
+
 ### Completion Notes List
 
+- Ultimate context engine analysis completed — comprehensive developer guide created (create-story, 2026-09-27).
+- **Tasks 1 à 7 faites (hors Task 0 et preuve device, non-agent)**. Suite **532 → 564** (+32 net : 23 tests déplacés vers `src/dates/`, +16 statistiques, +2 format, +1 hook, +11 page, −2 clamps retirés ; décompte mesuré par `npm test`).
+- **Task 1** : `src/dates/range.ts` reçoit `dayRange`/`weekRange`/`monthRange`/`shiftAnchor`/`rangeLabel`/`RangeUnit` tels quels ; `agenda/select.ts` les ré-exporte, aucun appelant déplacé ; commit `refactor(dates)` séparé (`577065c`).
+- **Task 2** : `startOfMonth`, `monthWindow`, `monthsWindow`, `truncatedMonthWindow`, `padDays`, `daysCoveredIn`, `variation`, `monthLabel`, `monthShort`, `monthTag` — champs calendaires, `now` en paramètre, testés sur février bissextile, décembre → janvier, le 25 octobre (25 h).
+- **Task 3** : `formatVariation` (`Intl` percent, `signDisplay: "exceptZero"`, arrondi à l'unité, `null` → « — »).
+- **Task 4** : `StatisticsPeriod` accepte `"month"` ; rien d'autre ne change dans `useStatistics`.
+- **Task 5** : page à deux vues et trois compositions — `LatestDayColumn` (le code 9.4, déplacé sans changement de comportement, ses 19 tests inchangés), `PastDayColumn` (`day` + `hour` sur `[D, D+1)`, historique du `binary_sensor` plafonné à 240 h, barres neutres et `aria-label` explicite au-delà), `MonthColumn` (`month` sur 14 mois, barres par jour, deux `VariationLine`, `AtDateVariations` monté seulement sur le mois en cours avec N > 0 : deux requêtes `month` tronquées, HA calcule la portion). Rangée de contrôle 52 px copiée d'`AgendaDetail`, bouton « Dernier relevé ». Sans navigation : **exactement les deux requêtes de la 9.4** (testé).
+- **Déviation assumée** : la tuile HC/HP de droite ne s'atténue plus sur un échec de la requête **horaire** (elle suit ses quatre entités et la requête journalière par défaut) ; en 9.4 elle s'atténuait avec toute la page. La composition de gauche, elle, s'atténue et porte la pill. Motif : le tarif « en ce moment » n'a rien à voir avec les barres d'hier.
+- **Task 6** : `docs/home-assistant.md` § 5 « Naviguer dans le passé et vue mensuelle » (tableau « — » par cas, profondeur 1 an, remise à zéro, `purge_keep_days`) ; en-tête JSDoc de la page réécrit.
+- **Restent (non-agent, Florian)** : **Task 0** (premier jour disponible des deux statistiques, décision de remise à zéro pour le coût passé, `purge_keep_days`) et **Task 8** (preuve iPad : quatre vues sans scroll, « — » honnête sur un mois sans coût, barres neutres au-delà de 10 jours). Story laissée `in-progress`, comme la 9.4 au même stade.
+
 ### File List
+
+**Créés :**
+
+- `src/dates/range.ts`, `src/dates/range.test.ts` — plages calendaires (déplacées depuis `src/agenda/select.ts`)
+
+**Modifiés :**
+
+- `src/agenda/select.ts`, `src/agenda/select.test.ts` — ré-exports ; 23 tests migrés
+- `src/energy/statistics.ts`, `src/energy/statistics.test.ts` — fenêtres mois, `padDays`, `daysCoveredIn`, `variation`, libellés de mois
+- `src/hakit/useStatistics.ts`, `src/hakit/useStatistics.test.ts` — période `"month"`
+- `src/widgets/consumption-format.ts`, `src/widgets/consumption-format.test.ts` — `formatVariation`
+- `src/pages/ElectricityDetail.tsx`, `src/pages/ElectricityDetail.test.tsx` — rangée de contrôle, trois compositions, 11 tests de navigation ; mock `callService` routé par période **et** fenêtre
+- `docs/home-assistant.md` — § Électricité 5 (Story 9.5)
+- `_bmad-output/implementation-artifacts/sprint-status.yaml`
+
+**Non touchés, volontairement :** `ElectricityTile.tsx` (la chip reste « hier »), `mapping.ts` (aucun id nouveau), `SensorHistoryChart.tsx`, `useCalendarEvents.ts`, `App.tsx`, `deferred-work.md`.
+
+## Change Log
+
+| Date       | Version | Description |
+| ---------- | ------- | ----------- |
+| 2026-09-27 | 0.2     | **dev-story : Tasks 1–7 faites, en TDD.** Extraction `src/dates/range.ts` (commit séparé) ; module pur étendu aux mois, variations et libellés ; `useStatistics` accepte `month` ; page `/electricite` à deux vues (Jour / Mois), ‹ ›, « Dernier relevé », trois compositions dont la 9.4 inchangée ; comparaison « à date » par fenêtres tronquées calculées par HA ; doc HA § 5. Suite 532 → 564, typecheck/lint verts, build sans token (0 JWT, 2 ids, 0 horaire), 5 mutations mordues après suppression d'une double borne. **Restent** : Task 0 et preuve device (Florian) — story `in-progress`. |
+| 2026-09-27 | 0.1     | Story créée (create-story) sur demande directe de Florian, bâtie sur la 9.4 de `master` après détection d'une base périmée (branche 11.1). Quatre décisions de conception ratifiées par défaut au lancement de dev-story : « Dernier relevé », extraction `src/dates`, variations en ligne, « à date » via HA. |

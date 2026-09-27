@@ -121,6 +121,29 @@ describe("useStatistics — the query-read path for long-term statistics (AD-17,
     expect(data.units).toBeUndefined();
   });
 
+  it("asks for MONTH buckets over an explicit multi-month range (Story 9.5)", async () => {
+    // 13 months back from September 2026: one request serves M, M−1 and M−12.
+    const range = {
+      start: new Date(2025, 7, 1, 0, 0),
+      end: new Date(2026, 9, 1, 0, 0),
+    };
+    const { result } = renderHook(() =>
+      useStatistics({
+        statisticIds: [CONSO, COST],
+        period: "month",
+        units: { energy: "kWh" },
+        range,
+      }),
+    );
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    const data = hass.callService.mock.calls[0][0].serviceData;
+    expect(data.period).toBe("month");
+    expect(data.types).toEqual(["change"]);
+    expect(data.start_time).toBe(range.start.toISOString());
+    expect(data.end_time).toBe(range.end.toISOString());
+  });
+
   it("exposes validated rows PER id, and a success timestamp", async () => {
     const { result } = renderHook(() => useStatistics(QUERY));
     await waitFor(() => expect(result.current.loading).toBe(false));
