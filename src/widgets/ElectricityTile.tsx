@@ -5,6 +5,7 @@ import { useEntityValue } from "../hakit/useEntityValue";
 import { useStatistics } from "../hakit/useStatistics";
 import {
   dayLabel,
+  pointOn,
   selectLastCompleteDay,
   startOfDay,
 } from "../energy/statistics";
@@ -60,20 +61,22 @@ export function ElectricityTile() {
   const period = useEntityValue(cfg.periodEntityId as EntityName);
 
   const today = startOfDay(new Date());
-  const conso = selectLastCompleteDay(
-    stats.rows[cfg.consumptionStatisticId] ?? [],
-    today,
-  );
-  const cost = selectLastCompleteDay(
-    stats.rows[cfg.costStatisticId] ?? [],
-    today,
-  );
-  // The day named is the one actually shown: the consumption's if we have it,
-  // else the cost's. Both come from the same import, so they normally agree.
-  const shown = conso ?? cost;
+  const consoRows = stats.rows[cfg.consumptionStatisticId] ?? [];
+  const costRows = stats.rows[cfg.costStatisticId] ?? [];
+  // ONE day is chosen — the last complete one we have consumption for (else
+  // cost) — and BOTH figures are then read for THAT day only. A cost row for
+  // another day is not this day's cost: it renders "—", never a neighbour's
+  // euros under this day's label (UX-DR30; review 2026-09-27).
+  const shown =
+    selectLastCompleteDay(consoRows, today) ??
+    selectLastCompleteDay(costRows, today);
+  const conso = shown ? pointOn(consoRows, shown.start) : null;
+  const cost = shown ? pointOn(costRows, shown.start) : null;
   const label = shown ? dayLabel(shown.start, today) : null;
 
-  const anyStale = stats.isStale || period.isStale;
+  // An answer that came back unreadable is neither fresh nor "not yet
+  // imported": it dims the chip like a failure (règle D2, agenda precedent).
+  const anyStale = stats.isStale || stats.unreadable || period.isStale;
   const tariff = normalisePeriod(period.value);
   const tone = periodTone(tariff);
 
@@ -81,12 +84,16 @@ export function ElectricityTile() {
   const kwhLabel = formatKwh(conso?.value);
   // The dated subline (UX-DR30). Placeholder while the first query is in
   // flight ("—", same footprint), an explicit rendered state when no complete
-  // day exists (UX-DR27) — never a blank line.
+  // day exists (UX-DR27), and "Valeur illisible" when HA answered in a shape we
+  // do not understand — a format mismatch must never pass for an empty import.
+  // Never a blank line.
   const dayLine = label
     ? `${label.short} · ${kwhLabel}`
     : stats.loading
       ? "—"
-      : "Pas encore de relevé";
+      : stats.unreadable
+        ? "Valeur illisible"
+        : "Pas encore de relevé";
   const spokenDay = label ? ` ${label.long}` : "";
   const spokenPeriod =
     tariff === null

@@ -148,13 +148,6 @@ export function dayLabel(
   return { short, long: longDate };
 }
 
-/** Rows → chart points (`SensorHistoryChart`'s `HistoryPoint` shape). */
-export function hourlySeries(
-  rows: readonly DayPoint[],
-): { t: number; value: number }[] {
-  return rows.map((r) => ({ t: r.start.getTime(), value: r.value }));
-}
-
 /** One sample of an entity's history: the instant (ms) a state took effect. */
 export interface StateSample {
   readonly t: number;
@@ -211,13 +204,33 @@ export function periodOfInterval(
   return on >= off ? "creuses" : "pleines";
 }
 
+/** The row of exactly this day (by its start instant), or null — never a neighbour's. */
+export function pointOn(
+  rows: readonly DayPoint[],
+  dayStart: Date,
+): DayPoint | null {
+  const t = dayStart.getTime();
+  return rows.find((r) => r.start.getTime() === t) ?? null;
+}
+
 /**
- * How many hours of history to request so that a day starting at `dayStart`
- * is fully covered from `now` — `useHistory` only knows "the last N hours".
- * Rounded up, plus one hour so the state in force at the day's first instant
- * is inside the window; never less than a day.
+ * One chart slot per hour of the window, from the calendar (23, 24 or 25 on a
+ * DST day): rows found keep their value, missing hours get `null`, rows outside
+ * the window are dropped. A bar chart on a categorical axis packs whatever it
+ * is given edge to edge, so a day with 20 rows would look exactly like a full
+ * one; padding keeps the missing hours VISIBLE as gaps (review 2026-09-27).
  */
-export function hoursToCover(dayStart: Date, now: Date): number {
-  const hours = Math.ceil((now.getTime() - dayStart.getTime()) / 3_600_000) + 1;
-  return Math.max(24, hours);
+export function padHours(
+  rows: readonly DayPoint[],
+  window: StatisticsWindow,
+): { t: number; value: number | null }[] {
+  const byStart = new Map(rows.map((r) => [r.start.getTime(), r.value]));
+  const out: { t: number; value: number | null }[] = [];
+  const d = new Date(window.start.getTime());
+  while (d.getTime() < window.end.getTime()) {
+    const t = d.getTime();
+    out.push({ t, value: byStart.get(t) ?? null });
+    d.setTime(t + 3_600_000);
+  }
+  return out;
 }

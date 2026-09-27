@@ -11,9 +11,9 @@ import { formatSince } from "../hakit/stale";
 import {
   dayLabel,
   dayWindow,
-  hourlySeries,
-  hoursToCover,
+  padHours,
   periodOfInterval,
+  pointOn,
   selectLastCompleteDay,
   startOfDay,
   type HourPeriod,
@@ -40,6 +40,15 @@ const SensorHistoryChart = lazy(() => import("../widgets/SensorHistoryChart"));
 /** Unit conversion asked of HA: the Linky statistic is in Wh, the screen reads kWh. */
 const UNITS = { energy: "kWh" } as const;
 
+/**
+ * History depth asked of the period sensor. The shown day is J-1 or J-2 (the
+ * daily window is [J-2, J)), so 72 h from any instant of J always reaches its
+ * first minute. A CONSTANT on purpose: `useHistory` re-subscribes whenever
+ * `hoursToShow` changes, and a value derived from the clock would tear the
+ * stream down every hour (review 2026-09-27).
+ */
+const PERIOD_HISTORY_HOURS = 72;
+
 /** The bar colour of an hour, by the tariff HA was in — the pill's own tokens. */
 const HOUR_MS = 3_600_000;
 function barFill(period: HourPeriod): string {
@@ -64,8 +73,10 @@ function titleCase(long: string): string {
  * UX-DR30) — HA's own cost for that day (ha-linky `costs`) and its consumption
  * — then the 24 HOURLY bars of that same day. Both come from long-term
  * statistics read by query (`recorder.get_statistics`, AD-17): two calls, one
- * per period, the hourly one windowed on the day the daily one selected. There
- * is no entity to subscribe to for the energy itself (Story 9.4). Each hourly
+ * per period, over the SAME two-day window; the hourly rows are then sliced to
+ * the day the daily ones selected (filtering, not arithmetic — AD-4 intact),
+ * and padded to every hour of that day so a missing hour stays a visible gap.
+ * There is no entity to subscribe to for the energy itself (Story 9.4). Each hourly
  * bar wears the colour of the tariff HA was in at that hour — read off the
  * HISTORY of the period `binary_sensor` over the shown day and rounded to the
  * hour by majority (Florian, 2026-09-26). The app still knows no schedule
@@ -107,36 +118,35 @@ export function ElectricityDetailContent({ cfg }: { cfg: ElectricityConfig }) {
 
   // `new Date()` once, handed to pure functions — no clock in the render path.
   const today = startOfDay(new Date());
-  const conso = selectLastCompleteDay(
-    days.rows[cfg.consumptionStatisticId] ?? [],
-    today,
-  );
-  const cost = selectLastCompleteDay(
-    days.rows[cfg.costStatisticId] ?? [],
-    today,
-  );
-  const shown = conso ?? cost;
+  const consoRows = days.rows[cfg.consumptionStatisticId] ?? [];
+  const costRows = days.rows[cfg.costStatisticId] ?? [];
+  // One day, both figures read for THAT day only — a cost row for another day
+  // renders "—", never a neighbour's euros under this day's title (UX-DR30).
+  const shown =
+    selectLastCompleteDay(consoRows, today) ??
+    selectLastCompleteDay(costRows, today);
+  const conso = shown ? pointOn(consoRows, shown.start) : null;
+  const cost = shown ? pointOn(costRows, shown.start) : null;
   const label = shown ? dayLabel(shown.start, today) : null;
 
-  // The hourly chart follows the day the figures show. Before a day is known
-  // it asks for yesterday — the chart then simply says "Pas d'historique".
-  const chartDay =
-    shown?.start ??
-    new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1);
+  // Hourly rows over the SAME default two-day window as the daily query: one
+  // request, no "guess yesterday" before the day is known, and no way for the
+  // rows on screen to describe a day other than the one selected below.
   const hours = useStatistics({
     statisticIds: [cfg.consumptionStatisticId],
     period: "hour",
     units: UNITS,
-    range: dayWindow(chartDay),
   });
-  const hourRows = hourlySeries(hours.rows[cfg.consumptionStatisticId] ?? []);
+  const chartWindow = shown ? dayWindow(shown.start) : null;
+  const hourRows = chartWindow
+    ? padHours(hours.rows[cfg.consumptionStatisticId] ?? [], chartWindow)
+    : [];
 
   // The tariff period over the shown day, from HA's history of the period
-  // sensor. `useHistory` only knows "the last N hours", so ask for enough of
-  // them to reach the day's first instant (and the state in force just before).
+  // sensor (a fixed depth, see PERIOD_HISTORY_HOURS).
   const { entityHistory: periodHistory } = useHistory(
     cfg.periodEntityId as EntityName,
-    { hoursToShow: hoursToCover(chartDay, new Date()) },
+    { hoursToShow: PERIOD_HISTORY_HOURS },
   );
   const periodTimeline = periodHistory.map((h) => ({
     t: (h.lc ?? h.lu) * 1000,
@@ -156,8 +166,12 @@ export function ElectricityDetailContent({ cfg }: { cfg: ElectricityConfig }) {
     pricePleines: pricePleines.value,
     period: period.value,
   });
+  // The hourly rows are part of what the page shows: a failed hourly refresh
+  // must dim it too, or old bars would look current under a new title.
   const anyStale =
     days.isStale ||
+    days.unreadable ||
+    hours.isStale ||
     period.isStale ||
     priceCreuses.isStale ||
     pricePleines.isStale ||
@@ -167,7 +181,9 @@ export function ElectricityDetailContent({ cfg }: { cfg: ElectricityConfig }) {
     ? titleCase(label.long)
     : days.loading
       ? "—"
-      : "Pas encore de relevé";
+      : days.unreadable
+        ? "Valeur illisible"
+        : "Pas encore de relevé";
 
   return (
     <div className="flex h-full flex-col gap-grid-gap overflow-hidden">

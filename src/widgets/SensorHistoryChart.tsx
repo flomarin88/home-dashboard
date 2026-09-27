@@ -15,7 +15,8 @@ import {
 export interface HistoryPoint {
   /** epoch ms */
   readonly t: number;
-  readonly value: number;
+  /** `null` = no measurement for this slot (bar mode renders a visible gap). */
+  readonly value: number | null;
   /** Bar mode only: this point's own fill (e.g. a tariff token); falls back to `color`. */
   readonly color?: string;
   /** Bar mode only: what the tooltip calls this point's series (e.g. "HC"); falls back to "Valeur". */
@@ -138,7 +139,7 @@ export default function SensorHistoryChart({
             isAnimationActive={false}
             labelFormatter={(t) => fullTick(Number(t))}
             formatter={(v, _name, item) => [
-              `${Number(v).toFixed(decimals)} ${unit}`,
+              v == null ? "—" : `${Number(v).toFixed(decimals)} ${unit}`,
               (item?.payload as HistoryPoint | undefined)?.label ?? "Valeur",
             ]}
             contentStyle={{
@@ -212,7 +213,10 @@ function fullTick(t: number): string {
 /** Ticks at every `step` spanning the series' rounded range; undefined if it
  *  would produce too many gridlines (safety for large-range measures). */
 function stepTicks(series: HistoryPoint[], step: number): number[] | undefined {
-  const values = series.map((s) => s.value);
+  const values = series
+    .map((s) => s.value)
+    .filter((v): v is number => v !== null && Number.isFinite(v));
+  if (values.length === 0) return undefined;
   const lo = Math.floor(Math.min(...values) / step) * step;
   const hi = Math.ceil(Math.max(...values) / step) * step;
   const ticks: number[] = [];

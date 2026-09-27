@@ -78,17 +78,19 @@ const dayReply = (
   cost: { start: string; change?: number }[],
 ) => ({ response: { statistics: { [CONSO]: conso, [COST]: cost } } });
 
-// 24 hourly rows for 24 Sept local (22:00Z the 23rd → 21:00Z the 24th).
-const hourReply = () => ({
+// Hourly rows for BOTH days of the default window (23 and 24 Sept local);
+// the page must keep only the shown day's 24. `skipHours` punches gaps.
+const hourReply = (skipHours: number[] = []) => ({
   response: {
     statistics: {
-      [CONSO]: Array.from({ length: 24 }, (_, h) => ({
-        start: new Date(Date.UTC(2026, 8, 23, 22 + h)).toISOString(),
+      [CONSO]: Array.from({ length: 48 }, (_, h) => ({
+        start: new Date(Date.UTC(2026, 8, 22, 22 + h)).toISOString(),
         change: 0.2 + h * 0.01,
-      })),
+      })).filter((_, h) => !(h >= 24 && skipHours.includes(h - 24))),
     },
   },
 });
+let hourData = hourReply();
 
 let dayData = dayReply(
   [
@@ -163,10 +165,11 @@ beforeEach(() => {
       { start: D24, change: 1.07 },
     ],
   );
+  hourData = hourReply();
   state.callService.mockReset();
   state.callService.mockImplementation(
     async (args: { serviceData: { period: string } }) =>
-      args.serviceData.period === "hour" ? hourReply() : dayData,
+      args.serviceData.period === "hour" ? hourData : dayData,
   );
 });
 
@@ -185,7 +188,7 @@ describe("ElectricityDetail (Story 9.4 — yesterday, from the Linky statistics)
     expect(screen.queryByText(/depuis 00:00/)).toBeNull();
   });
 
-  it("charts the 24 HOURS of the shown day, asked as a second query with that day's window", async () => {
+  it("charts the 24 HOURS of the shown day: ONE hourly query over the two-day window, sliced client-side", async () => {
     await renderPage();
     expect(
       screen.getByRole("img", {
@@ -194,62 +197,67 @@ describe("ElectricityDetail (Story 9.4 — yesterday, from the Linky statistics)
     ).toBeInTheDocument();
     expect(screen.getByText("Conso horaire — Hier")).toBeInTheDocument();
 
-    const hourCall = state.callService.mock.calls
+    const hourCalls = state.callService.mock.calls
       .map((c) => c[0])
-      .find((a) => a.serviceData.period === "hour");
-    expect(hourCall).toBeDefined();
-    expect(hourCall.serviceData.statistic_ids).toEqual([CONSO]);
-    expect(hourCall.serviceData.start_time).toBe("2026-09-23T22:00:00.000Z");
-    expect(hourCall.serviceData.end_time).toBe("2026-09-24T22:00:00.000Z");
-    expect(hourCall.serviceData.types).toEqual(["change"]);
+      .filter((a) => a.serviceData.period === "hour");
+    expect(hourCalls).toHaveLength(1); // no "guess yesterday" request, no refetch on arrival
+    expect(hourCalls[0].serviceData.statistic_ids).toEqual([CONSO]);
+    // Same [J-2, J) window as the daily query.
+    expect(hourCalls[0].serviceData.start_time).toBe(
+      "2026-09-22T22:00:00.000Z",
+    );
+    expect(hourCalls[0].serviceData.end_time).toBe("2026-09-24T22:00:00.000Z");
+    // 48 rows came back, 24 are shown — the other day's never leak in.
+    expect(screen.getAllByTestId("bar-cell")).toHaveLength(24);
   });
 
-  it("colours each hourly bar by the tariff HA was in, rounded to the hour by majority", async () => {
-    await renderPage();
-    const fills = screen
-      .getAllByTestId("bar-cell")
-      .map((c) => c.getAttribute("data-fill"));
-    expect(fills).toHaveLength(24);
-    // 01h–05h creuses (5 h), 13h–15h creuses (3 h): 01:08→01h is creuses,
-    // 06:08→06h is pleines, 12:38→12h is pleines, 15:38→15h is creuses.
-    const creuses = fills.filter((f) => f === "var(--color-tariff-creuses)");
-    const pleines = fills.filter((f) => f === "var(--color-tariff-pleines)");
-    expect(creuses).toHaveLength(8);
-    expect(pleines).toHaveLength(16);
-    expect(fills[1]).toBe("var(--color-tariff-creuses)");
-    expect(fills[6]).toBe("var(--color-tariff-pleines)");
-    expect(fills[12]).toBe("var(--color-tariff-pleines)");
-    expect(fills[15]).toBe("var(--color-tariff-creuses)");
-  });
-
-  it("asks the period sensor's history for enough hours to cover the shown day", async () => {
-    // The mock ignores the options, so assert through the coverage helper's
-    // contract: 25 Sept 10:30 → 24 Sept 00:00 needs 36 h. Rendered without
-    // throwing and with 24 coloured cells is the observable part.
+  it("keeps a missing hour VISIBLE as a gap: 20 rows still make 24 slots", async () => {
+    hourData = hourReply([3, 4, 10, 17]);
     await renderPage();
     expect(screen.getAllByTestId("bar-cell")).toHaveLength(24);
   });
 
-  it("never colours alone: a glyph + word legend sits under the chart (UX-DR14)", async () => {
+  it("a cost row for another day than the shown one renders « — », not that day's euros", async () => {
+    dayData = dayReply(
+      [
+        { start: D23, change: 6.1 },
+        { start: D24, change: 8.2 },
+      ],
+      [{ start: D23, change: 0.8 }],
+    );
     await renderPage();
-    const legend = screen.getByTestId("hourly-legend");
-    expect(legend.textContent).toMatch(/Creuses/);
-    expect(legend.textContent).toMatch(/Pleines/);
-    expect(legend.querySelectorAll("svg")).toHaveLength(2);
+    expect(screen.getByText("Hier · jeudi 24 septembre")).toBeInTheDocument();
+    expect(screen.queryByText(/0,80\s*€/)).toBeNull();
+    expect(screen.getAllByText("—").length).toBeGreaterThan(0);
   });
 
-  it("hours the history does not cover stay neutral — no tariff is invented", async () => {
-    state.periodHistory = [{ s: "on", lu: localSec(20, 0) }]; // nothing known before 20:00
-    await renderPage();
-    const fills = screen
-      .getAllByTestId("bar-cell")
-      .map((c) => c.getAttribute("data-fill"));
-    expect(fills.slice(0, 20).every((f) => f === "var(--color-text)")).toBe(
-      true,
+  it("a failing HOURLY refresh dims the page too — old bars must not look current", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const { rerenderPage } = await renderPage();
+    state.callService.mockImplementation(
+      async (args: { serviceData: { period: string } }) => {
+        if (args.serviceData.period === "hour") throw new Error("boom");
+        return dayData;
+      },
     );
-    expect(
-      fills.slice(20).every((f) => f === "var(--color-tariff-creuses)"),
-    ).toBe(true);
+    await act(async () => {
+      document.dispatchEvent(new Event("visibilitychange"));
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    await rerenderPage();
+    expect(screen.getByText(/Hors ligne/)).toBeInTheDocument();
+    warn.mockRestore();
+  });
+
+  it("an unreadable daily answer says « Valeur illisible », not « Pas encore de relevé »", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    dayData = {
+      response: { statistics: { [CONSO]: [{ foo: 1 }], [COST]: [] } },
+    };
+    await renderPage();
+    expect(screen.getByText("Valeur illisible")).toBeInTheDocument();
+    expect(screen.queryByText("Pas encore de relevé")).toBeNull();
+    warn.mockRestore();
   });
 
   it("before the morning import: the day before, dated « Avant-hier · … »", async () => {

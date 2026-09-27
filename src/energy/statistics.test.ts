@@ -7,9 +7,9 @@ import {
   lastTwoDaysWindow,
   dayWindow,
   dayLabel,
-  hourlySeries,
   periodOfInterval,
-  hoursToCover,
+  pointOn,
+  padHours,
 } from "./statistics";
 
 // The suite runs with TZ=Europe/Paris pinned (vitest.config.ts). HA answers in
@@ -172,19 +172,6 @@ describe("dayLabel — a deferred value is a dated value (UX-DR30)", () => {
   });
 });
 
-describe("hourlySeries — rows → chart points", () => {
-  it("maps start → t (ms) and change → value", () => {
-    const pts = hourlySeries([
-      { start: new Date("2026-09-23T22:00:00Z"), value: 0.31 },
-      { start: new Date("2026-09-23T23:00:00Z"), value: 0.28 },
-    ]);
-    expect(pts).toEqual([
-      { t: Date.parse("2026-09-23T22:00:00Z"), value: 0.31 },
-      { t: Date.parse("2026-09-23T23:00:00Z"), value: 0.28 },
-    ]);
-  });
-});
-
 describe("periodOfInterval — which tariff an hour of the past was, from HA's own history", () => {
   // Local 24 Sept 2026. HA's binary_sensor flips at 01:08, 06:08, 12:38, 15:38 —
   // those instants come from the HISTORY payload, never from this code.
@@ -258,15 +245,51 @@ describe("periodOfInterval — which tariff an hour of the past was, from HA's o
   });
 });
 
-describe("hoursToCover — how much history to ask for so the shown day is fully inside", () => {
-  it("counts the hours from the day's start to now, rounded UP, plus one of margin", () => {
-    const dayStart = new Date(2026, 8, 24);
-    expect(hoursToCover(dayStart, new Date(2026, 8, 25, 10, 30))).toBe(36); // 34.5 → 35 + 1
-    expect(hoursToCover(dayStart, new Date(2026, 8, 25, 0, 0))).toBe(25);
+describe("pointOn — the row of ONE given day, or nothing", () => {
+  const d = (isoStart: string, value: number) => ({
+    start: new Date(isoStart),
+    value,
+  });
+  const rows = [d("2026-09-22T22:00:00Z", 6.1), d("2026-09-23T22:00:00Z", 8.2)];
+
+  it("returns the row whose start matches the day exactly", () => {
+    expect(pointOn(rows, new Date("2026-09-23T22:00:00Z"))?.value).toBe(8.2);
   });
 
-  it("never asks for less than a day", () => {
-    const dayStart = new Date(2026, 8, 24);
-    expect(hoursToCover(dayStart, new Date(2026, 8, 24, 3))).toBe(24);
+  it("returns null when that day has no row — never a neighbour's value (UX-DR30)", () => {
+    expect(pointOn(rows, new Date("2026-09-24T22:00:00Z"))).toBeNull();
+    expect(pointOn([], new Date("2026-09-23T22:00:00Z"))).toBeNull();
+  });
+});
+
+describe("padHours — one slot per hour of the window, gaps kept visible", () => {
+  const start = new Date(2026, 8, 24, 0, 0);
+  const end = new Date(2026, 8, 25, 0, 0);
+  const H = 3_600_000;
+
+  it("keeps the rows it has and fills missing hours with a null value", () => {
+    const rows = [
+      { start: new Date(start.getTime()), value: 0.3 },
+      { start: new Date(start.getTime() + 2 * H), value: 0.5 },
+    ];
+    const slots = padHours(rows, { start, end });
+    expect(slots).toHaveLength(24);
+    expect(slots[0]).toEqual({ t: start.getTime(), value: 0.3 });
+    expect(slots[1]).toEqual({ t: start.getTime() + H, value: null });
+    expect(slots[2].value).toBe(0.5);
+    expect(slots.filter((p) => p.value === null)).toHaveLength(22);
+  });
+
+  it("drops rows outside the window — another day's hours never leak in", () => {
+    const rows = [{ start: new Date(2026, 8, 23, 5), value: 9 }];
+    const slots = padHours(rows, { start, end });
+    expect(slots.every((p) => p.value === null)).toBe(true);
+  });
+
+  it("follows the calendar on a 25-hour DST day", () => {
+    // 2026-10-25, Europe/Paris: 03:00 CEST → 02:00 CET.
+    const s = new Date(2026, 9, 25, 0, 0);
+    const e = new Date(2026, 9, 26, 0, 0);
+    expect(padHours([], { start: s, end: e })).toHaveLength(25);
   });
 });

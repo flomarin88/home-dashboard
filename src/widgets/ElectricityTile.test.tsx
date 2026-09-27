@@ -140,6 +140,40 @@ describe("ElectricityTile (Story 9.4 — yesterday, from the Linky statistics)",
     expect(screen.queryByText(/NaN/)).toBeNull();
   });
 
+  it("a cost row for ANOTHER day is not yesterday's cost: « — », never a neighbour's euros (UX-DR30)", async () => {
+    // Consumption imported for J-1, costs only up to J-2 (e.g. the price
+    // sensor was unavailable, ha-linky skipped the costs that morning).
+    state.callService.mockResolvedValue(
+      reply(
+        [
+          { start: D23, change: 6.1 },
+          { start: D24, change: 8.2 },
+        ],
+        [{ start: D23, change: 0.8 }],
+      ),
+    );
+    await renderTile();
+    expect(screen.getByTestId("electricity-day").textContent).toBe(
+      "Hier · 8,2 kWh",
+    );
+    expect(screen.getByText("—")).toBeInTheDocument();
+    expect(screen.queryByText(/0,80\s*€/)).toBeNull();
+  });
+
+  it("an answer that came back but could not be read says so — it is not « Pas encore de relevé » (règle D2)", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    state.callService.mockResolvedValue({
+      response: { statistics: { [CONSO]: [{ foo: 1 }], [COST]: [{ foo: 2 }] } },
+    });
+    await renderTile();
+    expect(screen.getByTestId("electricity-day").textContent).toBe(
+      "Valeur illisible",
+    );
+    expect(screen.queryByText(/Pas encore de relevé/)).toBeNull();
+    expect(screen.getByRole("button").className).toContain("opacity-60");
+    warn.mockRestore();
+  });
+
   it("no complete day at all → « Pas encore de relevé », same footprint, no blank, no NaN (UX-DR27)", async () => {
     state.callService.mockResolvedValue(reply([], []));
     await renderTile();
