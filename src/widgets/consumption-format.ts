@@ -103,3 +103,23 @@ export function periodTone(p: TariffPeriod | null): {
     border: "border-card-border",
   };
 }
+
+/**
+ * A month-over-month variation as a SIGNED whole percentage (Story 9.5):
+ * "+12 %", "−5 %", "0 %". The sign is the message — "12 %" alone would not say
+ * which way the bill moved — and colour, if any, is only reinforcement
+ * (UX-DR14). Rounded to the unit: a kitchen glance does not read "+11,8 %".
+ * `null` (reference missing or zero) → "—", never "0 %" (AD-16).
+ */
+const VARIATION_FMT = new Intl.NumberFormat("fr-FR", {
+  style: "percent",
+  maximumFractionDigits: 0,
+  signDisplay: "exceptZero",
+});
+
+export function formatVariation(v: number | null): string {
+  if (v === null || !Number.isFinite(v)) return "—";
+  // Round FIRST so that -0.004 prints "0 %", not "-0 %".
+  const rounded = Math.round(v * 100) / 100;
+  return VARIATION_FMT.format(rounded === 0 ? 0 : rounded);
+}

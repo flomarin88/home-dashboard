@@ -92,6 +92,35 @@ const hourReply = (skipHours: number[] = []) => ({
 });
 let hourData = hourReply();
 
+// Story 9.5 — navigation asks for OTHER windows. Replies are keyed by
+// `period|start_time`; a window nobody configured answers with no statistics.
+// The default two-day window (9.4) keeps its fixtures above.
+type ServiceData = { period: string; start_time: string; end_time: string };
+const DEFAULT_START = "2026-09-22T22:00:00.000Z";
+const replies = new Map<string, unknown>();
+const key = (period: string, start: Date) => `${period}|${start.toISOString()}`;
+const reply = (
+  stats: Record<string, { start: string; change?: number }[]>,
+) => ({
+  response: { statistics: stats },
+});
+/** A row starting at LOCAL midnight (or the 1st), as HA sends it: UTC ISO. */
+const at = (y: number, m: number, d: number) => new Date(y, m - 1, d);
+const rowAt = (y: number, m: number, d: number, change?: number) => ({
+  start: at(y, m, d).toISOString(),
+  ...(change === undefined ? {} : { change }),
+});
+function route(data: ServiceData): unknown {
+  if (data.start_time === DEFAULT_START)
+    return data.period === "hour" ? hourData : dayData;
+  return replies.get(`${data.period}|${data.start_time}`) ?? reply({});
+}
+const callsFor = (period: string) =>
+  state.callService.mock.calls
+    .map((c) => c[0] as { serviceData: ServiceData })
+    .filter((a) => a.serviceData.period === period)
+    .map((a) => a.serviceData);
+
 let dayData = dayReply(
   [
     { start: D23, change: 6.1 },
@@ -166,10 +195,10 @@ beforeEach(() => {
     ],
   );
   hourData = hourReply();
+  replies.clear();
   state.callService.mockReset();
   state.callService.mockImplementation(
-    async (args: { serviceData: { period: string } }) =>
-      args.serviceData.period === "hour" ? hourData : dayData,
+    async (args: { serviceData: ServiceData }) => route(args.serviceData),
   );
 });
 
@@ -365,5 +394,288 @@ describe("ElectricityDetail (Story 9.4 — yesterday, from the Linky statistics)
     await renderPage();
     fireEvent.click(screen.getByRole("button", { name: /Accueil/i }));
     expect(screen.getByText("home-page")).toBeInTheDocument();
+  });
+});
+
+// ——— Story 9.5 — navigating the past, and the month view ———
+
+describe("ElectricityDetail (Story 9.5 — ‹ ›, Jour / Mois, « Dernier relevé »)", () => {
+  const click = async (name: RegExp | string) => {
+    fireEvent.click(screen.getByRole("button", { name }));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+      await vi.advanceTimersByTimeAsync(0);
+    });
+  };
+  const tab = async (name: string) => {
+    fireEvent.click(screen.getByRole("tab", { name }));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+      await vi.advanceTimersByTimeAsync(0);
+    });
+  };
+
+  it("renders ONE control row: Jour / Mois tabs, ‹ ›, the period reminder and « Dernier relevé » — none disabled", async () => {
+    const { container } = await renderPage();
+    const row = container.querySelector(".h-\\[52px\\]");
+    expect(row).not.toBeNull();
+    const tabs = screen.getAllByRole("tab");
+    expect(tabs.map((t) => t.textContent)).toEqual(["Jour", "Mois"]);
+    expect(tabs[0]).toHaveAttribute("aria-selected", "true");
+    for (const name of [
+      "Période précédente",
+      "Période suivante",
+      "Dernier relevé",
+    ]) {
+      expect(screen.getByRole("button", { name })).not.toBeDisabled();
+    }
+    // The reminder wears the SHORT form; the tile title carries the long one.
+    expect(screen.getByText("Hier")).toBeInTheDocument();
+    expect(screen.getByText("Hier · jeudi 24 septembre")).toBeInTheDocument();
+  });
+
+  it("without navigating, asks HA exactly what 9.4 asked: the two default-window queries, nothing more", async () => {
+    await renderPage();
+    expect(state.callService).toHaveBeenCalledTimes(2);
+    expect(callsFor("month")).toHaveLength(0);
+  });
+
+  it("‹ steps back one day: day + hour queries on [23, 24 Sept), the tile named for that day", async () => {
+    replies.set(
+      key("day", at(2026, 9, 23)),
+      reply({
+        [CONSO]: [rowAt(2026, 9, 23, 6.1)],
+        [COST]: [rowAt(2026, 9, 23, 0.8)],
+      }),
+    );
+    replies.set(
+      key("hour", at(2026, 9, 23)),
+      reply({
+        [CONSO]: Array.from({ length: 24 }, (_, h) => ({
+          start: new Date(2026, 8, 23, h).toISOString(),
+          change: 0.25,
+        })),
+      }),
+    );
+    await renderPage();
+    await click("Période précédente");
+
+    const day = callsFor("day").at(-1)!;
+    expect(day.start_time).toBe(at(2026, 9, 23).toISOString());
+    expect(day.end_time).toBe(at(2026, 9, 24).toISOString());
+    const hour = callsFor("hour").at(-1)!;
+    expect(hour.start_time).toBe(at(2026, 9, 23).toISOString());
+    expect(hour.end_time).toBe(at(2026, 9, 24).toISOString());
+
+    expect(
+      screen.getByText("Avant-hier · mercredi 23 septembre"),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/0,80\s*€/)).toBeInTheDocument();
+    expect(screen.getByText(/6,1\s*kWh/)).toBeInTheDocument();
+    expect(screen.getAllByTestId("bar-cell")).toHaveLength(24);
+    expect(screen.getByText("mer. 23")).toBeInTheDocument();
+  });
+
+  it("› at the last complete day is idempotent: no new query, same day on screen", async () => {
+    await renderPage();
+    const before = state.callService.mock.calls.length;
+    await click("Période suivante");
+    expect(state.callService.mock.calls.length).toBe(before);
+    expect(screen.getByText("Hier · jeudi 24 septembre")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Période suivante" }),
+    ).not.toBeDisabled();
+  });
+
+  it("« Dernier relevé » comes back to the latest day after navigating", async () => {
+    await renderPage();
+    await click("Période précédente");
+    expect(screen.queryByText("Hier · jeudi 24 septembre")).toBeNull();
+    await click("Dernier relevé");
+    expect(screen.getByText("Hier · jeudi 24 septembre")).toBeInTheDocument();
+  });
+
+  it("a past day HA has no row for says « Pas de relevé ce jour-là » — not « Pas encore de relevé »", async () => {
+    await renderPage();
+    await click("Période précédente");
+    await click("Période précédente"); // 22 Sept: nothing configured
+    expect(screen.getByText("Pas de relevé ce jour-là")).toBeInTheDocument();
+    expect(screen.queryByText("Pas encore de relevé")).toBeNull();
+    expect(screen.getByText("Mardi 22 septembre")).toBeInTheDocument();
+  });
+
+  it("bars of a day the period history does not cover stay NEUTRAL — never a guessed tariff", async () => {
+    // The fixture history starts 23 Sept 23:00; the 23rd's hours before that
+    // have no known state, so 23 of its 24 bars carry no tariff colour.
+    replies.set(
+      key("hour", at(2026, 9, 23)),
+      reply({
+        [CONSO]: Array.from({ length: 24 }, (_, h) => ({
+          start: new Date(2026, 8, 23, h).toISOString(),
+          change: 0.25,
+        })),
+      }),
+    );
+    await renderPage();
+    await click("Période précédente");
+    const fills = screen
+      .getAllByTestId("bar-cell")
+      .map((c) => c.getAttribute("data-fill"));
+    expect(fills.filter((f) => f === "var(--color-text)")).toHaveLength(23);
+    expect(
+      screen.getByRole("img", { name: /période tarifaire non disponible/i }),
+    ).toBeInTheDocument();
+  });
+
+  // ——— Month view ———
+
+  const monthFixtures = () => {
+    // 14 months of buckets [Aug 2025, Oct 2026): M, M−1, M−12 all present.
+    replies.set(
+      key("month", at(2025, 8, 1)),
+      reply({
+        [CONSO]: [
+          rowAt(2025, 9, 1, 210),
+          rowAt(2026, 7, 1, 150),
+          rowAt(2026, 8, 1, 180),
+          rowAt(2026, 9, 1, 200),
+        ],
+        [COST]: [
+          rowAt(2025, 9, 1, 24),
+          rowAt(2026, 7, 1, 0),
+          rowAt(2026, 8, 1, 22),
+          rowAt(2026, 9, 1, 25),
+        ],
+      }),
+    );
+    // Daily rows of September: 1 → 24 (the data stops at the last complete day).
+    replies.set(
+      key("day", at(2026, 9, 1)),
+      reply({
+        [CONSO]: Array.from({ length: 24 }, (_, i) => rowAt(2026, 9, i + 1, 8)),
+      }),
+    );
+    // « à date » references, TRUNCATED to 24 days — HA's own change of the portion.
+    replies.set(
+      key("month", at(2026, 8, 1)),
+      reply({
+        [CONSO]: [rowAt(2026, 8, 1, 178.6)],
+        [COST]: [rowAt(2026, 8, 1, 22.9)],
+      }),
+    );
+    replies.set(
+      key("month", at(2025, 9, 1)),
+      reply({ [CONSO]: [rowAt(2025, 9, 1, 210.5)], [COST]: [] }),
+    );
+  };
+
+  it("Mois: ONE 14-month query + the month's daily rows; cost hero, conso, title « à date (N j) » on the current month", async () => {
+    monthFixtures();
+    await renderPage();
+    await tab("Mois");
+
+    const months = callsFor("month");
+    expect(months[0].start_time).toBe(at(2025, 8, 1).toISOString());
+    expect(months[0].end_time).toBe(at(2026, 10, 1).toISOString());
+    const days = callsFor("day").at(-1)!;
+    expect(days.start_time).toBe(at(2026, 9, 1).toISOString());
+    expect(days.end_time).toBe(at(2026, 10, 1).toISOString());
+
+    expect(
+      screen.getByText("Septembre 2026 · à date (24 j)"),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/25,00\s*€/)).toBeInTheDocument();
+    expect(screen.getByText(/200,0\s*kWh/)).toBeInTheDocument();
+    expect(screen.getByText("sept. 2026")).toBeInTheDocument();
+    // One bar per calendar day of September, the 6 future days as gaps.
+    expect(screen.getAllByTestId("bar-cell")).toHaveLength(30);
+  });
+
+  it("current month compares « à date » through TRUNCATED windows HA computes — the app sums nothing", async () => {
+    monthFixtures();
+    await renderPage();
+    await tab("Mois");
+
+    const truncated = callsFor("month").slice(1);
+    expect(truncated.map((q) => [q.start_time, q.end_time])).toEqual([
+      [at(2026, 8, 1).toISOString(), at(2026, 8, 25).toISOString()],
+      [at(2025, 9, 1).toISOString(), at(2025, 9, 25).toISOString()],
+    ]);
+    // 200 vs 178.6 = +12 % · 25 vs 22.9 = +9 % ; 200 vs 210.5 = −5 % · cost absent = —
+    expect(
+      screen.getByText(/vs août \(à date\) : conso \+12\s*% · coût \+9\s*%/),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/vs sept\. 2025 \(à date\) : conso [−-]5\s*% · coût —/),
+    ).toBeInTheDocument();
+  });
+
+  it("a CLOSED month compares whole months from the same 14-month reply — no truncated query; a zero reference renders —", async () => {
+    monthFixtures();
+    replies.set(
+      key("month", at(2025, 7, 1)),
+      reply({
+        [CONSO]: [
+          rowAt(2025, 8, 1, 190),
+          rowAt(2026, 7, 1, 150),
+          rowAt(2026, 8, 1, 180),
+        ],
+        [COST]: [
+          rowAt(2025, 8, 1, 21),
+          rowAt(2026, 7, 1, 0),
+          rowAt(2026, 8, 1, 22),
+        ],
+      }),
+    );
+    replies.set(
+      key("day", at(2026, 8, 1)),
+      reply({
+        [CONSO]: Array.from({ length: 31 }, (_, i) => rowAt(2026, 8, i + 1, 6)),
+      }),
+    );
+    await renderPage();
+    await tab("Mois");
+    const monthCallsBefore = callsFor("month").length;
+    await click("Période précédente");
+
+    expect(screen.getByText("Août 2026")).toBeInTheDocument();
+    expect(screen.queryByText(/à date/)).toBeNull();
+    expect(callsFor("month").length).toBe(monthCallsBefore + 1);
+    const last = callsFor("month").at(-1)!;
+    expect(last.start_time).toBe(at(2025, 7, 1).toISOString());
+    expect(last.end_time).toBe(at(2026, 9, 1).toISOString());
+    // 180 vs 150 = +20 % ; cost 22 vs 0 → — (never Infinity)
+    expect(
+      screen.getByText(/vs juillet : conso \+20\s*% · coût —/),
+    ).toBeInTheDocument();
+    // 180 vs 190 = −5 % ; 22 vs 21 = +5 %
+    expect(
+      screen.getByText(/vs août 2025 : conso [−-]5\s*% · coût \+5\s*%/),
+    ).toBeInTheDocument();
+    expect(screen.getAllByTestId("bar-cell")).toHaveLength(31);
+  });
+
+  it("› on the current month is idempotent, and the anchor survives a view switch", async () => {
+    monthFixtures();
+    await renderPage();
+    await tab("Mois");
+    const before = state.callService.mock.calls.length;
+    await click("Période suivante");
+    expect(state.callService.mock.calls.length).toBe(before);
+    expect(screen.getByText(/^Septembre 2026/)).toBeInTheDocument();
+
+    await click("Période précédente"); // août
+    await tab("Jour");
+    // The day view lands inside August — the 1st, as the month step does.
+    expect(screen.getByText("Samedi 1 août")).toBeInTheDocument();
+  });
+
+  it("a month HA has no rows for renders « — » everywhere and no truncated query (N = 0)", async () => {
+    await renderPage();
+    await tab("Mois");
+    expect(callsFor("month")).toHaveLength(1);
+    expect(screen.getByText("Septembre 2026")).toBeInTheDocument();
+    expect(screen.getByText(/vs août : conso — · coût —/)).toBeInTheDocument();
+    expect(screen.queryByText(/NaN|Infinity/)).toBeNull();
   });
 });

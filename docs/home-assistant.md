@@ -383,6 +383,37 @@ compensé côté app** — la correction, si elle vient un jour, se fera côté 
   <date> » + 24 barres + tuile HC/HP intacte, sans scroll. Un matin avant 7h30, la tuile
   montre la date d'avant-hier. Coupe le réseau ⇒ dernière valeur + « Hors ligne ».
 
+### 5. Naviguer dans le passé et vue mensuelle (Story 9.5)
+
+La page `/electricite` porte une rangée de contrôle **Jour / Mois**, des flèches **‹ ›**
+et un bouton **« Dernier relevé »**. Rien à configurer côté HA : ce sont les **mêmes deux
+statistiques**, demandées sur d'autres fenêtres et à la granularité `month` que
+`recorder.get_statistics` sert déjà. Ce qui dépend de HA, c'est **jusqu'où** l'historique
+remonte et **ce que « — » veut dire** :
+
+| affichage                                   | d'où ça vient                                                         | « — » signifie                                                                                            |
+| ------------------------------------------- | --------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| jour passé : conso, coût, 24 barres         | `day` + `hour` sur `[J, J+1)`                                         | ha-linky n'a pas de ligne pour ce jour (« Pas de relevé ce jour-là ») ou n'a pas calculé le coût          |
+| couleur HC/HP des barres d'un jour passé    | historique du `binary_sensor.heures_creuses`                          | barres **neutres** au-delà de `recorder.purge_keep_days` (10 jours par défaut) — jamais un horaire deviné |
+| mois : conso, coût                          | `month` sur `[M−13, M+1)` (M, M−1 et M−12 en une requête)             | pas de statistique pour ce mois                                                                           |
+| variation vs mois précédent / vs an dernier | les mêmes buckets `month`                                             | référence absente **ou nulle** (pas de division par zéro maquillée)                                       |
+| mois en cours « à date (N j) »              | deux requêtes `month` **tronquées** à N jours — HA calcule la portion | idem                                                                                                      |
+
+**Profondeur.** Au premier lancement, ha-linky importe **jusqu'à 1 an** de données
+**quotidiennes** (demi-heure sur les 7 derniers jours ; plus loin et à l'heure via un export
+CSV). La variation « vs an dernier » exige donc **13 mois** : selon la date d'installation,
+elle affiche « — » jusqu'à ce que l'historique y arrive.
+
+**Coût des périodes passées.** ha-linky calcule le coût **au moment de l'import** et ne
+recalcule pas l'existant. Si la section `costs` a été posée après l'import initial, les
+mois antérieurs n'ont **pas de coût** — sauf **remise à zéro** de l'add-on (`action: reset`
+puis `sync`), qui réimporte tout l'historique en calculant les coûts. C'est une décision à
+prendre côté HA, pas un défaut de l'app.
+
+**Relever avant la preuve device** : dans Outils de développement → Statistiques, le
+**premier jour** disponible de `linky:24305788525104` et de `linky:24305788525104_cost`,
+et la valeur de `recorder.purge_keep_days`.
+
 ---
 
 ## Électricité — heures creuses / pleines (Story 9.2)
