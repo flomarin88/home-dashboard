@@ -318,6 +318,20 @@ claude-fable-5-1 (Liza Pairing, Autonomous — bmad dev-story, 2026-09-26)
 
 - **Build AD-8** : `.env.local` écarté puis restauré, empreinte SHA-256 identique avant/après. `dist/` : **0** JWT, **exactement 2** occurrences `linky:` (les deux ids), **0** horaire/prix.
 - **Le gate horaires attrape aussi les commentaires** : `rg '01:08|…' src --glob '!*.test.*'` a remonté mon propre en-tête de `periodOfInterval`, qui citait les bornes en exemple. Reformulé sans chiffre. La règle 9.2 « aucun horaire dans `src/` hors tests » vaut pour la prose comme pour le code : un commentaire est dans le dépôt et se copie.
+- **Revue de code du 2026-09-27 (`/code-review 4 high`, 8 constats non vérifiés par l'agent, confrontés au code) — 5 corrigés, 2 différés, 1 sans suite :**
+
+  | # | Constat | Décision |
+  | --- | --- | --- |
+  | 1 | Coût imprimé sans vérifier qu'il est du jour nommé (`shown = conso ?? cost`) — un coût d'avant-hier pouvait s'afficher sous « Hier » | **Corrigé** : `pointOn(rows, shown.start)` pour la conso ET le coût ; un jour sans ligne de coût rend « — ». Test tuile + page + mutation |
+  | 2 | `unreadable` jamais lu par les composants — une réponse illisible passait pour « Pas encore de relevé » (règle D2) | **Corrigé** : « Valeur illisible », atténuée, sur la tuile et la page. Test + mutation |
+  | 3 | Barres horaires jamais filtrées sur le jour affiché et `hours.isStale` absent d'`anyStale` — d'anciennes barres sous un nouveau titre, sans atténuation | **Corrigé** par le constat 4 + `hours.isStale` dans `anyStale`. Test + mutation |
+  | 4 | Altitude : la fenêtre horaire dérivée de la réponse journalière (requête « devinée » puis seconde requête) | **Adopté** : une seule requête horaire sur la fenêtre de deux jours par défaut, `padHours(rows, dayWindow(shown.start))` côté client. Filtrer n'est pas calculer, AD-4 intact |
+  | 5 | `hoursToShow` recalculé chaque heure ⇒ `useHistory` résilie et recrée son abonnement | **Corrigé** : constante `PERIOD_HISTORY_HOURS = 72`, suffisante depuis J−2 à toute heure de J. `hoursToCover` et ses tests supprimés |
+  | 6 | Axe catégoriel : une heure manquante disparaît, un jour à 20 lignes ressemble à un jour plein | **Corrigé** : `padHours` complète à chaque heure du jour avec `value: null` (barre absente, créneau conservé) ; `HistoryPoint.value` accepte `null`, tooltip « — », `stepTicks` ignore les nuls. Test 20 lignes ⇒ 24 créneaux |
+  | 7 | Duplication `dayKey`/`windowKey`/squelette de rafraîchissement avec `useCalendarEvents` | **Différé** en dette (`deferred-work.md`) : l'extraction touche l'agenda livré, tâche distincte. Déclencheur : la prochaine correction de la politique de rafraîchissement |
+  | 8 | `periodOfInterval` trie la timeline à chaque appel, 24 fois par rendu | **Sans suite** : ~20 éléments × 24, aucun coût mesurable ; consigné, pas corrigé (Rule 6 : pas de correction sans défaillance concrète) |
+
+  `hourlySeries` est devenu code mort (remplacé par `padHours`) : supprimé avec son test. 4 mutations supplémentaires, toutes mordues.
 - **Graphe en barres non vu dans un navigateur** : `SensorHistoryChart kind="bar"` est testé avec Recharts **mocké** (jsdom ne mesure rien). Le passage de l'axe X en `type="category"` pour donner une largeur aux barres est une décision de code, pas une observation — **à vérifier au device-proof**, avec l'iPad comme instrument.
 
 ### Completion Notes List
@@ -339,7 +353,7 @@ claude-fable-5-1 (Liza Pairing, Autonomous — bmad dev-story, 2026-09-26)
 
 **Créés :**
 
-- `src/energy/statistics.ts`, `src/energy/statistics.test.ts` — module pur (parse, sélection du dernier jour complet, fenêtres, libellés, série horaire)
+- `src/energy/statistics.ts`, `src/energy/statistics.test.ts` — module pur (parse, sélection du dernier jour complet, `pointOn` d'un jour, fenêtres, libellés, `padHours` par heure du jour, période d'une heure par majorité)
 - `src/hakit/useStatistics.ts`, `src/hakit/useStatistics.test.ts` — seam AD-17 `recorder.get_statistics`
 
 **Modifiés :**
@@ -358,6 +372,7 @@ claude-fable-5-1 (Liza Pairing, Autonomous — bmad dev-story, 2026-09-26)
 
 | Date       | Version | Description |
 | ---------- | ------- | ----------- |
+| 2026-09-27 | 0.4     | **Revue de code (`/code-review 4 high`) : 5 constats corrigés.** Coût lu **pour le jour nommé seulement** (`pointOn`), « Valeur illisible » distinct de « Pas encore de relevé », une seule requête horaire sur deux jours découpée et **complétée à 24 créneaux** (heure manquante = trou visible, `value: null`), `hours.isStale` dans l'atténuation, profondeur d'historique constante (72 h). `hourlySeries`/`hoursToCover` supprimés. Deux suggestions différées en dette, une sans suite. Suite 528 → 532 (12 tests ajoutés, 3 retirés avec le code mort), 4 mutations mordues. |
 | 2026-09-26 | 0.3     | **Ajout demandé par Florian : barres horaires colorées HC/HP**, période d'hier lue dans l'historique HA du `binary_sensor` (`useHistory`), arrondie à l'heure par majorité ; `Cell` par barre, tooltip nommant la période, légende glyphe + mot (UX-DR14). Aucun horaire dans le bundle (gate vérifié, y compris les commentaires). Suite 516 → 528, 4 mutations mordues. Test de page durci contre un échec dépendant de l'ordre (import `lazy` sous faux timers) ; le diagnostic initial « pollution par les mutations » était faux et est corrigé au Debug Log. |
 | 2026-09-26 | 0.2     | **dev-story : Tasks 1–8 faites (hors preuve device), en TDD.** Mapping sur deux identifiants de statistiques ; module pur `src/energy/statistics.ts` ; seam `useStatistics` (`recorder.get_statistics`, AD-17) ; tuile et page sur le dernier jour complet, daté (UX-DR30) ; coût lu tel que calculé par HA, `electricityView` ne multiplie plus ; graphe horaire en barres ; doc HA réécrite. Suite 481 → 516, typecheck/lint/Prettier propres, build sans token : 0 JWT, 2 ids, 0 horaire. 5 mutations, toutes mordues. **Restent** : Task 0 (observer `_cost` côté HA) et preuve device — story en `in-progress`. |
 | 2026-09-26 | 0.1     | Story créée (create-story) depuis `sprint-change-proposal-2026-09-25.md`. Identifiants réels fournis par Florian ; format du second **prouvé** dans le code de ha-linky, existence à confirmer en Task 0. Schéma et réponse de `recorder.get_statistics` vérifiés dans HA 2026.7.3. Trois points laissés à ratifier au device-proof (forme du libellé sur la chip, existence de la statistique de coût, jour à barre unique). |
